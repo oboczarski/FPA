@@ -36,12 +36,10 @@ const els = {
   profilePill: document.getElementById("profilePill"),
   weeklySub: document.getElementById("weeklySub"),
 
-  modal: document.getElementById("modal"),
-  modalTitle: document.getElementById("modalTitle"),
-  modalCards: document.getElementById("modalCards"),
   weekRange: document.getElementById("weekRange"),
   playerSearch: document.getElementById("playerSearch"),
   playerTable: document.getElementById("playerTable"),
+  playerSection: document.getElementById("playerSection"),
 };
 
 let STATE = {
@@ -51,7 +49,8 @@ let STATE = {
   scatterMode: "avg", // "avg" | "rank"
   sortKey: "Total_Rk",
   sortDir: "desc",
-  playerSort: { key: "pts", dir: "desc" },
+  playerSort: { key: "week", dir: "desc" },
+  heatmapPos: "QB", // independent position for heatmap
 };
 
 let DATA = {
@@ -68,7 +67,6 @@ let charts = {
   scatter: null,
   radar: null,
   weekly: null,
-  modalWeekly: null,
 };
 
 function $(sel, root=document){ return root.querySelector(sel); }
@@ -368,8 +366,12 @@ function buildMiniLists(){
   const trendUp = [...trend].sort((a,b) => b.dRank - a.dRank).slice(0, topN);
   const trendDown = [...trend].sort((a,b) => a.dRank - b.dRank).slice(0, topN);
 
-  const renderList = (root, rows, mode) => {
+  const renderList = (root, rows, mode, title) => {
     root.innerHTML = "";
+    // Set the card title dynamically
+    const cardTitleEl = root.closest('.miniCard')?.querySelector('.miniCard__title');
+    if (cardTitleEl) cardTitleEl.textContent = title;
+
     for (const r of rows){
       const el = document.createElement("div");
       el.className = "rankRow";
@@ -388,7 +390,7 @@ function buildMiniLists(){
               const arrow = r.dRank > 0 ? "▲" : (r.dRank < 0 ? "▼" : "•");
               return `<span class="trendBadge" style="border-color:${rgbaOf(dot,0.25)}; background:${rgbaOf(dot,0.12)}; color:${dot};">${arrow} ${Math.abs(fmt(r.dRank,0))}</span>`;
             })()
-          : "Open";
+          : "";
 
         return `
           <div class="lhs">
@@ -396,21 +398,20 @@ function buildMiniLists(){
             <div class="tm">${r.t}</div>
             <div class="meta">${meta}</div>
           </div>
-          <div class="rhs">${badge}</div>
+          ${badge ? `<div class="rhs">${badge}</div>` : ""}
         `;
       })();
-el.addEventListener("click", () => {
+      el.addEventListener("click", () => {
         selectTeam(r.t, pos);
-        openDrilldown(r.t, pos);
       });
       root.appendChild(el);
     }
   };
 
-  renderList(els.topSeason, topBy("season"), "top");
-  renderList(els.topRecent, topBy("recent"), "top");
-  renderList(els.trendUp, trendUp, "trend");
-  renderList(els.trendDown, trendDown, "trend");
+  renderList(els.topSeason, topBy("season"), "top", `Best Matchups Through 2025 for ${pos}`);
+  renderList(els.topRecent, topBy("recent"), "top", `Best Matchups Last 7 Games for ${pos}`);
+  renderList(els.trendUp, trendUp, "trend", "Trending Up (Easier)");
+  renderList(els.trendDown, trendDown, "trend", "Trending Down (Tougher)");
 }
 
 function buildQuickCards(){
@@ -572,7 +573,6 @@ function buildHeatTable(){
       const team = cell.dataset.team;
       const pos = cell.dataset.pos === "TOTAL" ? STATE.pos : cell.dataset.pos;
       selectTeam(team, pos);
-      openDrilldown(team, pos);
     });
   });
 }
@@ -775,37 +775,8 @@ function buildWeeklyTotalsProfile(team, pos){
   });
 }
 
-function buildModalWeekly(team, pos){
-  const ctx = document.getElementById("modalWeeklyChart").getContext("2d");
-  if (charts.modalWeekly) charts.modalWeekly.destroy();
-
-  const key = `${team}|${pos}`;
-  const arr = DATA.playersWeeklyTotals.get(key) ?? [];
-
-  const labels = arr.map(d => `W${d.week}`);
-  const vals = arr.map(d => d.total);
-
-  charts.modalWeekly = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{ label: "Weekly total", data: vals, borderWidth: 0 }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      resizeDelay: 120,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: "rgba(255,255,255,0.06)" } },
-        y: { grid: { color: "rgba(255,255,255,0.06)" }, title: { display:true, text: "FPA (total)" } }
-      }
-    }
-  });
-}
-
 // =====================
-// Drilldown modal
+// Player table (main layout)
 // =====================
 function getPlayerRows(team, pos){
   return DATA.playersLong.filter(r => r.def === team && r.pos === pos);
@@ -879,65 +850,11 @@ function buildPlayerTable(team, pos){
         STATE.playerSort.dir = STATE.playerSort.dir === "asc" ? "desc" : "asc";
       }else{
         STATE.playerSort.key = k;
-        STATE.playerSort.dir = (k === "pts") ? "desc" : "asc";
+        STATE.playerSort.dir = (k === "pts" || k === "week") ? "desc" : "asc";
       }
       buildPlayerTable(team, pos);
     });
   });
-}
-
-function openDrilldown(team, pos){
-  els.modal.classList.add("is-open");
-  els.modal.setAttribute("aria-hidden","false");
-  els.modalTitle.textContent = `${team} vs ${pos}`;
-
-  const tr = calcTrend(team, pos);
-  const gmS = getMetric(team,"season","GM_P");
-  const gmR = getMetric(team,"recent","GM_P");
-
-  const makeCard = (title, avg, rk, gm) => {
-    const sc = rankScore(rk);
-    const c = heatColor(sc);
-    return `
-      <div class="card">
-        <div class="card__top">
-          <div class="card__title">${title}</div>
-          <span class="chip"><span class="swatch" style="background:${c};"></span>${rk >= 24 ? "Easy" : rk <= 10 ? "Hard" : "Neutral"}</span>
-        </div>
-        <div class="card__big">${fmt(avg,2)} <span class="muted" style="font-size:12px;font-weight:700;">FPA</span></div>
-        <div class="card__sub">Rank: <strong>${fmt(rk,0)}</strong> / 32 • Games: <strong>${fmt(gm,0)}</strong></div>
-      </div>
-    `;
-  };
-
-  const trendCard = `
-    <div class="card">
-      <div class="card__top">
-        <div class="card__title">Trend</div>
-        <span class="chip"><span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>${Number.isFinite(tr.dRank) ? "Δ" : "—"}</span>
-      </div>
-      <div class="card__big">${Number.isFinite(tr.dRank) ? `${tr.dRank > 0 ? "+" : ""}${fmt(tr.dRank,0)} <span class="muted" style="font-size:12px;font-weight:700;">rank</span>` : "—"}</div>
-      <div class="card__sub">${Number.isFinite(tr.dAvg) ? `ΔAvg: <strong>${tr.dAvg > 0 ? "+" : ""}${fmt(tr.dAvg,2)}</strong> • Recent is ${tr.dRank > 0 ? "<strong>easier</strong>" : tr.dRank < 0 ? "<strong>tougher</strong>" : "<strong>flat</strong>"}` : "Trend not available"}</div>
-    </div>
-  `;
-
-  els.modalCards.innerHTML = [
-    makeCard("Season", tr.seasonAvg, tr.seasonRank, gmS),
-    makeCard("Weeks 9–15", tr.recentAvg, tr.recentRank, gmR),
-    trendCard
-  ].join("");
-
-  buildModalWeekly(team, pos);
-  buildPlayerTable(team, pos);
-
-  // wire filters
-  els.weekRange.onchange = () => buildPlayerTable(team, pos);
-  els.playerSearch.oninput = () => buildPlayerTable(team, pos);
-}
-
-function closeModal(){
-  els.modal.classList.remove("is-open");
-  els.modal.setAttribute("aria-hidden","true");
 }
 
 // =====================
@@ -987,6 +904,7 @@ function selectTeam(team, pos = STATE.pos){
   buildMiniLists();
   buildScatter();
   buildRadar();
+  buildPlayerTable(team, pos);
 
   // highlight selected heat cells
   $$(".cell", els.heatTable).forEach(c => c.classList.toggle("is-selected", c.dataset.team === team && (c.dataset.pos === STATE.pos || c.dataset.pos === "TOTAL")));
@@ -1071,13 +989,12 @@ function bindEvents(){
     buildScatter();
   }));
 
-  // modal close
-  els.modal.addEventListener("click", (e) => {
-    const t = e.target;
-    if (t && t.dataset && t.dataset.close) closeModal();
+  // player table filters
+  els.weekRange.addEventListener("change", () => {
+    if (STATE.selectedTeam) buildPlayerTable(STATE.selectedTeam, STATE.pos);
   });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && els.modal.classList.contains("is-open")) closeModal();
+  els.playerSearch.addEventListener("input", () => {
+    if (STATE.selectedTeam) buildPlayerTable(STATE.selectedTeam, STATE.pos);
   });
 
   // file upload
