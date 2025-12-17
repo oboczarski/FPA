@@ -40,7 +40,6 @@ const els = {
   trendDownTitle: document.getElementById("trendDownTitle"),
 
   profilePill: document.getElementById("profilePill"),
-  weeklySub: document.getElementById("weeklySub"),
 
   playersSub: document.getElementById("playersSub"),
   weekRange: document.getElementById("weekRange"),
@@ -56,6 +55,7 @@ let STATE = {
   sortKey: "Total_Rk",
   sortDir: "desc",
   playerSort: { key: "week", dir: "desc" },
+  playerScatterPos: "ALL", // "ALL" | "QB" | "RB" | "WR" | "TE"
 };
 
 let DATA = {
@@ -70,8 +70,7 @@ let DATA = {
 
 let charts = {
   scatter: null,
-  radar: null,
-  weekly: null,
+  playerScatter: null,
 };
 
 function $(sel, root=document){ return root.querySelector(sel); }
@@ -130,6 +129,24 @@ function heatColor(score){
   const cTough = [255, 88, 92];
   const cEasy  = [72, 245, 177];
   return lerpRGB(cTough, cEasy, clamp(score,0,1));
+}
+
+// Position colors for player scatter
+const POS_COLORS = {
+  QB: { base: [255, 58, 117], hex: "#FF3A75" },   // pink-red
+  RB: { base: [0, 235, 199], hex: "#00EBC7" },    // mint-teal
+  WR: { base: [88, 167, 255], hex: "#58A7FF" },   // sky blue
+  TE: { base: [180, 105, 255], hex: "#B469FF" },  // purple
+};
+
+// Get position color with brightness based on points (0-1 scale)
+function getPosColor(pos, brightness = 0.7) {
+  const color = POS_COLORS[pos] || POS_COLORS.QB;
+  const b = clamp(brightness, 0.3, 1);
+  const r = Math.round(color.base[0] * b);
+  const g = Math.round(color.base[1] * b);
+  const bl = Math.round(color.base[2] * b);
+  return `rgba(${r}, ${g}, ${bl}, 0.85)`;
 }
 
 
@@ -474,9 +491,7 @@ function buildQuickCards(){
     ? (s.dRank > 0 ? "rgb(72, 245, 177)" : (s.dRank < 0 ? "rgb(255, 88, 92)" : "rgb(255, 209, 102)"))
     : "rgb(0, 191, 255)";
 
-  const deltaText = (Number.isFinite(s.dRank) && Number.isFinite(s.dAvg))
-    ? `• Trend: <strong>${s.dRank > 0 ? "+" : ""}${fmt(s.dRank,0)}</strong> ranks, <strong>${s.dAvg > 0 ? "+" : ""}${fmt(s.dAvg,2)}</strong> avg`
-    : "";
+  const hasTrend = Number.isFinite(s.dRank) && Number.isFinite(s.dAvg);
 
   els.quickCards.innerHTML = [
     card("Season", s.seasonAvg, s.seasonRank, gmS, ""),
@@ -486,11 +501,11 @@ function buildQuickCards(){
         <div class="card__title">Season ↔ Recent Trend</div>
         <span class="chip">
           <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
-          ${deltaText ? "TREND" : "—"}
+          ${hasTrend ? "TREND" : "—"}
         </span>
       </div>
-      <div class="card__big">${deltaText ? `${s.dRank > 0 ? "+" : ""}${fmt(s.dRank,0)} <span class="muted" style="font-size:12px;font-weight:700;">rank</span>` : "—"}</div>
-      <div class="card__sub">${deltaText ? `Recent is ${s.dRank > 0 ? "<strong>easier</strong>" : (s.dRank < 0 ? "<strong>tougher</strong>" : "<strong>flat</strong>")} vs season ${deltaText}` : "Trend not available"}</div>
+      <div class="card__big">${hasTrend ? `${s.dRank > 0 ? "+" : ""}${fmt(s.dRank,0)} <span class="muted" style="font-size:12px;font-weight:700;">rank</span>` : "—"}</div>
+      <div class="card__sub">${hasTrend ? `${s.dAvg > 0 ? "+" : ""}${fmt(s.dAvg,2)} avg FPA` : "Trend not available"}</div>
     </div>`
   ].join("");
 
@@ -694,95 +709,114 @@ function buildScatter(){
   });
 }
 
-function buildRadar(){
+function buildPlayerScatter() {
   const team = STATE.selectedTeam;
-  const pos = STATE.pos;
-
-  const ctx = document.getElementById("radarChart").getContext("2d");
-  if (charts.radar) charts.radar.destroy();
-
-  const labels = ["QB","RB","WR","TE","Total"];
-  const seasonVals = labels.map(l => l === "Total" ? getMetric(team,"season","Total_Rk") : getMetric(team,"season",`${l}_Rk`));
-  const recentVals = labels.map(l => l === "Total" ? getMetric(team,"recent","Total_Rk") : getMetric(team,"recent",`${l}_Rk`));
-
-  charts.radar = new Chart(ctx, {
-    type: "radar",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Season",
-          data: seasonVals,
-          fill: true,
-          backgroundColor: "rgba(207,120,255,0.12)",
-          borderColor: "rgba(207,120,255,0.65)",
-          pointBackgroundColor: "rgba(207,120,255,0.9)",
-          borderWidth: 1.4,
-        },
-        {
-          label: "Weeks 9–15",
-          data: recentVals,
-          fill: true,
-          backgroundColor: "rgba(0,191,255,0.10)",
-          borderColor: "rgba(0,191,255,0.65)",
-          pointBackgroundColor: "rgba(0,191,255,0.9)",
-          borderWidth: 1.4,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      resizeDelay: 120,
-      scales: {
-        r: {
-          min: 1,
-          max: 32,
-          ticks: { display: false },
-          grid: { color: "rgba(255,255,255,0.08)" },
-          angleLines: { color: "rgba(255,255,255,0.08)" },
-          pointLabels: { color: "rgba(255,255,255,0.78)", font: { size: 11, weight: "700" } }
-        }
-      },
-      plugins: {
-        legend: {
-          position: "bottom",
-          labels: { color: "rgba(255,255,255,0.78)" }
+  const posFilter = STATE.playerScatterPos;
+  
+  const canvas = document.getElementById("playerScatterChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  
+  if (charts.playerScatter) charts.playerScatter.destroy();
+  
+  // Update title
+  const titleEl = document.getElementById("playerScatterTitle");
+  if (titleEl) {
+    titleEl.textContent = posFilter === "ALL" ? "All Positions" : posFilter;
+  }
+  
+  if (!team || !DATA.playersLong) {
+    charts.playerScatter = new Chart(ctx, {
+      type: "scatter",
+      data: { datasets: [] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { title: { display: true, text: "Week" }, min: 0.5, max: CONFIG.maxWeek + 0.5 },
+          y: { title: { display: true, text: "Points" }, min: 0 }
         }
       }
-    }
-  });
-
-  // weekly totals profile chart
-  buildWeeklyTotalsProfile(team, pos);
-}
-
-function buildWeeklyTotalsProfile(team, pos){
-  const ctx = document.getElementById("weeklyChart").getContext("2d");
-  if (charts.weekly) charts.weekly.destroy();
-
-  const key = `${team}|${pos}`;
-  const arr = DATA.playersWeeklyTotals.get(key) ?? [];
-
-  const labels = arr.map(d => `W${d.week}`);
-  const vals = arr.map(d => d.total);
-
-  els.weeklySub.textContent = `${team} vs ${pos} • total FPA by week (from player-level file)`;
-
-  charts.weekly = new Chart(ctx, {
-    type: "bar",
+    });
+    return;
+  }
+  
+  // Get player rows for this defense
+  let rows = DATA.playersLong.filter(r => r.def === team);
+  if (posFilter !== "ALL") {
+    rows = rows.filter(r => r.pos === posFilter);
+  }
+  
+  // Calculate min/max points for brightness scaling
+  const allPts = rows.map(r => r.pts).filter(p => Number.isFinite(p));
+  const minPts = Math.min(...allPts, 0);
+  const maxPts = Math.max(...allPts, 1);
+  const ptsRange = maxPts - minPts || 1;
+  
+  // Build data points
+  const points = rows.map(r => ({
+    x: r.week,
+    y: r.pts,
+    pos: r.pos,
+    player: r.player,
+    playerTeam: r.playerTeam,
+    brightness: 0.4 + 0.6 * ((r.pts - minPts) / ptsRange) // 0.4-1.0 range
+  }));
+  
+  charts.playerScatter = new Chart(ctx, {
+    type: "scatter",
     data: {
-      labels,
-      datasets: [{ label: "Weekly total", data: vals, borderWidth: 0 }]
+      datasets: [{
+        label: "Player Performances",
+        data: points,
+        pointRadius: 6,
+        pointHoverRadius: 9,
+        borderWidth: 1,
+        borderColor: (ctx) => {
+          const p = ctx.raw;
+          if (!p) return "rgba(255,255,255,0.3)";
+          return getPosColor(p.pos, Math.min(1, p.brightness + 0.2));
+        },
+        pointBackgroundColor: (ctx) => {
+          const p = ctx.raw;
+          if (!p) return "rgba(255,255,255,0.5)";
+          return getPosColor(p.pos, p.brightness);
+        },
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       resizeDelay: 120,
-      plugins: { legend: { display: false } },
+      parsing: false,
       scales: {
-        x: { grid: { color: "rgba(255,255,255,0.06)" } },
-        y: { grid: { color: "rgba(255,255,255,0.06)" }, title: { display:true, text: "FPA (total)" } }
+        x: {
+          title: { display: true, text: "Week" },
+          min: 0.5,
+          max: CONFIG.maxWeek + 0.5,
+          ticks: {
+            stepSize: 1,
+            callback: (val) => `W${Math.round(val)}`
+          },
+          grid: { color: "rgba(255,255,255,0.07)" },
+        },
+        y: {
+          title: { display: true, text: "Fantasy Points (PPR)" },
+          min: 0,
+          grid: { color: "rgba(255,255,255,0.07)" },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (item) => {
+              const p = item.raw;
+              return `${p.player} (${p.playerTeam}) • ${p.pos} • W${p.x}: ${fmt(p.y, 2)} pts`;
+            }
+          }
+        }
       }
     }
   });
@@ -923,7 +957,7 @@ function selectTeam(team, pos = STATE.pos){
   els.teamSelect.value = team;
   els.heatTeamSelect.value = team;
   els.heatPosSelect.value = STATE.pos;
-  $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
+  $$(".pos-btn:not(.pos-btn--player)").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
 
   // pill
   els.profilePill.querySelector("span:last-child").innerHTML = `Selected: <strong>${team}</strong> • Position: <strong>${STATE.pos}</strong>`;
@@ -933,7 +967,7 @@ function selectTeam(team, pos = STATE.pos){
   buildQuickCards();
   buildMiniLists();
   buildScatter();
-  buildRadar();
+  buildPlayerScatter();
   buildPlayersSection(team, STATE.pos);
 
   // highlight selected heat cells
@@ -997,7 +1031,20 @@ function bindEvents(){
   els.btnSeason.addEventListener("click", () => setDataset("season"));
   els.btnRecent.addEventListener("click", () => setDataset("recent"));
 
-  $$(".pos-btn").forEach(b => b.addEventListener("click", () => selectTeam(STATE.selectedTeam, b.dataset.pos)));
+  // Main position buttons (exclude player scatter buttons)
+  $$(".pos-btn:not(.pos-btn--player)").forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.pos) selectTeam(STATE.selectedTeam, b.dataset.pos);
+  }));
+
+  // Player scatter position buttons
+  $$(".pos-btn--player").forEach(b => b.addEventListener("click", () => {
+    const pos = b.dataset.playerpos;
+    if (pos) {
+      STATE.playerScatterPos = pos;
+      $$(".pos-btn--player").forEach(x => x.classList.toggle("is-active", x === b));
+      buildPlayerScatter();
+    }
+  }));
 
   els.teamSelect.addEventListener("change", () => {
     selectTeam(els.teamSelect.value, STATE.pos);
@@ -1049,6 +1096,7 @@ function bootstrap(){
   buildHeatTable();
   buildMiniLists();
   buildScatter();
+  buildPlayerScatter();
   buildQuickCards();
   selectTeam(STATE.selectedTeam, STATE.pos);
 }

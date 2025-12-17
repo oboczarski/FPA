@@ -685,10 +685,67 @@ code{
   height: 240px;
 }
 .canvasBox--scatter{ height: 240px; }
-.canvasBox--radar{ height: 230px; }
-.canvasBox--weekly{ height: 230px; }
+.canvasBox--playerScatter{ height: 280px; }
 
 .canvasBox canvas{
   display:block;
   width:100% !important;
+}
+
+/* Player scatter chart controls */
+.playerScatterControls{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px 12px;
+  flex-wrap: wrap;
+}
+
+.playerScatterLabel{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.pos-toggle--player{
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pos-btn--player{
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.pos-btn--player.is-active{
+  border-color: rgba(255,255,255,0.25);
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+}
+
+/* Position-specific button colors when active */
+.pos-btn--qb.is-active{
+  border-color: rgba(255, 58, 117, 0.6);
+  background: linear-gradient(135deg, rgba(255, 58, 117, 0.25), rgba(255, 58, 117, 0.10));
+}
+
+.pos-btn--rb.is-active{
+  border-color: rgba(0, 235, 199, 0.6);
+  background: linear-gradient(135deg, rgba(0, 235, 199, 0.25), rgba(0, 235, 199, 0.10));
+}
+
+.pos-btn--wr.is-active{
+  border-color: rgba(88, 167, 255, 0.6);
+  background: linear-gradient(135deg, rgba(88, 167, 255, 0.25), rgba(88, 167, 255, 0.10));
+}
+
+.pos-btn--te.is-active{
+  border-color: rgba(180, 105, 255, 0.6);
+  background: linear-gradient(135deg, rgba(180, 105, 255, 0.25), rgba(180, 105, 255, 0.10));
+}
+
+/* Profile info styling */
+.profileInfo{
+  padding: 10px 12px;
 }

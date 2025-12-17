@@ -121,6 +121,29 @@
 
 	            <div class="chartHint">Tip: hover for details • click to load the player drilldown</div>
 	          </div>
+
+            <!-- Player Performance Scatter Chart -->
+            <div class="chartCard">
+              <div class="chartTitleRow">
+                <div class="chartTitle">
+                  <span id="playerScatterTitle">All Positions</span> — Player Performance by Week
+                </div>
+              </div>
+              <div class="playerScatterControls">
+                <span class="playerScatterLabel">Positions:</span>
+                <div class="pos-toggle pos-toggle--player" role="group" aria-label="Player scatter position filter">
+                  <button class="pos-btn pos-btn--player is-active" data-playerpos="ALL">ALL</button>
+                  <button class="pos-btn pos-btn--player pos-btn--qb" data-playerpos="QB">QB</button>
+                  <button class="pos-btn pos-btn--player pos-btn--rb" data-playerpos="RB">RB</button>
+                  <button class="pos-btn pos-btn--player pos-btn--wr" data-playerpos="WR">WR</button>
+                  <button class="pos-btn pos-btn--player pos-btn--te" data-playerpos="TE">TE</button>
+                </div>
+              </div>
+              <div class="canvasBox canvasBox--playerScatter">
+                <canvas id="playerScatterChart"></canvas>
+              </div>
+              <div class="chartHint">Player performances vs selected defense • Brighter = higher score</div>
+            </div>
 	        </div>
 
 	        <!-- Full-width row to avoid the left-column “dead space” you saw in published views -->
@@ -215,26 +238,10 @@
         </div>
 
         <div class="profileGrid">
-          <div class="profileCard">
-            <div class="profileCard__title">Season vs Weeks 9–15 (Ranks)</div>
-            <div class="canvasBox canvasBox--radar">
-              <canvas id="radarChart"></canvas>
+          <div class="profileInfo">
+            <div class="muted smallLine">
+              Select a defense from the heatmap or scatter chart to view detailed player performance data in the Player Drilldown table.
             </div>
-            <div class="chartHint">Higher rank = more generous defense</div>
-          </div>
-
-          <div class="profileCard">
-            <div class="profileCard__title">Weekly Totals (Selected Position)</div>
-            <div class="muted smallLine" id="weeklySub">Select a defense + position to populate.</div>
-            <div class="canvasBox canvasBox--weekly">
-              <canvas id="weeklyChart"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="profileFooter">
-          <div class="muted smallLine">
-            Drilldowns use <strong>WKLY-DEF_vs_POS_by_Player.csv</strong> to show which players drove each week’s totals.
           </div>
         </div>
       </section>
