@@ -63,7 +63,7 @@ let STATE = {
   sortKey: "Total_Rk",
   sortDir: "desc",
   playerSort: { key: "week", dir: "desc" },
-  playerWeekScatterPos: new Set(CONFIG.positions),
+  playerWeekScatterPos: "ALL", // "ALL" | "QB" | "RB" | "WR" | "TE"
 };
 
 let DATA = {
@@ -454,7 +454,7 @@ function buildMiniLists(){
               const arrow = r.dRank > 0 ? "▲" : (r.dRank < 0 ? "▼" : "•");
               return `<span class="trendBadge" style="border-color:${rgbaOf(dot,0.25)}; background:${rgbaOf(dot,0.12)}; color:${dot};">${arrow} ${Math.abs(fmt(r.dRank,0))}</span>`;
             })()
-          : "View";
+          : "";
 
         return `
           <div class="lhs">
@@ -465,9 +465,6 @@ function buildMiniLists(){
           <div class="rhs">${badge}</div>
         `;
       })();
-	el.addEventListener("click", () => {
-	        selectTeam(r.t, pos);
-	      });
       root.appendChild(el);
     }
   };
@@ -755,12 +752,14 @@ function buildPlayerWeekScatter(){
     return;
   }
 
-  const activePos = CONFIG.positions.filter(p => STATE.playerWeekScatterPos.has(p));
+  const activePos = STATE.playerWeekScatterPos === "ALL"
+    ? [...CONFIG.positions]
+    : [STATE.playerWeekScatterPos].filter(p => CONFIG.positions.includes(p));
   const byPos = new Map(CONFIG.positions.map(p => [p, []]));
 
   for (const r of DATA.playersLong){
     if (r.def !== team) continue;
-    if (!STATE.playerWeekScatterPos.has(r.pos)) continue;
+    if (!activePos.includes(r.pos)) continue;
     byPos.get(r.pos)?.push(r);
   }
 
@@ -793,6 +792,7 @@ function buildPlayerWeekScatter(){
       _minPts: minPts,
       _maxPts: maxPts,
       _base: base,
+      clip: false,
       pointRadius: 4.5,
       pointHoverRadius: 6.5,
       pointBorderWidth: 1,
@@ -822,11 +822,9 @@ function buildPlayerWeekScatter(){
       resizeDelay: 120,
       parsing: false,
       interaction: { mode: "nearest", intersect: true },
+      layout: { padding: { left: 14, right: 14, top: 8, bottom: 6 } },
       plugins: {
-        legend: {
-          position: "bottom",
-          labels: { usePointStyle: true, pointStyle: "circle" },
-        },
+        legend: { display: false },
         tooltip: {
           callbacks: {
             label: (item) => {
@@ -1100,20 +1098,14 @@ function bindEvents(){
   // player week scatter pos filters
   if (els.playerScatterPosToggle){
     const btns = $$("button.pos2-btn", els.playerScatterPosToggle);
-    STATE.playerWeekScatterPos = new Set(btns.filter(b => b.classList.contains("is-active")).map(b => b.dataset.pos));
-    if (STATE.playerWeekScatterPos.size === 0) STATE.playerWeekScatterPos = new Set(CONFIG.positions);
+    const active = btns.find(b => b.classList.contains("is-active"))?.dataset?.pos ?? "ALL";
+    STATE.playerWeekScatterPos = CONFIG.positions.includes(active) ? active : "ALL";
 
     btns.forEach(b => b.addEventListener("click", () => {
       const pos = b.dataset.pos;
-      const isActive = b.classList.toggle("is-active");
-      if (isActive) STATE.playerWeekScatterPos.add(pos);
-      else STATE.playerWeekScatterPos.delete(pos);
-
-      if (STATE.playerWeekScatterPos.size === 0){
-        STATE.playerWeekScatterPos = new Set(CONFIG.positions);
-        btns.forEach(x => x.classList.add("is-active"));
-      }
-
+      const next = CONFIG.positions.includes(pos) ? pos : "ALL";
+      STATE.playerWeekScatterPos = next;
+      btns.forEach(x => x.classList.toggle("is-active", x.dataset.pos === next));
       buildPlayerWeekScatter();
     }));
   }

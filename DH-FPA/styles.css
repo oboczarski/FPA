@@ -299,6 +299,11 @@ p{ margin: 10px 0 0; }
   background: rgba(255,255,255,0.04);
   padding: 10px 10px 12px;
 }
+@media (min-width: 981px){
+  .hero__right .chartCard{
+    margin-top: 86px;
+  }
+}
 
 .playersPanel{
   margin-top: 12px;
@@ -450,10 +455,10 @@ p{ margin: 10px 0 0; }
   border-radius: 12px;
   border:1px solid rgba(255,255,255,0.08);
   background: rgba(0,0,0,0.18);
-  cursor:pointer;
-  transition: transform .14s ease, border-color .14s ease;
+  cursor: default;
+  transition: border-color .14s ease;
 }
-.rankRow:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.14); }
+.rankRow:hover{ border-color: rgba(255,255,255,0.14); }
 .rankDot{
   width:10px;
   height:10px;
@@ -723,7 +728,7 @@ code{
   height: 240px;
 }
 .canvasBox--scatter{ height: 240px; }
-.canvasBox--playerWeekScatter{ height: 240px; }
+.canvasBox--playerWeekScatter{ height: 320px; }
 
 .canvasBox canvas{
   display:block;
