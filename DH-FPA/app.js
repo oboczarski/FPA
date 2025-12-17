@@ -5,9 +5,9 @@
 
 const CONFIG = {
   paths: {
-    players: "WKLY-DEF_vs_POS_by_Player.csv",
-    season: "Season_FPA_Summary.csv",
-    recent: "WK9-15_FPA_Summary.csv",
+    players: "data/WKLY-DEF_vs_POS_by_Player.csv",
+    season: "data/Season_FPA_Summary.csv",
+    recent: "data/WK9-15_FPA_Summary.csv",
   },
   maxWeek: 15,
   recentWeeks: [9, 15],

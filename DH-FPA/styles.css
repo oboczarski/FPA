@@ -100,7 +100,7 @@ body{
   border:1px solid var(--border);
   border-radius: var(--r);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(1px);
 }
 
 .panel::before{
