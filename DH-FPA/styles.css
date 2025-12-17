@@ -1,5 +1,6 @@
 
 :root{
+  --font-sans: 'Product Sans', 'Google Sans', 'Quicksand', sans-serif;
   --bg0:#070713;
   --bg1:#0b0b19;
   --panel: rgba(17, 17, 35, 0.58);
@@ -23,15 +24,36 @@
 
 *{ box-sizing:border-box; }
 html, body{ height:100%; }
+
+/*
+  Backdrop fix:
+  Some browsers can render the BODY background in a way that looks like it
+  “restarts”/seams when the document scrolls. We render the orb gradients
+  on a fixed pseudo-element instead, so the backdrop is always continuous.
+*/
+html{
+  background: #070713;
+}
 body{
   margin:0;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   color: var(--text);
-  background: radial-gradient(1200px 800px at 15% -10%, rgba(207,120,255,0.22), transparent 60%),
-              radial-gradient(900px 600px at 85% 10%, rgba(0,191,255,0.18), transparent 60%),
-              radial-gradient(900px 700px at 50% 120%, rgba(72,245,177,0.10), transparent 60%),
-              linear-gradient(180deg, var(--bg0), var(--bg1));
+  background: transparent;
+  min-height: 100vh;
   overflow-x:hidden;
+}
+
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events:none;
+  background:
+    radial-gradient(1200px 800px at 15% -10%, rgba(207,120,255,0.22), transparent 60%),
+    radial-gradient(900px 600px at 85% 10%, rgba(0,191,255,0.18), transparent 60%),
+    radial-gradient(900px 700px at 50% 120%, rgba(72,245,177,0.10), transparent 60%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
 }
 
 #stars{
@@ -96,11 +118,11 @@ body{
 .panel{
   position: relative;
   overflow: hidden;
-  background: var(--panel);
+  background: rgb(17 17 35 / 7%);
   border:1px solid var(--border);
   border-radius: var(--r);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(1px);
+  backdrop-filter: blur(0px);
 }
 
 .panel::before{
@@ -345,14 +367,13 @@ p{ margin: 10px 0 0; }
   font-weight: 800;
 }
 .miniCard__body{
-  max-height: 170px;
+  max-height: 210px;
   overflow:auto;
   padding-right: 4px;
-
-  margin-top: 8px;
+  margin-top: 7px;
   display:flex;
   flex-direction:column;
-  gap:6px;
+  gap: 4px;
 }
 .rankRow{
   position: relative;
@@ -378,20 +399,20 @@ p{ margin: 10px 0 0; }
 }
 
 .trendBadge{
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.04em;
-  padding: 4px 8px;
+  padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(0,0,0,0.16);
   color: rgba(255,255,255,0.82);
 }
 
-.rankRow .lhs{ display:flex; gap:10px; align-items:center; }
-.rankRow .tm{ font-weight: 900; letter-spacing: 0.04em; }
+.rankRow .lhs{display:flex;gap: 10px;align-items:center;}
+.rankRow .tm{font-weight: 900;letter-spacing: 0.04em;FONT-SIZE: 14px;}
 .rankRow .meta{ font-size:12px; color: var(--muted); }
-.rankRow .rhs{ font-size: 12px; color: var(--muted); font-weight: 800; }
+.rankRow .rhs{font-size: 12px;color: var(--muted);font-weight: 800;}
 
 .grid2{
   margin-top: 16px;
@@ -421,7 +442,7 @@ p{ margin: 10px 0 0; }
 
 .tableWrap{
   overflow:auto;
-  padding: 12px 12px 14px;
+  padding: 12px 7px 12px;
 }
 .footnote{
   padding: 0 14px 14px;
@@ -430,7 +451,7 @@ p{ margin: 10px 0 0; }
 }
 
 table{
-  width:100%;
+  width: 100%;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -450,7 +471,7 @@ table{
 }
 .heat tbody td{
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  padding: 10px;
+  padding: 4px;
   font-size: 13px;
 }
 .heat tbody tr:hover td{
@@ -464,15 +485,43 @@ table{
 .cell{
   border-radius: 14px;
   border:1px solid rgba(255,255,255,0.08);
-  padding: 8px 10px !important;
+  padding: 4px 11px !important;
   background: rgba(0,0,0,0.18);
   cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
   transition: transform .14s ease, border-color .14s ease;
 }
 .cell:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.16); }
-.cell .val{ font-weight: 900; }
-.cell .rk{ font-size: 12px; color: var(--muted); margin-top: 3px; }
+.cell__text{
+  display:flex;
+  align-items: baseline;
+  justify-content:center;
+  gap: 6px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.cell__rk{
+  font-weight: 950;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+.cell__avg{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 800;
+}
 .cell.is-selected{ outline: 2px solid rgba(0,191,255,0.55); outline-offset: 2px; }
+
+@media (max-width: 680px){
+  .tableWrap{ padding: 10px 8px 10px; }
+  .heat tbody td{ padding: 3px; }
+  .cell{ padding: 6px 8px !important; }
+  .cell__rk{ font-size: 13px; }
+  .cell__avg{ font-size: 11px; }
+}
 
 .profileGrid{
   padding: 12px 12px 10px;
@@ -708,5 +757,4 @@ code{
 .canvasBox canvas{
   display:block;
   width:100% !important;
-  height:100% !important;
 }
