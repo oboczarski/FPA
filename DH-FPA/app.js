@@ -15,6 +15,13 @@ const CONFIG = {
   teamCount: 32,
 };
 
+const PLAYER_SCATTER_COLORS = {
+  QB: "#FF3A75ca",
+  RB: "#00EBC7ca",
+  WR: "#58A7FFca",
+  TE: "#B469FFca",
+};
+
 const els = {
   btnSeason: document.getElementById("btnSeason"),
   btnRecent: document.getElementById("btnRecent"),
@@ -30,6 +37,7 @@ const els = {
   fileInput: document.getElementById("fileInput"),
 
   scatterTitle: document.getElementById("scatterTitle"),
+  playerScatterPosToggle: document.getElementById("playerScatterPosToggle"),
   topSeason: document.getElementById("topSeason"),
   topSeasonTitle: document.getElementById("topSeasonTitle"),
   topRecent: document.getElementById("topRecent"),
@@ -40,7 +48,6 @@ const els = {
   trendDownTitle: document.getElementById("trendDownTitle"),
 
   profilePill: document.getElementById("profilePill"),
-  weeklySub: document.getElementById("weeklySub"),
 
   playersSub: document.getElementById("playersSub"),
   weekRange: document.getElementById("weekRange"),
@@ -56,6 +63,7 @@ let STATE = {
   sortKey: "Total_Rk",
   sortDir: "desc",
   playerSort: { key: "week", dir: "desc" },
+  playerWeekScatterPos: new Set(CONFIG.positions),
 };
 
 let DATA = {
@@ -70,8 +78,7 @@ let DATA = {
 
 let charts = {
   scatter: null,
-  radar: null,
-  weekly: null,
+  playerWeekScatter: null,
 };
 
 function $(sel, root=document){ return root.querySelector(sel); }
@@ -125,11 +132,54 @@ function lerpRGB(c1, c2, t){
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+function hexToRgbaArr(hex){
+  const s = String(hex ?? "").trim().replace(/^#/, "");
+  if (s.length === 6 || s.length === 8){
+    const r = Number.parseInt(s.slice(0,2), 16);
+    const g = Number.parseInt(s.slice(2,4), 16);
+    const b = Number.parseInt(s.slice(4,6), 16);
+    const a = s.length === 8 ? (Number.parseInt(s.slice(6,8), 16) / 255) : 1;
+    if ([r,g,b,a].every(Number.isFinite)) return [r,g,b,a];
+  }
+  return [255,255,255,1];
+}
+
+const PLAYER_SCATTER_RGBA = Object.fromEntries(
+  Object.entries(PLAYER_SCATTER_COLORS).map(([k,v]) => [k, hexToRgbaArr(v)])
+);
+
 // tough -> easy gradient (red -> mint)
 function heatColor(score){
   const cTough = [255, 88, 92];
   const cEasy  = [72, 245, 177];
   return lerpRGB(cTough, cEasy, clamp(score,0,1));
+}
+
+function pointGradientColor(baseRgba, value, minV, maxV){
+  const [r0,g0,b0,a0] = baseRgba ?? [255,255,255,1];
+  const denom = (Number.isFinite(maxV) && Number.isFinite(minV)) ? (maxV - minV) : 0;
+  const t0 = (Number.isFinite(value) && denom > 0) ? clamp((value - minV) / denom, 0, 1) : 0.5;
+  const t = t0;
+
+  const dark = 0.32;
+  const light = 0.18;
+
+  const rD = r0 * dark;
+  const gD = g0 * dark;
+  const bD = b0 * dark;
+
+  const rL = lerp(r0, 255, light);
+  const gL = lerp(g0, 255, light);
+  const bL = lerp(b0, 255, light);
+
+  const r = Math.round(lerp(rD, rL, t));
+  const g = Math.round(lerp(gD, gL, t));
+  const b = Math.round(lerp(bD, bL, t));
+
+  const aHi = Math.min(0.95, a0 + 0.12);
+  const a = lerp(0.18, aHi, t);
+
+  return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
 }
 
 
@@ -474,25 +524,25 @@ function buildQuickCards(){
     ? (s.dRank > 0 ? "rgb(72, 245, 177)" : (s.dRank < 0 ? "rgb(255, 88, 92)" : "rgb(255, 209, 102)"))
     : "rgb(0, 191, 255)";
 
-  const deltaText = (Number.isFinite(s.dRank) && Number.isFinite(s.dAvg))
-    ? `• Trend: <strong>${s.dRank > 0 ? "+" : ""}${fmt(s.dRank,0)}</strong> ranks, <strong>${s.dAvg > 0 ? "+" : ""}${fmt(s.dAvg,2)}</strong> avg`
-    : "";
+  const hasTrend = Number.isFinite(s.dRank) && Number.isFinite(s.dAvg);
+  const dRankTxt = hasTrend ? `${s.dRank > 0 ? "+" : ""}${fmt(s.dRank,0)}` : "—";
+  const dAvgTxt = hasTrend ? `${s.dAvg > 0 ? "+" : ""}${fmt(s.dAvg,2)}` : "—";
 
   els.quickCards.innerHTML = [
     card("Season", s.seasonAvg, s.seasonRank, gmS, ""),
     card("Weeks 9–15", s.recentAvg, s.recentRank, gmR, ""),
-    `<div class="card" style="background:radial-gradient(260px 90px at 18% 10%, ${rgbaOf(trendAccent,0.20)}, transparent 60%), rgba(255,255,255,0.045); border-color:${rgbaOf(trendAccent,0.22)}">
-      <div class="card__top">
-        <div class="card__title">Season ↔ Recent Trend</div>
-        <span class="chip">
-          <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
-          ${deltaText ? "TREND" : "—"}
-        </span>
-      </div>
-      <div class="card__big">${deltaText ? `${s.dRank > 0 ? "+" : ""}${fmt(s.dRank,0)} <span class="muted" style="font-size:12px;font-weight:700;">rank</span>` : "—"}</div>
-      <div class="card__sub">${deltaText ? `Recent is ${s.dRank > 0 ? "<strong>easier</strong>" : (s.dRank < 0 ? "<strong>tougher</strong>" : "<strong>flat</strong>")} vs season ${deltaText}` : "Trend not available"}</div>
-    </div>`
-  ].join("");
+	    `<div class="card" style="background:radial-gradient(260px 90px at 18% 10%, ${rgbaOf(trendAccent,0.20)}, transparent 60%), rgba(255,255,255,0.045); border-color:${rgbaOf(trendAccent,0.22)}">
+	      <div class="card__top">
+	        <div class="card__title">Season ↔ Recent Trend</div>
+	        <span class="chip">
+	          <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
+	          ${hasTrend ? "TREND" : "—"}
+	        </span>
+	      </div>
+	      <div class="card__big">${hasTrend ? `${dRankTxt} <span class="muted" style="font-size:12px;font-weight:700;">rank</span>` : "—"}</div>
+	      <div class="card__sub">${hasTrend ? `ΔRank: <strong>${dRankTxt}</strong> • ΔAvg: <strong>${dAvgTxt}</strong>` : "Trend not available"}</div>
+	    </div>`
+	  ].join("");
 
 }
 
@@ -694,95 +744,115 @@ function buildScatter(){
   });
 }
 
-function buildRadar(){
+function buildPlayerWeekScatter(){
+  const canvas = document.getElementById("playerWeekScatterChart");
+  if (!canvas || !DATA.playersLong) return;
+
   const team = STATE.selectedTeam;
-  const pos = STATE.pos;
+  if (!team){
+    if (charts.playerWeekScatter) charts.playerWeekScatter.destroy();
+    charts.playerWeekScatter = null;
+    return;
+  }
 
-  const ctx = document.getElementById("radarChart").getContext("2d");
-  if (charts.radar) charts.radar.destroy();
+  const activePos = CONFIG.positions.filter(p => STATE.playerWeekScatterPos.has(p));
+  const byPos = new Map(CONFIG.positions.map(p => [p, []]));
 
-  const labels = ["QB","RB","WR","TE","Total"];
-  const seasonVals = labels.map(l => l === "Total" ? getMetric(team,"season","Total_Rk") : getMetric(team,"season",`${l}_Rk`));
-  const recentVals = labels.map(l => l === "Total" ? getMetric(team,"recent","Total_Rk") : getMetric(team,"recent",`${l}_Rk`));
+  for (const r of DATA.playersLong){
+    if (r.def !== team) continue;
+    if (!STATE.playerWeekScatterPos.has(r.pos)) continue;
+    byPos.get(r.pos)?.push(r);
+  }
 
-  charts.radar = new Chart(ctx, {
-    type: "radar",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Season",
-          data: seasonVals,
-          fill: true,
-          backgroundColor: "rgba(207,120,255,0.12)",
-          borderColor: "rgba(207,120,255,0.65)",
-          pointBackgroundColor: "rgba(207,120,255,0.9)",
-          borderWidth: 1.4,
-        },
-        {
-          label: "Weeks 9–15",
-          data: recentVals,
-          fill: true,
-          backgroundColor: "rgba(0,191,255,0.10)",
-          borderColor: "rgba(0,191,255,0.65)",
-          pointBackgroundColor: "rgba(0,191,255,0.9)",
-          borderWidth: 1.4,
-        }
-      ]
-    },
+  const datasets = [];
+
+  for (const pos of activePos){
+    const rows = byPos.get(pos) ?? [];
+    if (!rows.length) continue;
+
+    let minPts = Infinity;
+    let maxPts = -Infinity;
+    for (const r of rows){
+      if (!Number.isFinite(r.pts)) continue;
+      minPts = Math.min(minPts, r.pts);
+      maxPts = Math.max(maxPts, r.pts);
+    }
+    if (!Number.isFinite(minPts) || !Number.isFinite(maxPts)) continue;
+    if (minPts === maxPts){
+      minPts -= 1;
+      maxPts += 1;
+    }
+
+    const base = PLAYER_SCATTER_RGBA[pos] ?? [255,255,255,0.85];
+
+    datasets.push({
+      label: pos,
+      data: rows
+        .filter(r => Number.isFinite(r.week) && Number.isFinite(r.pts))
+        .map(r => ({ x: r.week, y: r.pts, player: r.player, playerTeam: r.playerTeam, pos: r.pos })),
+      _minPts: minPts,
+      _maxPts: maxPts,
+      _base: base,
+      pointRadius: 4.5,
+      pointHoverRadius: 6.5,
+      pointBorderWidth: 1,
+      pointBackgroundColor: (ctx) => {
+        const d = ctx.dataset;
+        const y = ctx.raw?.y;
+        return pointGradientColor(d._base, y, d._minPts, d._maxPts);
+      },
+      pointBorderColor: (ctx) => {
+        const d = ctx.dataset;
+        const y = ctx.raw?.y;
+        const c = pointGradientColor(d._base, y, d._minPts, d._maxPts);
+        return rgbaOf(c, 0.95);
+      },
+    });
+  }
+
+  const ctx = canvas.getContext("2d");
+  if (charts.playerWeekScatter) charts.playerWeekScatter.destroy();
+
+  charts.playerWeekScatter = new Chart(ctx, {
+    type: "scatter",
+    data: { datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       resizeDelay: 120,
-      scales: {
-        r: {
-          min: 1,
-          max: 32,
-          ticks: { display: false },
-          grid: { color: "rgba(255,255,255,0.08)" },
-          angleLines: { color: "rgba(255,255,255,0.08)" },
-          pointLabels: { color: "rgba(255,255,255,0.78)", font: { size: 11, weight: "700" } }
-        }
-      },
+      parsing: false,
+      interaction: { mode: "nearest", intersect: true },
       plugins: {
         legend: {
           position: "bottom",
-          labels: { color: "rgba(255,255,255,0.78)" }
+          labels: { usePointStyle: true, pointStyle: "circle" },
+        },
+        tooltip: {
+          callbacks: {
+            label: (item) => {
+              const r = item.raw ?? {};
+              const tm = r.playerTeam ? ` (${r.playerTeam})` : "";
+              return `${r.player ?? "—"}${tm} • ${r.pos ?? "—"} • W${r.x}: ${fmt(r.y,2)} pts`;
+            }
+          }
         }
-      }
-    }
-  });
-
-  // weekly totals profile chart
-  buildWeeklyTotalsProfile(team, pos);
-}
-
-function buildWeeklyTotalsProfile(team, pos){
-  const ctx = document.getElementById("weeklyChart").getContext("2d");
-  if (charts.weekly) charts.weekly.destroy();
-
-  const key = `${team}|${pos}`;
-  const arr = DATA.playersWeeklyTotals.get(key) ?? [];
-
-  const labels = arr.map(d => `W${d.week}`);
-  const vals = arr.map(d => d.total);
-
-  els.weeklySub.textContent = `${team} vs ${pos} • total FPA by week (from player-level file)`;
-
-  charts.weekly = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{ label: "Weekly total", data: vals, borderWidth: 0 }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      resizeDelay: 120,
-      plugins: { legend: { display: false } },
+      },
       scales: {
-        x: { grid: { color: "rgba(255,255,255,0.06)" } },
-        y: { grid: { color: "rgba(255,255,255,0.06)" }, title: { display:true, text: "FPA (total)" } }
+        x: {
+          type: "linear",
+          min: 1,
+          max: CONFIG.maxWeek,
+          ticks: {
+            stepSize: 1,
+            callback: (v) => `W${v}`,
+          },
+          title: { display: true, text: "Week" },
+          grid: { color: "rgba(255,255,255,0.07)" },
+        },
+        y: {
+          title: { display: true, text: "Points" },
+          grid: { color: "rgba(255,255,255,0.07)" },
+        }
       }
     }
   });
@@ -933,7 +1003,7 @@ function selectTeam(team, pos = STATE.pos){
   buildQuickCards();
   buildMiniLists();
   buildScatter();
-  buildRadar();
+  buildPlayerWeekScatter();
   buildPlayersSection(team, STATE.pos);
 
   // highlight selected heat cells
@@ -1026,6 +1096,27 @@ function bindEvents(){
     STATE.scatterMode = b.dataset.scatmode;
     buildScatter();
   }));
+
+  // player week scatter pos filters
+  if (els.playerScatterPosToggle){
+    const btns = $$("button.pos2-btn", els.playerScatterPosToggle);
+    STATE.playerWeekScatterPos = new Set(btns.filter(b => b.classList.contains("is-active")).map(b => b.dataset.pos));
+    if (STATE.playerWeekScatterPos.size === 0) STATE.playerWeekScatterPos = new Set(CONFIG.positions);
+
+    btns.forEach(b => b.addEventListener("click", () => {
+      const pos = b.dataset.pos;
+      const isActive = b.classList.toggle("is-active");
+      if (isActive) STATE.playerWeekScatterPos.add(pos);
+      else STATE.playerWeekScatterPos.delete(pos);
+
+      if (STATE.playerWeekScatterPos.size === 0){
+        STATE.playerWeekScatterPos = new Set(CONFIG.positions);
+        btns.forEach(x => x.classList.add("is-active"));
+      }
+
+      buildPlayerWeekScatter();
+    }));
+  }
 
   // players filters
   els.weekRange.addEventListener("change", () => buildPlayersSection(STATE.selectedTeam, STATE.pos));

@@ -115,11 +115,29 @@
             </div>
 
             <!-- IMPORTANT: fixed-height parent prevents "expanding forever" resize loops in some hosts -->
-            <div class="canvasBox canvasBox--scatter">
-              <canvas id="scatterChart"></canvas>
-            </div>
+	            <div class="canvasBox canvasBox--scatter">
+	              <canvas id="scatterChart"></canvas>
+	            </div>
 
 	            <div class="chartHint">Tip: hover for details • click to load the player drilldown</div>
+
+	            <div class="chartDivider"></div>
+
+	            <div class="chartTitleRow chartTitleRow--wrap">
+	              <div class="chartTitle">Player Week Scatter (PPR)</div>
+	              <div class="pos2-toggle" id="playerScatterPosToggle" role="group" aria-label="Player week scatter position filters">
+	                <button class="pos2-btn is-active" data-pos="QB">QB</button>
+	                <button class="pos2-btn is-active" data-pos="RB">RB</button>
+	                <button class="pos2-btn is-active" data-pos="WR">WR</button>
+	                <button class="pos2-btn is-active" data-pos="TE">TE</button>
+	              </div>
+	            </div>
+
+	            <div class="canvasBox canvasBox--playerWeekScatter">
+	              <canvas id="playerWeekScatterChart"></canvas>
+	            </div>
+
+	            <div class="chartHint">Dots = player games vs selected defense • x = week • y = points</div>
 	          </div>
 	        </div>
 
@@ -214,23 +232,14 @@
           <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
         </div>
 
-        <div class="profileGrid">
-          <div class="profileCard">
-            <div class="profileCard__title">Season vs Weeks 9–15 (Ranks)</div>
-            <div class="canvasBox canvasBox--radar">
-              <canvas id="radarChart"></canvas>
-            </div>
-            <div class="chartHint">Higher rank = more generous defense</div>
-          </div>
-
-          <div class="profileCard">
-            <div class="profileCard__title">Weekly Totals (Selected Position)</div>
-            <div class="muted smallLine" id="weeklySub">Select a defense + position to populate.</div>
-            <div class="canvasBox canvasBox--weekly">
-              <canvas id="weeklyChart"></canvas>
-            </div>
-          </div>
-        </div>
+	        <div class="profileGrid">
+	          <div class="profileCard profileCard--placeholder">
+	            <div class="profileCard__title">Charts</div>
+	            <div class="muted smallLine">
+	              Weekly player scoring is now shown in the Player Week Scatter above.
+	            </div>
+	          </div>
+	        </div>
 
         <div class="profileFooter">
           <div class="muted smallLine">
