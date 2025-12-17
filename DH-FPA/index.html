@@ -112,7 +112,7 @@
               <canvas id="scatterChart"></canvas>
             </div>
 
-            <div class="chartHint">Tip: hover for details • click to open drilldown</div>
+            <div class="chartHint">Tip: hover for details • click a point to select a defense</div>
           </div>
         </div>
 
@@ -147,6 +147,21 @@
           </div>
 
           <div class="panelHeader__right">
+            <label class="field small">
+              <span>Heatmap position</span>
+              <div class="pos-toggle pos-toggle--sm" role="group" aria-label="Heatmap position toggle">
+                <button class="pos-btn heat-pos-btn is-active" data-pos="QB" type="button">QB</button>
+                <button class="pos-btn heat-pos-btn" data-pos="RB" type="button">RB</button>
+                <button class="pos-btn heat-pos-btn" data-pos="WR" type="button">WR</button>
+                <button class="pos-btn heat-pos-btn" data-pos="TE" type="button">TE</button>
+              </div>
+            </label>
+
+            <label class="field small">
+              <span>Highlight DEF</span>
+              <select id="heatTeamSelect" class="select"></select>
+            </label>
+
             <label class="field small">
               <span>Sort by</span>
               <select id="sortSelect" class="select">

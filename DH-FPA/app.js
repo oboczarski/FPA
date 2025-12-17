@@ -20,6 +20,7 @@ const els = {
   btnRecent: document.getElementById("btnRecent"),
   loadStatus: document.getElementById("loadStatus"),
   teamSelect: document.getElementById("teamSelect"),
+  heatTeamSelect: document.getElementById("heatTeamSelect"),
   sortSelect: document.getElementById("sortSelect"),
   dirSelect: document.getElementById("dirSelect"),
   heatTable: document.getElementById("heatTable"),
@@ -51,7 +52,22 @@ let STATE = {
   sortDir: "desc",
   playerSort: { key: "week", dir: "desc" },
   heatmapPos: "QB", // independent position for heatmap
+  heatmapTeam: null, // independent team highlight for heatmap
 };
+
+function syncHeatmapPosButtons(){
+  $$(".heat-pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.heatmapPos));
+}
+
+function updateHeatmapHighlights(){
+  if (!els.heatTable) return;
+  const team = STATE.heatmapTeam;
+  const pos = STATE.heatmapPos;
+  $$(".cell", els.heatTable).forEach(c => {
+    const on = Boolean(team && pos && c.dataset.team === team && c.dataset.pos === pos);
+    c.classList.toggle("is-heat", on);
+  });
+}
 
 let DATA = {
   season: null,   // array of rows
@@ -201,10 +217,14 @@ async function handleFileUpload(files){
   for (const f of files){
     byName.set(f.name, f);
   }
-  const needed = [CONFIG.paths.players, CONFIG.paths.season, CONFIG.paths.recent];
-  const missing = needed.filter(n => !byName.has(n));
+  const neededPaths = [CONFIG.paths.players, CONFIG.paths.season, CONFIG.paths.recent];
+  const needed = neededPaths.map(p => ({
+    path: p,
+    base: String(p).split("/").pop(),
+  }));
+  const missing = needed.filter(n => !byName.has(n.path) && !byName.has(n.base));
   if (missing.length){
-    setStatus("err", `Missing: ${missing.join(", ")}`);
+    setStatus("err", `Missing: ${missing.map(m => m.base).join(", ")}`);
     return;
   }
 
@@ -218,10 +238,12 @@ async function handleFileUpload(files){
       fr.readAsText(file);
     });
 
+    const pick = (p) => byName.get(p) ?? byName.get(String(p).split("/").pop());
+
     const [playersText, seasonText, recentText] = await Promise.all([
-      readText(byName.get(CONFIG.paths.players)),
-      readText(byName.get(CONFIG.paths.season)),
-      readText(byName.get(CONFIG.paths.recent)),
+      readText(pick(CONFIG.paths.players)),
+      readText(pick(CONFIG.paths.season)),
+      readText(pick(CONFIG.paths.recent)),
     ]);
 
     const [playersWide, season, recent] = await Promise.all([
@@ -328,15 +350,26 @@ function calcTrend(team, pos){
 // =====================
 function buildTeamSelect(){
   els.teamSelect.innerHTML = "";
+  if (els.heatTeamSelect) els.heatTeamSelect.innerHTML = "";
   const teams = [...DATA.byTeamSeason.keys()].sort();
   for (const t of teams){
     const opt = document.createElement("option");
     opt.value = t;
     opt.textContent = t;
     els.teamSelect.appendChild(opt);
+
+    if (els.heatTeamSelect){
+      const opt2 = document.createElement("option");
+      opt2.value = t;
+      opt2.textContent = t;
+      els.heatTeamSelect.appendChild(opt2);
+    }
   }
   STATE.selectedTeam = teams[0] ?? null;
   els.teamSelect.value = STATE.selectedTeam ?? "";
+
+  STATE.heatmapTeam = STATE.selectedTeam;
+  if (els.heatTeamSelect) els.heatTeamSelect.value = STATE.heatmapTeam ?? "";
 }
 
 function buildMiniLists(){
@@ -432,7 +465,7 @@ function buildQuickCards(){
   const chipFor = (rk) => {
     const sc = rankScore(rk);
     const c = heatColor(sc);
-    return `<span class="chip" title="Higher rank = easier matchup">
+    return `<span class="chip chip--matchup" title="Higher rank = easier matchup">
       <span class="swatch" style="background:${c}; box-shadow:0 0 0 3px rgba(255,255,255,0.08)"></span>
       ${easyLabel(rk)}
     </span>`;
@@ -469,7 +502,7 @@ function buildQuickCards(){
     card("Weeks 9–15", s.recentAvg, s.recentRank, gmR, ""),
     `<div class="card" style="background:radial-gradient(260px 90px at 18% 10%, ${rgbaOf(trendAccent,0.20)}, transparent 60%), rgba(255,255,255,0.045); border-color:${rgbaOf(trendAccent,0.22)}">
       <div class="card__top">
-        <div class="card__title">Season ↔ Recent Trend</div>
+        <div class="card__title">WKs 9-15 vs. Season</div>
         <span class="chip">
           <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
           ${deltaText ? "TREND" : "—"}
@@ -571,10 +604,22 @@ function buildHeatTable(){
   $$(".cell", els.heatTable).forEach(cell => {
     cell.addEventListener("click", () => {
       const team = cell.dataset.team;
-      const pos = cell.dataset.pos === "TOTAL" ? STATE.pos : cell.dataset.pos;
-      selectTeam(team, pos);
+      const clickedPos = cell.dataset.pos;
+
+      STATE.heatmapTeam = team;
+      if (clickedPos && clickedPos !== "TOTAL") STATE.heatmapPos = clickedPos;
+
+      if (els.heatTeamSelect) els.heatTeamSelect.value = team;
+      syncHeatmapPosButtons();
+      updateHeatmapHighlights();
+
+      // heatmap click selects defense for the main profile without changing main position
+      selectTeam(team, STATE.pos);
     });
   });
+
+  syncHeatmapPosButtons();
+  updateHeatmapHighlights();
 }
 
 // =====================
@@ -675,7 +720,6 @@ function buildScatter(){
         const p = points[el.index];
         if (!p) return;
         selectTeam(p.t, pos);
-        openDrilldown(p.t, pos);
       }
     }
   });
@@ -879,12 +923,19 @@ function setPos(pos){
   STATE.pos = pos;
 
   // pos buttons
-  $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === pos));
+  $$(".pos-btn:not(.heat-pos-btn)").forEach(b => b.classList.toggle("is-active", b.dataset.pos === pos));
 
   buildMiniLists();
   buildScatter();
   buildQuickCards();
-  if (STATE.selectedTeam) buildRadar();
+  if (STATE.selectedTeam){
+    buildRadar();
+    buildPlayerTable(STATE.selectedTeam, STATE.pos);
+
+    // keep the rest of the UI in sync (these normally update on selectTeam)
+    els.profilePill.querySelector("span:last-child").innerHTML = `Selected: <strong>${STATE.selectedTeam}</strong> • Position: <strong>${STATE.pos}</strong>`;
+    $$(".cell", els.heatTable).forEach(c => c.classList.toggle("is-selected", c.dataset.team === STATE.selectedTeam && (c.dataset.pos === STATE.pos || c.dataset.pos === "TOTAL")));
+  }
 }
 
 function selectTeam(team, pos = STATE.pos){
@@ -893,7 +944,7 @@ function selectTeam(team, pos = STATE.pos){
 
   // update select + pos buttons
   els.teamSelect.value = team;
-  $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
+  $$(".pos-btn:not(.heat-pos-btn)").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
 
   // pill
   els.profilePill.querySelector("span:last-child").innerHTML = `Selected: <strong>${team}</strong> • Position: <strong>${STATE.pos}</strong>`;
@@ -908,6 +959,7 @@ function selectTeam(team, pos = STATE.pos){
 
   // highlight selected heat cells
   $$(".cell", els.heatTable).forEach(c => c.classList.toggle("is-selected", c.dataset.team === team && (c.dataset.pos === STATE.pos || c.dataset.pos === "TOTAL")));
+  updateHeatmapHighlights();
 }
 
 // =====================
@@ -967,11 +1019,25 @@ function bindEvents(){
   els.btnSeason.addEventListener("click", () => setDataset("season"));
   els.btnRecent.addEventListener("click", () => setDataset("recent"));
 
-  $$(".pos-btn").forEach(b => b.addEventListener("click", () => setPos(b.dataset.pos)));
+  $$(".pos-btn:not(.heat-pos-btn)").forEach(b => b.addEventListener("click", () => setPos(b.dataset.pos)));
 
   els.teamSelect.addEventListener("change", () => {
     selectTeam(els.teamSelect.value, STATE.pos);
   });
+
+  // heatmap-specific controls
+  $$(".heat-pos-btn").forEach(b => b.addEventListener("click", () => {
+    STATE.heatmapPos = b.dataset.pos;
+    syncHeatmapPosButtons();
+    updateHeatmapHighlights();
+  }));
+
+  if (els.heatTeamSelect){
+    els.heatTeamSelect.addEventListener("change", () => {
+      STATE.heatmapTeam = els.heatTeamSelect.value;
+      updateHeatmapHighlights();
+    });
+  }
 
   els.sortSelect.addEventListener("change", () => {
     STATE.sortKey = els.sortSelect.value;
