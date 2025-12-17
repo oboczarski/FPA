@@ -156,7 +156,7 @@ body::before{
   z-index: 1;
 }
 
-.hero{ padding: 18px; }
+.hero{padding: 10px 10px 9px;}
 
 .hero__left{ grid-area:left; }
 .hero__right{ grid-area:right; }
@@ -171,9 +171,10 @@ p{ margin: 10px 0 0; }
 
 .hero__grid{
   display:grid;
-  grid-template-columns: 1.05fr 0.95fr 0.62fr;
-  grid-template-areas: "left right mini";
-  gap:18px;
+  grid-template-columns: 1.05fr 1.05fr 0.52fr;
+  grid-template-areas:
+    "left right mini";
+  gap: 14px;
   align-items:start;
 }
 @media (max-width: 980px){
@@ -375,13 +376,13 @@ p{ margin: 10px 0 0; }
   grid-area: mini;
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap: 6px;
 }
 .miniCard{
   border-radius: var(--r2);
   border:1px solid var(--border2);
   background: rgba(255,255,255,0.04);
-  padding: 10px 12px;
+  padding: 5px 8px;
 }
 .miniCard__title{
   font-size: 12px;
@@ -395,10 +396,10 @@ p{ margin: 10px 0 0; }
   margin-top: 7px;
   display:flex;
   flex-direction:column;
-  gap: 4px;
+  gap: 3px;
 }
 @media (min-width: 981px){
-  .miniCard__body{ max-height: 150px; }
+  .miniCard__body{max-height: 189px;}
 }
 .rankRow{
   position: relative;
@@ -427,7 +428,7 @@ p{ margin: 10px 0 0; }
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.04em;
-  padding: 2px 8px;
+  padding: 2px 5px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(0,0,0,0.16);
@@ -435,9 +436,9 @@ p{ margin: 10px 0 0; }
 }
 
 .rankRow .lhs{display:flex;gap: 10px;align-items:center;}
-.rankRow .tm{font-weight: 900;letter-spacing: 0.04em;FONT-SIZE: 14px;}
-.rankRow .meta{ font-size:12px; color: var(--muted); }
-.rankRow .rhs{font-size: 12px;color: var(--muted);font-weight: 800;}
+.rankRow .tm{font-weight: 900;letter-spacing: 0.04em;FONT-SIZE: 13px;}
+.rankRow .meta{font-size: 11px;color: var(--muted);}
+.rankRow .rhs{font-size: 10px;color: var(--muted);font-weight: 800;}
 
 .grid2{
   margin-top: 16px;
