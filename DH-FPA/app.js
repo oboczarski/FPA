@@ -82,6 +82,16 @@ function fmt(x, d=2){
   return n.toFixed(d);
 }
 
+function ordinal(x){
+  const n = Math.round(toNum(x));
+  if (!Number.isFinite(n)) return "—";
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  const mod10 = n % 10;
+  const suf = mod10 === 1 ? "st" : (mod10 === 2 ? "nd" : (mod10 === 3 ? "rd" : "th"));
+  return `${n}${suf}`;
+}
+
 function toNum(x){
   if (x === null || x === undefined) return NaN;
   const s = String(x).trim().replace(/,/g,"");
@@ -513,11 +523,16 @@ function buildHeatTable(){
           const sc = rankScore(rk);
           const c = heatColor(sc);
           const bg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(c,0.30)}, transparent 70%)`;
+
+          const has = Number.isFinite(avg) && Number.isFinite(rk);
+          const label = has
+            ? `<span class="cell__rk">${ordinal(rk)}</span><span class="cell__avg">(${fmt(avg,1)})</span>`
+            : `<span class="cell__rk">—</span>`;
+
           return `
             <td>
               <div class="cell" data-team="${t}" data-pos="${pos}" style="background:${bg}; border-color: ${rgbaOf(c,0.22)};">
-                <div class="val">${fmt(avg,2)}</div>
-                <div class="rk">Rk ${fmt(rk,0)}</div>
+                <div class="cell__text">${label}</div>
               </div>
             </td>
           `;
@@ -528,6 +543,11 @@ function buildHeatTable(){
         const totC  = heatColor(totSc);
         const totBg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(totC,0.30)}, transparent 70%)`;
 
+        const totHas = Number.isFinite(totAvg) && Number.isFinite(totRk);
+        const totLabel = totHas
+          ? `<span class="cell__rk">${ordinal(totRk)}</span><span class="cell__avg">(${fmt(totAvg,1)})</span>`
+          : `<span class="cell__rk">—</span>`;
+
         return `
           <tr>
             <td class="tmCell">${t}</td>
@@ -537,8 +557,7 @@ function buildHeatTable(){
             ${makeCell("TE")}
             <td>
               <div class="cell" data-team="${t}" data-pos="TOTAL" style="background:${totBg}; border-color: ${rgbaOf(totC,0.22)};">
-                <div class="val">${fmt(totAvg,2)}</div>
-                <div class="rk">Rk ${fmt(totRk,0)}</div>
+                <div class="cell__text">${totLabel}</div>
               </div>
             </td>
           </tr>
