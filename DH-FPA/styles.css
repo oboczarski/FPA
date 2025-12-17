@@ -159,7 +159,7 @@ body::before{
 .hero{padding: 10px 10px 9px;}
 
 .hero__left{ grid-area:left; }
-.hero__right{ grid-area:right; }
+.hero__right{ grid-area:right; padding-top: 95px; }
 h2{
   margin:0;
   font-size: 16px;
@@ -416,6 +416,16 @@ p{ margin: 10px 0 0; }
   transition: transform .14s ease, border-color .14s ease;
 }
 .rankRow:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.14); }
+
+/* Static rank rows (non-clickable) */
+.rankRow--static{
+  cursor: default;
+}
+.rankRow--static:hover{ 
+  transform: none; 
+  border-color: rgba(255,255,255,0.08); 
+}
+
 .rankDot{
   width:10px;
   height:10px;

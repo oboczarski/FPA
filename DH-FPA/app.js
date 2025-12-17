@@ -405,7 +405,7 @@ function buildMiniLists(){
     root.innerHTML = "";
     for (const r of rows){
       const el = document.createElement("div");
-      el.className = "rankRow";
+      el.className = "rankRow rankRow--static";
       el.innerHTML = (() => {
         const isTrend = mode === "trend";
         const dot = isTrend
@@ -421,7 +421,7 @@ function buildMiniLists(){
               const arrow = r.dRank > 0 ? "▲" : (r.dRank < 0 ? "▼" : "•");
               return `<span class="trendBadge" style="border-color:${rgbaOf(dot,0.25)}; background:${rgbaOf(dot,0.12)}; color:${dot};">${arrow} ${Math.abs(fmt(r.dRank,0))}</span>`;
             })()
-          : "View";
+          : "";
 
         return `
           <div class="lhs">
@@ -429,12 +429,9 @@ function buildMiniLists(){
             <div class="tm">${r.t}</div>
             <div class="meta">${meta}</div>
           </div>
-          <div class="rhs">${badge}</div>
+          ${badge ? `<div class="rhs">${badge}</div>` : ""}
         `;
       })();
-	el.addEventListener("click", () => {
-	        selectTeam(r.t, pos);
-	      });
       root.appendChild(el);
     }
   };
@@ -742,13 +739,19 @@ function buildPlayerScatter() {
     return;
   }
   
-  // Get player rows for this defense
-  let rows = DATA.playersLong.filter(r => r.def === team);
-  if (posFilter !== "ALL") {
-    rows = rows.filter(r => r.pos === posFilter);
-  }
+  // Get ALL player rows for this defense (for consistent y-axis scale)
+  const allRowsForTeam = DATA.playersLong.filter(r => r.def === team);
   
-  // Calculate min/max points for brightness scaling
+  // Filter by position for display
+  let rows = posFilter !== "ALL" 
+    ? allRowsForTeam.filter(r => r.pos === posFilter)
+    : allRowsForTeam;
+  
+  // Calculate min/max points from ALL positions for consistent y-axis scale
+  const allPtsForScale = allRowsForTeam.map(r => r.pts).filter(p => Number.isFinite(p));
+  const maxPtsForScale = Math.max(...allPtsForScale, 1);
+  
+  // Calculate brightness from filtered rows
   const allPts = rows.map(r => r.pts).filter(p => Number.isFinite(p));
   const minPts = Math.min(...allPts, 0);
   const maxPts = Math.max(...allPts, 1);
@@ -804,6 +807,7 @@ function buildPlayerScatter() {
         y: {
           title: { display: true, text: "Fantasy Points (PPR)" },
           min: 0,
+          max: Math.ceil(maxPtsForScale / 5) * 5 + 5, // Round up to nearest 5 + padding
           grid: { color: "rgba(255,255,255,0.07)" },
         },
       },
