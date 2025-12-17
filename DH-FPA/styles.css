@@ -96,11 +96,11 @@ body{
 .panel{
   position: relative;
   overflow: hidden;
-  background: var(--panel);
+  background: rgb(17 17 35 / 7%);
   border:1px solid var(--border);
   border-radius: var(--r);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(1px);
+  backdrop-filter: blur(0px);
 }
 
 .panel::before{
@@ -345,14 +345,13 @@ p{ margin: 10px 0 0; }
   font-weight: 800;
 }
 .miniCard__body{
-  max-height: 170px;
+  max-height: 210px;
   overflow:auto;
   padding-right: 4px;
-
-  margin-top: 8px;
+  margin-top: 7px;
   display:flex;
   flex-direction:column;
-  gap:6px;
+  gap: 4px;
 }
 .rankRow{
   position: relative;
@@ -378,20 +377,20 @@ p{ margin: 10px 0 0; }
 }
 
 .trendBadge{
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.04em;
-  padding: 4px 8px;
+  padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(0,0,0,0.16);
   color: rgba(255,255,255,0.82);
 }
 
-.rankRow .lhs{ display:flex; gap:10px; align-items:center; }
-.rankRow .tm{ font-weight: 900; letter-spacing: 0.04em; }
+.rankRow .lhs{display:flex;gap: 10px;align-items:center;}
+.rankRow .tm{font-weight: 900;letter-spacing: 0.04em;FONT-SIZE: 14px;}
 .rankRow .meta{ font-size:12px; color: var(--muted); }
-.rankRow .rhs{ font-size: 12px; color: var(--muted); font-weight: 800; }
+.rankRow .rhs{font-size: 12px;color: var(--muted);font-weight: 800;}
 
 .grid2{
   margin-top: 16px;
@@ -421,7 +420,7 @@ p{ margin: 10px 0 0; }
 
 .tableWrap{
   overflow:auto;
-  padding: 12px 12px 14px;
+  padding: 12px 7px 12px;
 }
 .footnote{
   padding: 0 14px 14px;
@@ -430,7 +429,7 @@ p{ margin: 10px 0 0; }
 }
 
 table{
-  width:100%;
+  width: 100%;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -450,7 +449,7 @@ table{
 }
 .heat tbody td{
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  padding: 10px;
+  padding: 4px;
   font-size: 13px;
 }
 .heat tbody tr:hover td{
@@ -464,7 +463,7 @@ table{
 .cell{
   border-radius: 14px;
   border:1px solid rgba(255,255,255,0.08);
-  padding: 8px 10px !important;
+  padding: 4px 11px !important;
   background: rgba(0,0,0,0.18);
   cursor:pointer;
   transition: transform .14s ease, border-color .14s ease;
@@ -708,5 +707,4 @@ code{
 .canvasBox canvas{
   display:block;
   width:100% !important;
-  height:100% !important;
 }
