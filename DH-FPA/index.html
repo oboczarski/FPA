@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>2025 Fantasy Points Against — Matchup Explorer</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Product+Sans:wght@100;200;300;400;500;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans:100,200,300,400,500,600,700" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@200;300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -15,7 +18,7 @@
       <div class="badge">FPA</div>
       <div>
         <div class="title">2025 Fantasy Points Against</div>
-        <div class="subtitle">Matchup Explorer • Season vs Weeks 9–15 • Player-level drilldowns</div>
+        <div class="subtitle">Matchup Explorer • Full season vs Weeks 9–15 • Player-level drilldowns</div>
       </div>
     </div>
 
@@ -36,11 +39,8 @@
     <section class="panel hero">
       <div class="hero__grid">
         <div class="hero__left">
-          <h2>Quick Matchup Finder</h2>
-          <p class="muted">
-            Pick a position + opponent defense to instantly see how targetable that defense is for that position —
-            comparing full-season trends vs recent (Weeks 9–15).
-          </p>
+          <h2>Matchup Finder</h2>
+          <p class="muted">Full season vs Weeks 9–15</p>
 
           <div class="controls">
             <label class="field">
@@ -62,12 +62,38 @@
           <div class="cards" id="quickCards">
             <!-- populated by JS -->
           </div>
+
+          <!-- Player Table Section -->
+          <section class="playerSection" id="playerSection">
+            <div class="playerSection__head">
+              <h3>Players vs Selected Defense</h3>
+              <div class="playerFilters">
+                <label class="field small">
+                  <span>Weeks</span>
+                  <select id="weekRange" class="select">
+                    <option value="all">All (1–15)</option>
+                    <option value="recent">Weeks 9–15</option>
+                    <option value="1-8">Weeks 1–8</option>
+                    <option value="9-12">Weeks 9–12</option>
+                    <option value="13-15">Weeks 13–15</option>
+                  </select>
+                </label>
+                <label class="field small">
+                  <span>Search</span>
+                  <input id="playerSearch" class="input" type="text" placeholder="Player or team…" />
+                </label>
+              </div>
+            </div>
+            <div class="tableWrap playerTableWrap">
+              <table class="list" id="playerTable"></table>
+            </div>
+          </section>
         </div>
 
         <div class="hero__right">
-          <h2>Landscape</h2>
+          <h2>Trends</h2>
           <p class="muted">
-            Scatter = defenses by FPA (Season vs Recent). Above the diagonal → trending easier.
+            Each point is a defense. Above the diagonal = more generous recently.
           </p>
 
           <div class="chartCard">
@@ -86,28 +112,26 @@
               <canvas id="scatterChart"></canvas>
             </div>
 
-            <div class="chartHint">
-              Tip: hover points for details • click a point to open drilldown
-            </div>
+            <div class="chartHint">Tip: hover for details • click a point to select a defense</div>
           </div>
         </div>
 
         <!-- Full-width row to avoid the left-column “dead space” you saw in published views -->
         <div class="hero__mini">
           <div class="miniCard">
-            <div class="miniCard__title">Easiest (Season)</div>
+            <div class="miniCard__title">Best Matchups</div>
             <div class="miniCard__body" id="topSeason"></div>
           </div>
           <div class="miniCard">
-            <div class="miniCard__title">Easiest (Weeks 9–15)</div>
+            <div class="miniCard__title">Recent Best</div>
             <div class="miniCard__body" id="topRecent"></div>
           </div>
           <div class="miniCard">
-            <div class="miniCard__title">Biggest Trend: Easier</div>
+            <div class="miniCard__title">Trending Up</div>
             <div class="miniCard__body" id="trendUp"></div>
           </div>
           <div class="miniCard">
-            <div class="miniCard__title">Biggest Trend: Tougher</div>
+            <div class="miniCard__title">Trending Down</div>
             <div class="miniCard__body" id="trendDown"></div>
           </div>
         </div>
@@ -118,11 +142,26 @@
       <section class="panel">
         <div class="panelHeader">
           <div>
-            <h2>Heatmap Table</h2>
-            <div class="muted">Click any cell to drill into weekly players + weekly totals.</div>
+            <h2>Matchup Heatmap</h2>
+            <div class="muted">Click any cell to see weekly totals and the players who drove them.</div>
           </div>
 
           <div class="panelHeader__right">
+            <label class="field small">
+              <span>Heatmap position</span>
+              <div class="pos-toggle pos-toggle--sm" role="group" aria-label="Heatmap position toggle">
+                <button class="pos-btn heat-pos-btn is-active" data-pos="QB" type="button">QB</button>
+                <button class="pos-btn heat-pos-btn" data-pos="RB" type="button">RB</button>
+                <button class="pos-btn heat-pos-btn" data-pos="WR" type="button">WR</button>
+                <button class="pos-btn heat-pos-btn" data-pos="TE" type="button">TE</button>
+              </div>
+            </label>
+
+            <label class="field small">
+              <span>Highlight DEF</span>
+              <select id="heatTeamSelect" class="select"></select>
+            </label>
+
             <label class="field small">
               <span>Sort by</span>
               <select id="sortSelect" class="select">
@@ -162,8 +201,8 @@
       <section class="panel">
         <div class="panelHeader">
           <div>
-            <h2>Defense Profile</h2>
-            <div class="muted">Select a team from the table or scatter to compare season vs recent.</div>
+            <h2>Defense Snapshot</h2>
+            <div class="muted">Select a defense from the heatmap or scatter to compare full season vs recent.</div>
           </div>
           <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
         </div>
@@ -174,12 +213,12 @@
             <div class="canvasBox canvasBox--radar">
               <canvas id="radarChart"></canvas>
             </div>
-            <div class="chartHint">Higher rank = easier matchup</div>
+            <div class="chartHint">Higher rank = more generous defense</div>
           </div>
 
           <div class="profileCard">
-            <div class="profileCard__title">Weekly Totals vs Selected Position</div>
-            <div class="muted smallLine" id="weeklySub">Select a position + team to populate.</div>
+            <div class="profileCard__title">Weekly Totals (Selected Position)</div>
+            <div class="muted smallLine" id="weeklySub">Select a defense + position to populate.</div>
             <div class="canvasBox canvasBox--weekly">
               <canvas id="weeklyChart"></canvas>
             </div>
@@ -188,7 +227,7 @@
 
         <div class="profileFooter">
           <div class="muted smallLine">
-            Drilldowns use <strong>WKLY-DEF_vs_POS_by_Player.csv</strong> to show which players drove each week’s FPA.
+            Drilldowns use <strong>WKLY-DEF_vs_POS_by_Player.csv</strong> to show which players drove each week’s totals.
           </div>
         </div>
       </section>
@@ -210,62 +249,7 @@
     </section>
   </main>
 
-  <!-- Drilldown modal -->
-  <div class="modal" id="modal" aria-hidden="true">
-    <div class="modal__backdrop" data-close="1"></div>
-    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal__head">
-        <div>
-          <div class="modal__kicker">Drilldown</div>
-          <div id="modalTitle" class="modal__title">—</div>
-        </div>
-        <button class="iconBtn" data-close="1" aria-label="Close">✕</button>
-      </div>
 
-      <div class="modal__body">
-        <div class="modalCards" id="modalCards"></div>
-
-        <div class="modalSplit">
-          <div class="modalSection">
-            <div class="modalSection__title">Weekly Totals</div>
-            <div class="canvasBox canvasBox--modalWeekly">
-              <canvas id="modalWeeklyChart"></canvas>
-            </div>
-            <div class="chartHint">Bars = total FPA allowed to that position each week</div>
-          </div>
-
-          <div class="modalSection">
-            <div class="modalSection__title">Players (click headers to sort)</div>
-            <div class="modalFilters">
-              <label class="field small">
-                <span>Weeks</span>
-                <select id="weekRange" class="select">
-                  <option value="all">All (1–15)</option>
-                  <option value="recent">Weeks 9–15</option>
-                  <option value="1-8">Weeks 1–8</option>
-                  <option value="9-12">Weeks 9–12</option>
-                  <option value="13-15">Weeks 13–15</option>
-                </select>
-              </label>
-
-              <label class="field small">
-                <span>Search</span>
-                <input id="playerSearch" class="input" type="text" placeholder="Player or team…" />
-              </label>
-            </div>
-
-            <div class="tableWrap modalTableWrap">
-              <table class="list" id="playerTable"></table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal__foot">
-        <button class="btn" data-close="1">Close</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Libraries (CDN). If you prefer offline, download these and point to local files. -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>

@@ -20,6 +20,7 @@ const els = {
   btnRecent: document.getElementById("btnRecent"),
   loadStatus: document.getElementById("loadStatus"),
   teamSelect: document.getElementById("teamSelect"),
+  heatTeamSelect: document.getElementById("heatTeamSelect"),
   sortSelect: document.getElementById("sortSelect"),
   dirSelect: document.getElementById("dirSelect"),
   heatTable: document.getElementById("heatTable"),
@@ -36,12 +37,10 @@ const els = {
   profilePill: document.getElementById("profilePill"),
   weeklySub: document.getElementById("weeklySub"),
 
-  modal: document.getElementById("modal"),
-  modalTitle: document.getElementById("modalTitle"),
-  modalCards: document.getElementById("modalCards"),
   weekRange: document.getElementById("weekRange"),
   playerSearch: document.getElementById("playerSearch"),
   playerTable: document.getElementById("playerTable"),
+  playerSection: document.getElementById("playerSection"),
 };
 
 let STATE = {
@@ -51,8 +50,24 @@ let STATE = {
   scatterMode: "avg", // "avg" | "rank"
   sortKey: "Total_Rk",
   sortDir: "desc",
-  playerSort: { key: "pts", dir: "desc" },
+  playerSort: { key: "week", dir: "desc" },
+  heatmapPos: "QB", // independent position for heatmap
+  heatmapTeam: null, // independent team highlight for heatmap
 };
+
+function syncHeatmapPosButtons(){
+  $$(".heat-pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.heatmapPos));
+}
+
+function updateHeatmapHighlights(){
+  if (!els.heatTable) return;
+  const team = STATE.heatmapTeam;
+  const pos = STATE.heatmapPos;
+  $$(".cell", els.heatTable).forEach(c => {
+    const on = Boolean(team && pos && c.dataset.team === team && c.dataset.pos === pos);
+    c.classList.toggle("is-heat", on);
+  });
+}
 
 let DATA = {
   season: null,   // array of rows
@@ -68,7 +83,6 @@ let charts = {
   scatter: null,
   radar: null,
   weekly: null,
-  modalWeekly: null,
 };
 
 function $(sel, root=document){ return root.querySelector(sel); }
@@ -80,6 +94,16 @@ function fmt(x, d=2){
   const n = Number(x);
   if (!Number.isFinite(n)) return "—";
   return n.toFixed(d);
+}
+
+function ordinal(x){
+  const n = Math.round(toNum(x));
+  if (!Number.isFinite(n)) return "—";
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  const mod10 = n % 10;
+  const suf = mod10 === 1 ? "st" : (mod10 === 2 ? "nd" : (mod10 === 3 ? "rd" : "th"));
+  return `${n}${suf}`;
 }
 
 function toNum(x){
@@ -193,10 +217,14 @@ async function handleFileUpload(files){
   for (const f of files){
     byName.set(f.name, f);
   }
-  const needed = [CONFIG.paths.players, CONFIG.paths.season, CONFIG.paths.recent];
-  const missing = needed.filter(n => !byName.has(n));
+  const neededPaths = [CONFIG.paths.players, CONFIG.paths.season, CONFIG.paths.recent];
+  const needed = neededPaths.map(p => ({
+    path: p,
+    base: String(p).split("/").pop(),
+  }));
+  const missing = needed.filter(n => !byName.has(n.path) && !byName.has(n.base));
   if (missing.length){
-    setStatus("err", `Missing: ${missing.join(", ")}`);
+    setStatus("err", `Missing: ${missing.map(m => m.base).join(", ")}`);
     return;
   }
 
@@ -210,10 +238,12 @@ async function handleFileUpload(files){
       fr.readAsText(file);
     });
 
+    const pick = (p) => byName.get(p) ?? byName.get(String(p).split("/").pop());
+
     const [playersText, seasonText, recentText] = await Promise.all([
-      readText(byName.get(CONFIG.paths.players)),
-      readText(byName.get(CONFIG.paths.season)),
-      readText(byName.get(CONFIG.paths.recent)),
+      readText(pick(CONFIG.paths.players)),
+      readText(pick(CONFIG.paths.season)),
+      readText(pick(CONFIG.paths.recent)),
     ]);
 
     const [playersWide, season, recent] = await Promise.all([
@@ -320,15 +350,26 @@ function calcTrend(team, pos){
 // =====================
 function buildTeamSelect(){
   els.teamSelect.innerHTML = "";
+  if (els.heatTeamSelect) els.heatTeamSelect.innerHTML = "";
   const teams = [...DATA.byTeamSeason.keys()].sort();
   for (const t of teams){
     const opt = document.createElement("option");
     opt.value = t;
     opt.textContent = t;
     els.teamSelect.appendChild(opt);
+
+    if (els.heatTeamSelect){
+      const opt2 = document.createElement("option");
+      opt2.value = t;
+      opt2.textContent = t;
+      els.heatTeamSelect.appendChild(opt2);
+    }
   }
   STATE.selectedTeam = teams[0] ?? null;
   els.teamSelect.value = STATE.selectedTeam ?? "";
+
+  STATE.heatmapTeam = STATE.selectedTeam;
+  if (els.heatTeamSelect) els.heatTeamSelect.value = STATE.heatmapTeam ?? "";
 }
 
 function buildMiniLists(){
@@ -358,8 +399,12 @@ function buildMiniLists(){
   const trendUp = [...trend].sort((a,b) => b.dRank - a.dRank).slice(0, topN);
   const trendDown = [...trend].sort((a,b) => a.dRank - b.dRank).slice(0, topN);
 
-  const renderList = (root, rows, mode) => {
+  const renderList = (root, rows, mode, title) => {
     root.innerHTML = "";
+    // Set the card title dynamically
+    const cardTitleEl = root.closest('.miniCard')?.querySelector('.miniCard__title');
+    if (cardTitleEl) cardTitleEl.textContent = title;
+
     for (const r of rows){
       const el = document.createElement("div");
       el.className = "rankRow";
@@ -378,7 +423,7 @@ function buildMiniLists(){
               const arrow = r.dRank > 0 ? "▲" : (r.dRank < 0 ? "▼" : "•");
               return `<span class="trendBadge" style="border-color:${rgbaOf(dot,0.25)}; background:${rgbaOf(dot,0.12)}; color:${dot};">${arrow} ${Math.abs(fmt(r.dRank,0))}</span>`;
             })()
-          : "Open";
+          : "";
 
         return `
           <div class="lhs">
@@ -386,21 +431,20 @@ function buildMiniLists(){
             <div class="tm">${r.t}</div>
             <div class="meta">${meta}</div>
           </div>
-          <div class="rhs">${badge}</div>
+          ${badge ? `<div class="rhs">${badge}</div>` : ""}
         `;
       })();
-el.addEventListener("click", () => {
+      el.addEventListener("click", () => {
         selectTeam(r.t, pos);
-        openDrilldown(r.t, pos);
       });
       root.appendChild(el);
     }
   };
 
-  renderList(els.topSeason, topBy("season"), "top");
-  renderList(els.topRecent, topBy("recent"), "top");
-  renderList(els.trendUp, trendUp, "trend");
-  renderList(els.trendDown, trendDown, "trend");
+  renderList(els.topSeason, topBy("season"), "top", `Best Matchups Through 2025 for ${pos}`);
+  renderList(els.topRecent, topBy("recent"), "top", `Best Matchups Last 7 Games for ${pos}`);
+  renderList(els.trendUp, trendUp, "trend", "Trending Up (Easier)");
+  renderList(els.trendDown, trendDown, "trend", "Trending Down (Tougher)");
 }
 
 function buildQuickCards(){
@@ -411,17 +455,17 @@ function buildQuickCards(){
 
   const easyLabel = (rk) => {
     const sc = rankScore(rk);
-    if (sc >= 0.78) return "SMASH SPOT";
-    if (sc >= 0.60) return "GOOD";
-    if (sc >= 0.40) return "NEUTRAL";
-    if (sc >= 0.22) return "TOUGH";
-    return "AVOID";
+    if (sc >= 0.78) return "Great matchup";
+    if (sc >= 0.60) return "Good matchup";
+    if (sc >= 0.40) return "Neutral";
+    if (sc >= 0.22) return "Tough matchup";
+    return "Avoid";
   };
 
   const chipFor = (rk) => {
     const sc = rankScore(rk);
     const c = heatColor(sc);
-    return `<span class="chip" title="Higher rank = easier matchup">
+    return `<span class="chip chip--matchup" title="Higher rank = easier matchup">
       <span class="swatch" style="background:${c}; box-shadow:0 0 0 3px rgba(255,255,255,0.08)"></span>
       ${easyLabel(rk)}
     </span>`;
@@ -458,7 +502,7 @@ function buildQuickCards(){
     card("Weeks 9–15", s.recentAvg, s.recentRank, gmR, ""),
     `<div class="card" style="background:radial-gradient(260px 90px at 18% 10%, ${rgbaOf(trendAccent,0.20)}, transparent 60%), rgba(255,255,255,0.045); border-color:${rgbaOf(trendAccent,0.22)}">
       <div class="card__top">
-        <div class="card__title">Season ↔ Recent Trend</div>
+        <div class="card__title">WKs 9-15 vs. Season</div>
         <span class="chip">
           <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
           ${deltaText ? "TREND" : "—"}
@@ -513,11 +557,16 @@ function buildHeatTable(){
           const sc = rankScore(rk);
           const c = heatColor(sc);
           const bg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(c,0.30)}, transparent 70%)`;
+
+          const has = Number.isFinite(avg) && Number.isFinite(rk);
+          const label = has
+            ? `<span class="cell__rk">${ordinal(rk)}</span><span class="cell__avg">(${fmt(avg,1)})</span>`
+            : `<span class="cell__rk">—</span>`;
+
           return `
             <td>
               <div class="cell" data-team="${t}" data-pos="${pos}" style="background:${bg}; border-color: ${rgbaOf(c,0.22)};">
-                <div class="val">${fmt(avg,2)}</div>
-                <div class="rk">Rk ${fmt(rk,0)}</div>
+                <div class="cell__text">${label}</div>
               </div>
             </td>
           `;
@@ -528,6 +577,11 @@ function buildHeatTable(){
         const totC  = heatColor(totSc);
         const totBg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(totC,0.30)}, transparent 70%)`;
 
+        const totHas = Number.isFinite(totAvg) && Number.isFinite(totRk);
+        const totLabel = totHas
+          ? `<span class="cell__rk">${ordinal(totRk)}</span><span class="cell__avg">(${fmt(totAvg,1)})</span>`
+          : `<span class="cell__rk">—</span>`;
+
         return `
           <tr>
             <td class="tmCell">${t}</td>
@@ -537,8 +591,7 @@ function buildHeatTable(){
             ${makeCell("TE")}
             <td>
               <div class="cell" data-team="${t}" data-pos="TOTAL" style="background:${totBg}; border-color: ${rgbaOf(totC,0.22)};">
-                <div class="val">${fmt(totAvg,2)}</div>
-                <div class="rk">Rk ${fmt(totRk,0)}</div>
+                <div class="cell__text">${totLabel}</div>
               </div>
             </td>
           </tr>
@@ -551,11 +604,22 @@ function buildHeatTable(){
   $$(".cell", els.heatTable).forEach(cell => {
     cell.addEventListener("click", () => {
       const team = cell.dataset.team;
-      const pos = cell.dataset.pos === "TOTAL" ? STATE.pos : cell.dataset.pos;
-      selectTeam(team, pos);
-      openDrilldown(team, pos);
+      const clickedPos = cell.dataset.pos;
+
+      STATE.heatmapTeam = team;
+      if (clickedPos && clickedPos !== "TOTAL") STATE.heatmapPos = clickedPos;
+
+      if (els.heatTeamSelect) els.heatTeamSelect.value = team;
+      syncHeatmapPosButtons();
+      updateHeatmapHighlights();
+
+      // heatmap click selects defense for the main profile without changing main position
+      selectTeam(team, STATE.pos);
     });
   });
+
+  syncHeatmapPosButtons();
+  updateHeatmapHighlights();
 }
 
 // =====================
@@ -656,7 +720,6 @@ function buildScatter(){
         const p = points[el.index];
         if (!p) return;
         selectTeam(p.t, pos);
-        openDrilldown(p.t, pos);
       }
     }
   });
@@ -756,37 +819,8 @@ function buildWeeklyTotalsProfile(team, pos){
   });
 }
 
-function buildModalWeekly(team, pos){
-  const ctx = document.getElementById("modalWeeklyChart").getContext("2d");
-  if (charts.modalWeekly) charts.modalWeekly.destroy();
-
-  const key = `${team}|${pos}`;
-  const arr = DATA.playersWeeklyTotals.get(key) ?? [];
-
-  const labels = arr.map(d => `W${d.week}`);
-  const vals = arr.map(d => d.total);
-
-  charts.modalWeekly = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{ label: "Weekly total", data: vals, borderWidth: 0 }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      resizeDelay: 120,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: "rgba(255,255,255,0.06)" } },
-        y: { grid: { color: "rgba(255,255,255,0.06)" }, title: { display:true, text: "FPA (total)" } }
-      }
-    }
-  });
-}
-
 // =====================
-// Drilldown modal
+// Player table (main layout)
 // =====================
 function getPlayerRows(team, pos){
   return DATA.playersLong.filter(r => r.def === team && r.pos === pos);
@@ -860,65 +894,11 @@ function buildPlayerTable(team, pos){
         STATE.playerSort.dir = STATE.playerSort.dir === "asc" ? "desc" : "asc";
       }else{
         STATE.playerSort.key = k;
-        STATE.playerSort.dir = (k === "pts") ? "desc" : "asc";
+        STATE.playerSort.dir = (k === "pts" || k === "week") ? "desc" : "asc";
       }
       buildPlayerTable(team, pos);
     });
   });
-}
-
-function openDrilldown(team, pos){
-  els.modal.classList.add("is-open");
-  els.modal.setAttribute("aria-hidden","false");
-  els.modalTitle.textContent = `${team} vs ${pos}`;
-
-  const tr = calcTrend(team, pos);
-  const gmS = getMetric(team,"season","GM_P");
-  const gmR = getMetric(team,"recent","GM_P");
-
-  const makeCard = (title, avg, rk, gm) => {
-    const sc = rankScore(rk);
-    const c = heatColor(sc);
-    return `
-      <div class="card">
-        <div class="card__top">
-          <div class="card__title">${title}</div>
-          <span class="chip"><span class="swatch" style="background:${c};"></span>${rk >= 24 ? "EASY" : rk <= 10 ? "HARD" : "MID"}</span>
-        </div>
-        <div class="card__big">${fmt(avg,2)} <span class="muted" style="font-size:12px;font-weight:700;">FPA</span></div>
-        <div class="card__sub">Rank: <strong>${fmt(rk,0)}</strong> / 32 • Games: <strong>${fmt(gm,0)}</strong></div>
-      </div>
-    `;
-  };
-
-  const trendCard = `
-    <div class="card">
-      <div class="card__top">
-        <div class="card__title">Trend</div>
-        <span class="chip"><span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>${Number.isFinite(tr.dRank) ? "Δ" : "—"}</span>
-      </div>
-      <div class="card__big">${Number.isFinite(tr.dRank) ? `${tr.dRank > 0 ? "+" : ""}${fmt(tr.dRank,0)} <span class="muted" style="font-size:12px;font-weight:700;">rank</span>` : "—"}</div>
-      <div class="card__sub">${Number.isFinite(tr.dAvg) ? `ΔAvg: <strong>${tr.dAvg > 0 ? "+" : ""}${fmt(tr.dAvg,2)}</strong> • Recent is ${tr.dRank > 0 ? "<strong>easier</strong>" : tr.dRank < 0 ? "<strong>tougher</strong>" : "<strong>flat</strong>"}` : "Trend not available"}</div>
-    </div>
-  `;
-
-  els.modalCards.innerHTML = [
-    makeCard("Season", tr.seasonAvg, tr.seasonRank, gmS),
-    makeCard("Weeks 9–15", tr.recentAvg, tr.recentRank, gmR),
-    trendCard
-  ].join("");
-
-  buildModalWeekly(team, pos);
-  buildPlayerTable(team, pos);
-
-  // wire filters
-  els.weekRange.onchange = () => buildPlayerTable(team, pos);
-  els.playerSearch.oninput = () => buildPlayerTable(team, pos);
-}
-
-function closeModal(){
-  els.modal.classList.remove("is-open");
-  els.modal.setAttribute("aria-hidden","true");
 }
 
 // =====================
@@ -943,12 +923,19 @@ function setPos(pos){
   STATE.pos = pos;
 
   // pos buttons
-  $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === pos));
+  $$(".pos-btn:not(.heat-pos-btn)").forEach(b => b.classList.toggle("is-active", b.dataset.pos === pos));
 
   buildMiniLists();
   buildScatter();
   buildQuickCards();
-  if (STATE.selectedTeam) buildRadar();
+  if (STATE.selectedTeam){
+    buildRadar();
+    buildPlayerTable(STATE.selectedTeam, STATE.pos);
+
+    // keep the rest of the UI in sync (these normally update on selectTeam)
+    els.profilePill.querySelector("span:last-child").innerHTML = `Selected: <strong>${STATE.selectedTeam}</strong> • Position: <strong>${STATE.pos}</strong>`;
+    $$(".cell", els.heatTable).forEach(c => c.classList.toggle("is-selected", c.dataset.team === STATE.selectedTeam && (c.dataset.pos === STATE.pos || c.dataset.pos === "TOTAL")));
+  }
 }
 
 function selectTeam(team, pos = STATE.pos){
@@ -957,7 +944,7 @@ function selectTeam(team, pos = STATE.pos){
 
   // update select + pos buttons
   els.teamSelect.value = team;
-  $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
+  $$(".pos-btn:not(.heat-pos-btn)").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
 
   // pill
   els.profilePill.querySelector("span:last-child").innerHTML = `Selected: <strong>${team}</strong> • Position: <strong>${STATE.pos}</strong>`;
@@ -968,9 +955,11 @@ function selectTeam(team, pos = STATE.pos){
   buildMiniLists();
   buildScatter();
   buildRadar();
+  buildPlayerTable(team, pos);
 
   // highlight selected heat cells
   $$(".cell", els.heatTable).forEach(c => c.classList.toggle("is-selected", c.dataset.team === team && (c.dataset.pos === STATE.pos || c.dataset.pos === "TOTAL")));
+  updateHeatmapHighlights();
 }
 
 // =====================
@@ -1030,11 +1019,25 @@ function bindEvents(){
   els.btnSeason.addEventListener("click", () => setDataset("season"));
   els.btnRecent.addEventListener("click", () => setDataset("recent"));
 
-  $$(".pos-btn").forEach(b => b.addEventListener("click", () => setPos(b.dataset.pos)));
+  $$(".pos-btn:not(.heat-pos-btn)").forEach(b => b.addEventListener("click", () => setPos(b.dataset.pos)));
 
   els.teamSelect.addEventListener("change", () => {
     selectTeam(els.teamSelect.value, STATE.pos);
   });
+
+  // heatmap-specific controls
+  $$(".heat-pos-btn").forEach(b => b.addEventListener("click", () => {
+    STATE.heatmapPos = b.dataset.pos;
+    syncHeatmapPosButtons();
+    updateHeatmapHighlights();
+  }));
+
+  if (els.heatTeamSelect){
+    els.heatTeamSelect.addEventListener("change", () => {
+      STATE.heatmapTeam = els.heatTeamSelect.value;
+      updateHeatmapHighlights();
+    });
+  }
 
   els.sortSelect.addEventListener("change", () => {
     STATE.sortKey = els.sortSelect.value;
@@ -1052,13 +1055,12 @@ function bindEvents(){
     buildScatter();
   }));
 
-  // modal close
-  els.modal.addEventListener("click", (e) => {
-    const t = e.target;
-    if (t && t.dataset && t.dataset.close) closeModal();
+  // player table filters
+  els.weekRange.addEventListener("change", () => {
+    if (STATE.selectedTeam) buildPlayerTable(STATE.selectedTeam, STATE.pos);
   });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && els.modal.classList.contains("is-open")) closeModal();
+  els.playerSearch.addEventListener("input", () => {
+    if (STATE.selectedTeam) buildPlayerTable(STATE.selectedTeam, STATE.pos);
   });
 
   // file upload
