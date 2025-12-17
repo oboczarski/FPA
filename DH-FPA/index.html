@@ -18,7 +18,7 @@
       <div class="badge">FPA</div>
       <div>
         <div class="title">2025 Fantasy Points Against</div>
-        <div class="subtitle">Matchup Explorer • Season vs Weeks 9–15 • Player-level drilldowns</div>
+        <div class="subtitle">Matchup Explorer • Full season vs Weeks 9–15 • Player-level drilldowns</div>
       </div>
     </div>
 
@@ -39,10 +39,10 @@
     <section class="panel hero">
       <div class="hero__grid">
         <div class="hero__left">
-          <h2>Quick Matchup Finder</h2>
+          <h2>Matchup Finder</h2>
           <p class="muted">
-            Pick a position + opponent defense to instantly see how targetable that defense is for that position —
-            comparing full-season trends vs recent (Weeks 9–15).
+            Pick a position and an opponent defense to see how “targetable” that defense is —
+            comparing the full season vs the recent sample (Weeks 9–15).
           </p>
 
           <div class="controls">
@@ -68,9 +68,9 @@
         </div>
 
         <div class="hero__right">
-          <h2>Landscape</h2>
+          <h2>Trends</h2>
           <p class="muted">
-            Scatter = defenses by FPA (Season vs Recent). Above the diagonal → trending easier.
+            Each point is a defense. Above the diagonal = more generous recently.
           </p>
 
           <div class="chartCard">
@@ -89,9 +89,7 @@
               <canvas id="scatterChart"></canvas>
             </div>
 
-            <div class="chartHint">
-              Tip: hover points for details • click a point to open drilldown
-            </div>
+            <div class="chartHint">Tip: hover for details • click to open drilldown</div>
           </div>
         </div>
 
@@ -121,8 +119,8 @@
       <section class="panel">
         <div class="panelHeader">
           <div>
-            <h2>Heatmap Table</h2>
-            <div class="muted">Click any cell to drill into weekly players + weekly totals.</div>
+            <h2>Matchup Heatmap</h2>
+            <div class="muted">Click any cell to see weekly totals and the players who drove them.</div>
           </div>
 
           <div class="panelHeader__right">
@@ -165,8 +163,8 @@
       <section class="panel">
         <div class="panelHeader">
           <div>
-            <h2>Defense Profile</h2>
-            <div class="muted">Select a team from the table or scatter to compare season vs recent.</div>
+            <h2>Defense Snapshot</h2>
+            <div class="muted">Select a defense from the heatmap or scatter to compare full season vs recent.</div>
           </div>
           <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
         </div>
@@ -177,12 +175,12 @@
             <div class="canvasBox canvasBox--radar">
               <canvas id="radarChart"></canvas>
             </div>
-            <div class="chartHint">Higher rank = easier matchup</div>
+            <div class="chartHint">Higher rank = more generous defense</div>
           </div>
 
           <div class="profileCard">
-            <div class="profileCard__title">Weekly Totals vs Selected Position</div>
-            <div class="muted smallLine" id="weeklySub">Select a position + team to populate.</div>
+            <div class="profileCard__title">Weekly Totals (Selected Position)</div>
+            <div class="muted smallLine" id="weeklySub">Select a defense + position to populate.</div>
             <div class="canvasBox canvasBox--weekly">
               <canvas id="weeklyChart"></canvas>
             </div>
@@ -191,7 +189,7 @@
 
         <div class="profileFooter">
           <div class="muted smallLine">
-            Drilldowns use <strong>WKLY-DEF_vs_POS_by_Player.csv</strong> to show which players drove each week’s FPA.
+            Drilldowns use <strong>WKLY-DEF_vs_POS_by_Player.csv</strong> to show which players drove each week’s totals.
           </div>
         </div>
       </section>
