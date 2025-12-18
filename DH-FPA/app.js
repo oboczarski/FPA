@@ -30,24 +30,57 @@ const PLAYER_POINTS_THRESHOLDS = {
 };
 
 const PLAYER_POINTS_COLORS = {
-  high: "#00ffc1",
-  solid: "#00c5ff",
-  low: "#c26cfc",
+  high: "#00ffbfea",
+  solid: "#00c3ffe0",
+  low: "#c26cfce8",
 };
 
 // Use exact official/team-reference hex values (no auto-brightening).
 const TEAM_COLORS = {
-  SF: "#B3995D", CHI: "#071D46", CIN: "#FB4F14", BUF: "#C60C30",
-  DEN: "#FB4F14", CLE: "#311D00", TB: "#DC4405", ARI: "#97233F",
-  LAC: "#0080C6", SD: "#0080C6", KC: "#E31837", IND: "#002C5F",
-  WAS: "#5A1414", DAL: "#869397", MIA: "#008E97", PHI: "#2B8C4E",
-  ATL: "#A71930", NYG: "#0D2266", JAX: "#006778", NYJ: "#125740",
-  DET: "#0076B6", GB: "#203731", CAR: "#0085CA", NE: "#002244",
-  LV: "#A5ACAF", OAK: "#A5ACAF", LAR: "#003594", STL: "#003594",
-  BAL: "#241773", NO: "#D3BC8D", SEA: "#69BE28", PIT: "#FFB612",
-  HOU: "#00143F", TEN: "#4B92DB", MIN: "#4F2683",
+  // AFC North
+  'BAL': '#241773',  // Ravens Purple
+  'CIN': '#FB4F14',  // Bengals Orange
+  'CLE': '#FF3C00',  // Browns Orange
+  'PIT': '#FFB612',  // Steelers Gold
+  // AFC East
+  'BUF': '#00338D',  // Bills Blue
+  'MIA': '#008E97',  // Dolphins Aqua
+  'NE': '#00376eff',   // Patriots Nautical Blue
+  'NYJ': '#125740',  // Jets Gotham Green
+  // AFC South
+  'HOU': '#A71930',  // Texans Battle Red
+  'IND': '#062dccff',  // Colts Speed Blue
+  'JAX': '#006778',  // Jaguars Teal
+  'TEN': '#4B92DB',  // Titans Blue
+  // AFC West
+  'DEN': '#FB4F14',  // Broncos Orange
+  'KC': '#E31837',   // Chiefs Red
+  'LV': '#A5ACAF',   // Raiders Silver
+  'OAK': '#A5ACAF',  // Raiders Silver (old)
+  'LAC': '#0080C6',  // Chargers Powder Blue
+  'SD': '#0080C6',   // Chargers (old)
+  // NFC North
+  'CHI': '#C83803',  // Bears Orange
+  'DET': '#0076B6',  // Lions Honolulu Blue
+  'GB': '#2c5349ff',   // Packers Dark Green
+  'MIN': '#4F2683',  // Vikings Purple
+  // NFC East
+  'DAL': '#96a7c6ff',  // Cowboys Royal Blue
+  'NYG': '#0B2265',  // Giants Dark Blue
+  'PHI': '#004C54',  // Eagles Midnight Green
+  'WAS': '#5A1414',  // Commanders Burgundy
+  // NFC South
+  'ATL': '#A71930',  // Falcons Red
+  'CAR': '#0085CA',  // Panthers Carolina Blue
+  'NO': '#D3BC8D',   // Saints Old Gold
+  'TB': '#D50A0A',   // Buccaneers Red
+  // NFC West
+  'ARI': '#97233F',  // Cardinals Red
+  'LAR': '#003594',  // Rams Blue
+  'STL': '#003594',  // Rams (old)
+  'SF': '#aca85dff',   // 49ers Red
+  'SEA': '#69BE28',  // Seahawks Action Green
 };
-
 const els = {
   btnSeason: document.getElementById("btnSeason"),
   btnRecent: document.getElementById("btnRecent"),
@@ -900,13 +933,13 @@ function buildPlayerWeekScatter(){
             callback: (v) => `W${v}`,
           },
           title: { display: true, text: "Week" },
-          grid: { color: "rgba(255,255,255,0.07)" },
+          grid: { color: "rgba(255,255,255,0.02)" },
         },
         y: {
           min: 0,
           suggestedMax: 40,
           title: { display: true, text: "Points" },
-          grid: { color: "rgba(255,255,255,0.07)" },
+          grid: { color: "rgba(255,255,255,0.03)" },
         }
       }
     }
