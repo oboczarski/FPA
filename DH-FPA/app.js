@@ -1078,7 +1078,7 @@ function buildPlayerWeekScatter(){
       _maxPts: maxPts,
       _base: base,
       clip: false,
-      pointRadius: 4.5,
+      pointRadius: 7.5,
       pointHoverRadius: 6.5,
       pointBorderWidth: 1,
       pointBackgroundColor: (ctx) => {

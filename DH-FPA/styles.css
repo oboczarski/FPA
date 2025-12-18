@@ -29,7 +29,7 @@
 
 .posText{
   font-weight: 900;
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: 0.02em;
 }
 .posText[data-pos="QB"]{ color: var(--pos-qb); }
@@ -318,7 +318,7 @@ body::before{
   padding: 2px 4px 6px;
 }
 .playersHeaderTitle{
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 850;
   letter-spacing: 0.01em;
   color: rgba(255,255,255,0.86);
@@ -337,9 +337,10 @@ body::before{
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(0,0,0,0.16);
   overflow: hidden;
+  height: 32rem;
 }
 .playersTableScroll{
-  max-height: 420px;
+  max-height: 497px;
   overflow: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -360,7 +361,7 @@ body::before{
   align-items: flex-end;
 }
 .chartTitle{
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted);
   font-weight: 700;
 }
