@@ -29,6 +29,7 @@
 
 .posText{
   font-weight: 900;
+  font-size: 14px;
   letter-spacing: 0.02em;
 }
 .posText[data-pos="QB"]{ color: var(--pos-qb); }
@@ -139,7 +140,7 @@ h2{
 }
 p{ margin: 10px 0 0; }
 .muted{ color: var(--muted); }
-.smallLine{ font-size: 12px; }
+.smallLine{font-size: 13px;}
 
 .hero__grid{
   display:grid;
@@ -267,7 +268,7 @@ p{ margin: 10px 0 0; }
   border-radius: var(--r2);
   border:1px solid var(--border2);
   background: rgba(255,255,255,0.04);
-  padding: 10px 10px 12px;
+  padding: 0px 7px 0px;
 }
 @media (min-width: 981px){
   .hero__right .chartCard{
@@ -310,7 +311,7 @@ p{ margin: 10px 0 0; }
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  padding: 4px 4px 8px;
+  padding: 4px 4px 0px;
 }
 .chartTitleRow--wrap{
   flex-wrap: wrap;
@@ -334,19 +335,19 @@ p{ margin: 10px 0 0; }
 
 .pos2-toggle{
   display:flex;
-  gap:6px;
+  gap: 9px;
   flex-wrap:wrap;
   justify-content:flex-end;
 }
 .pos2-btn{
-  padding: 7px 10px;
+  padding: 6px 16px;
   border-radius: 10px;
   border:1px solid var(--border2);
   background: rgba(255,255,255,0.05);
   color: var(--muted);
   cursor:pointer;
   font-weight: 800;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing:0.02em;
   transition: transform .14s ease, border-color .14s ease, background .14s ease, color .14s ease;
 }
@@ -586,6 +587,10 @@ p{ margin: 10px 0 0; }
 .tableWrap{
   overflow:auto;
   padding: 12px 7px 12px;
+  border: 1px solid #fff1;
+  background: #5591;
+  filter: drop-shadow(0px 0px 69px #51f2);
+  border-radius: 11px;
 }
 .footnote{
   padding: 0 14px 14px;
@@ -773,13 +778,14 @@ table{
   position:sticky;
   top:0;
   z-index:1;
-  background: rgba(8,8,18,0.92);
+  background: rgb(45 45 78 / 92%);
   border-bottom:1px solid rgba(255,255,255,0.10);
   padding: 9px 10px;
   font-size: 12px;
   color: var(--muted);
-  text-align:left;
+  text-align: center;
   cursor:pointer;
+  border-radius: 2px;
 }
 .list tbody td{
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -802,7 +808,7 @@ code{
   width: 100%;
   height: 240px;
 }
-.canvasBox--scatter{ height: 240px; }
+.canvasBox--scatter{ height: 288px; }
 .canvasBox--playerWeekScatter{ height: 320px; }
 
 .canvasBox canvas{

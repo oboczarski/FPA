@@ -772,7 +772,7 @@ function buildScatter(){
           label: "Defenses",
           data: points,
           pointRadius: 5,
-          pointHoverRadius: 7,
+          pointHoverRadius: 15,
           borderWidth: 0,
           pointBackgroundColor: (ctx) => {
             const team = ctx.raw?.t;
@@ -784,9 +784,10 @@ function buildScatter(){
           type: "line",
           label: "No-change line",
           data: diag,
-          pointRadius: 0,
+          pointRadius: 1,
           borderDash: [6,6],
           borderWidth: 1,
+          borderColor: "rgba(255, 255, 255, 0.3)",
         }
       ]
     },
@@ -799,11 +800,11 @@ function buildScatter(){
       scales: {
         x: {
           title: { display: true, text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
-          grid: { color: "rgba(255,255,255,0.07)" },
+          grid: { color: "rgba(255,255,255,0.01)" },
         },
         y: {
           title: { display: true, text: `Weeks 9–15 (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
-          grid: { color: "rgba(255,255,255,0.07)" },
+          grid: { color: "rgba(255,255,255,0.01)" },
         },
       },
       plugins: {
