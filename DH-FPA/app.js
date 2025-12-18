@@ -96,6 +96,7 @@ const els = {
   teamPickerPanel: document.getElementById("teamPickerPanel"),
   teamPickerLogo: document.getElementById("teamPickerLogo"),
   teamPickerCode: document.getElementById("teamPickerCode"),
+  selTeamLogo: document.getElementById("selTeamLogo"),
   selTeamText: document.getElementById("selTeamText"),
   selPosText: document.getElementById("selPosText"),
   heatPosToggle: document.getElementById("heatPosToggle"),
@@ -110,6 +111,8 @@ const els = {
   scatterTitle: document.getElementById("scatterTitle"),
   playerScatterPosToggle: document.getElementById("playerScatterPosToggle"),
   playerWeekAvgPills: document.getElementById("playerWeekAvgPills"),
+  playerWeekTitlePos: document.getElementById("playerWeekTitlePos"),
+  playerWeekTitleTeam: document.getElementById("playerWeekTitleTeam"),
   topSeason: document.getElementById("topSeason"),
   topSeasonTitle: document.getElementById("topSeasonTitle"),
   topRecent: document.getElementById("topRecent"),
@@ -334,6 +337,18 @@ function syncSelectionChips(team, pos){
   const t = cleanStr(team).toUpperCase();
   const p = cleanStr(pos).toUpperCase();
 
+  if (els.selTeamLogo){
+    if (t){
+      els.selTeamLogo.src = teamLogoSrc(t);
+      els.selTeamLogo.alt = t;
+      els.selTeamLogo.style.opacity = "1";
+    }else{
+      els.selTeamLogo.removeAttribute("src");
+      els.selTeamLogo.alt = "";
+      els.selTeamLogo.style.opacity = "0";
+    }
+  }
+
   if (els.selTeamText){
     els.selTeamText.textContent = t || "—";
     const c = teamColorText(t);
@@ -349,6 +364,30 @@ function syncSelectionChips(team, pos){
   if (els.selPosText){
     els.selPosText.textContent = p || "—";
     els.selPosText.dataset.pos = p || "QB";
+  }
+}
+
+function syncPlayerWeekScatterTitle(team){
+  const t = cleanStr(team).toUpperCase();
+
+  if (els.playerWeekTitlePos){
+    const p = cleanStr(STATE.playerWeekScatterPos).toUpperCase();
+    const isSingle = CONFIG.positions.includes(p);
+    els.playerWeekTitlePos.textContent = isSingle ? p : "ALL";
+    els.playerWeekTitlePos.dataset.pos = isSingle ? p : "ALL";
+    els.playerWeekTitlePos.classList.toggle("posText--all", !isSingle);
+  }
+
+  if (els.playerWeekTitleTeam){
+    els.playerWeekTitleTeam.textContent = t || "—";
+    const c = teamColorText(t);
+    if (c){
+      els.playerWeekTitleTeam.style.color = c;
+      els.playerWeekTitleTeam.style.textShadow = `0 0 16px ${rgbaOf(`rgb(${hexToRgbaArr(c).slice(0,3).join(",")})`, 0.24)}`;
+    }else{
+      els.playerWeekTitleTeam.style.color = "rgba(255,255,255,0.86)";
+      els.playerWeekTitleTeam.style.textShadow = "none";
+    }
   }
 }
 
@@ -993,6 +1032,63 @@ const NO_OVERLAP_SCATTER_PLUGIN = {
   },
 };
 
+const PLAYER_WEEK_AVG_MARKERS_PLUGIN = {
+  id: "playerWeekAvgMarkers",
+  afterDraw(chart, _, opts){
+    const area = chart.chartArea;
+    const yScale = chart.scales?.y;
+    if (!area || !yScale) return;
+
+    const teamAvg = opts?.teamAvg;
+    const leagueAvg = opts?.leagueAvg;
+    const teamColor = opts?.teamColor ?? "rgba(0,191,255,0.90)";
+    const leagueColor = opts?.leagueColor ?? "rgba(255,255,255,0.75)";
+
+    const drawMarker = (x, y, kind, fill) => {
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.translate(0.5, 0.5);
+
+      if (kind === "triangle"){
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = "rgba(0,0,0,0.55)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x - 3, y);
+        ctx.lineTo(x + 4, y - 4);
+        ctx.lineTo(x + 4, y + 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }else{
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = "rgba(0,0,0,0.55)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    };
+
+    const within = (y) => Number.isFinite(y) && y >= area.top - 1 && y <= area.bottom + 1;
+    const xTeam = area.left + 6;
+    const xLeague = area.left + 18;
+
+    if (Number.isFinite(teamAvg)){
+      const y = yScale.getPixelForValue(teamAvg);
+      if (within(y)) drawMarker(xTeam, y, "triangle", teamColor);
+    }
+
+    if (Number.isFinite(leagueAvg)){
+      const y = yScale.getPixelForValue(leagueAvg);
+      if (within(y)) drawMarker(xLeague, y, "circle", leagueColor);
+    }
+  }
+};
+
 function buildScatter(){
   if (!DATA.byTeamSeason || !DATA.byTeamRecent) return;
 
@@ -1054,8 +1150,8 @@ function buildScatter(){
 	        {
 	          label: "Defenses",
 	          data: points,
-	          pointRadius: 11,
-	          pointHoverRadius: 16,
+	          pointRadius: 6,
+	          pointHoverRadius: 9,
 	          pointBorderWidth: 0,
 	          pointStyle: (ctx) => getTeamLogo(ctx.raw?.t) ?? "circle",
 	          pointBackgroundColor: (ctx) => {
@@ -1097,7 +1193,7 @@ function buildScatter(){
         },
       },
 	      plugins: {
-	        noOverlapScatter: { datasetIndex: 0, minDist: 26, padding: 16, iterations: 520, spring: 0.008 },
+	        noOverlapScatter: { datasetIndex: 0, minDist: 16, padding: 10, iterations: 520, spring: 0.008 },
 	        legend: { display: false },
 	        tooltip: {
 	          callbacks: {
@@ -1154,6 +1250,7 @@ function buildPlayerWeekScatter(){
   if (!canvas || !DATA.playersLong) return;
 
   const team = STATE.selectedTeam;
+  syncPlayerWeekScatterTitle(team);
   if (!team){
     if (charts.playerWeekScatter) charts.playerWeekScatter.destroy();
     charts.playerWeekScatter = null;
@@ -1221,33 +1318,17 @@ function buildPlayerWeekScatter(){
     });
   }
 
-  // Average indicators (only when a single position is selected)
+  // Average markers (only when a single position is selected)
+  let teamAvg = NaN;
+  let leagueAvg = NaN;
+  let teamAvgColor = "rgba(0,191,255,0.90)";
   if (CONFIG.positions.includes(STATE.playerWeekScatterPos)){
     const p = STATE.playerWeekScatterPos;
     const dsName = STATE.activeDataset;
-    const teamAvg = getMetric(team, dsName, `${p}_Avg`);
-    const leagueAvg = DATA.leaguePosAvg?.[dsName]?.[p];
+    teamAvg = getMetric(team, dsName, `${p}_Avg`);
+    leagueAvg = DATA.leaguePosAvg?.[dsName]?.[p];
     const [r,g,b] = hexToRgbaArr(PLAYER_SCATTER_COLORS[p] ?? "#ffffff");
-    const posLine = `rgba(${r}, ${g}, ${b}, 0.70)`;
-
-    const baseLine = (label, y, color, dash) => ({
-      type: "line",
-      label,
-      data: [{ x: 1, y }, { x: CONFIG.maxWeek, y }],
-      parsing: false,
-      showLine: true,
-      borderColor: color,
-      borderWidth: 1,
-      borderDash: dash,
-      pointRadius: 0,
-      pointHoverRadius: 0,
-      pointHitRadius: 0,
-      tension: 0,
-      order: -10,
-    });
-
-    if (Number.isFinite(teamAvg)) datasets.push(baseLine("Team avg", teamAvg, posLine, [6,5]));
-    if (Number.isFinite(leagueAvg)) datasets.push(baseLine("League avg", leagueAvg, "rgba(255,255,255,0.40)", [3,5]));
+    teamAvgColor = `rgba(${r}, ${g}, ${b}, 0.90)`;
   }
 
   const ctx = canvas.getContext("2d");
@@ -1255,6 +1336,7 @@ function buildPlayerWeekScatter(){
 
   charts.playerWeekScatter = new Chart(ctx, {
     type: "scatter",
+    plugins: [PLAYER_WEEK_AVG_MARKERS_PLUGIN],
     data: { datasets },
     options: {
       responsive: true,
@@ -1264,6 +1346,7 @@ function buildPlayerWeekScatter(){
       interaction: { mode: "nearest", intersect: true },
       layout: { padding: { left: 14, right: 14, top: 8, bottom: 6 } },
       plugins: {
+        playerWeekAvgMarkers: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)" },
         legend: { display: false },
         tooltip: {
           callbacks: {

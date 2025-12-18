@@ -36,6 +36,12 @@
 .posText[data-pos="RB"]{ color: var(--pos-rb); }
 .posText[data-pos="WR"]{ color: var(--pos-wr); }
 .posText[data-pos="TE"]{ color: var(--pos-te); }
+.posText--all{ color: rgba(255,255,255,0.78); }
+
+.teamText{
+  font-weight: 950;
+  letter-spacing: 0.05em;
+}
 
 *{ box-sizing:border-box; }
 html, body{ height:100%; }
@@ -134,6 +140,9 @@ body::before{
 .hero__left{ grid-area:left; }
 .hero__right{ grid-area:right; }
 .pageHeader{
+  position: relative;
+  z-index: 6;
+  overflow: visible;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.03);
@@ -217,6 +226,11 @@ body::before{
   font-weight: 950;
   letter-spacing: 0.04em;
 }
+.glassChip__value--row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
 
 /* Team Picker (custom dropdown with logos) */
 .teamPicker{ position: relative; }
@@ -257,7 +271,7 @@ body::before{
   position:absolute;
   top: calc(100% + 10px);
   left: 0;
-  z-index: 40;
+  z-index: 120;
   width: min(560px, calc(100vw - 28px));
   padding: 10px;
   border-radius: 18px;
@@ -300,6 +314,7 @@ body::before{
   filter: drop-shadow(0 0 10px rgba(255,255,255,0.10));
 }
 .teamLogo--opt{ width: 17px; height: 17px; }
+.teamLogo--chip{ width: 20px; height: 20px; }
 .finderTitle{ margin:0; font-size: 16px; letter-spacing: 0.01em; }
 .trendsTitle{ margin:0; font-size: 16px; letter-spacing: 0.01em; }
 .playersTitle{ margin:0; font-size: 16px; letter-spacing: 0.01em; }
@@ -717,33 +732,29 @@ body::before{
   align-items:stretch;
   flex-direction:column;
 }
-.heatHeaderTop{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:14px;
-  flex-wrap:wrap;
+.heatHeaderGrid{
+  display:grid;
+  grid-template-columns:
+    minmax(260px, 1.25fr)
+    minmax(190px, 0.9fr)
+    minmax(190px, 0.9fr)
+    minmax(190px, 0.9fr);
+  gap: 10px 12px;
+  align-items:end;
 }
-.heatHeaderMeta{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-  align-items:center;
-}
-.heatHeaderControls{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:flex-end;
-  justify-content:space-between;
-}
+.heatHeaderGrid .heatmapTitle{ grid-column: 1; grid-row: 1; }
+.heatHeaderGrid .segmented{ grid-column: 2; grid-row: 1; justify-self: start; }
+.heatHeaderGrid #profilePill{ grid-column: 3; grid-row: 1; }
+.heatHeaderGrid #loadStatus{ grid-column: 4; grid-row: 1; }
+.heatHeaderGrid .heatHeaderField--pos{ grid-column: 1; grid-row: 2; }
+.heatHeaderGrid .heatHeaderField--def{ grid-column: 2; grid-row: 2; }
+.heatHeaderGrid .heatHeaderField--sort{ grid-column: 3; grid-row: 2; }
+.heatHeaderGrid .heatHeaderField--dir{ grid-column: 4; grid-row: 2; }
 .heatHeaderField{
-  min-width: 140px;
+  min-width: 0;
 }
 .heatHeaderField--pos{
-  flex: 1 1 260px;
-  min-width: 260px;
+  min-width: 0;
 }
 .heatHeaderLabel{
   display:block;
@@ -807,14 +818,18 @@ body::before{
     flex-direction:column;
     align-items:flex-start;
   }
-  .heatHeaderMeta{
+  .heatHeaderGrid{
     width:100%;
-    justify-content:flex-start;
+    grid-template-columns: 1fr;
   }
-  .heatHeaderControls{
-    width:100%;
-    justify-content:flex-start;
-  }
+  .heatHeaderGrid .heatmapTitle{ grid-column: 1; grid-row: auto; }
+  .heatHeaderGrid .segmented{ grid-column: 1; grid-row: auto; justify-self: start; }
+  .heatHeaderGrid #profilePill{ grid-column: 1; grid-row: auto; }
+  .heatHeaderGrid #loadStatus{ grid-column: 1; grid-row: auto; }
+  .heatHeaderGrid .heatHeaderField--pos{ grid-column: 1; grid-row: auto; }
+  .heatHeaderGrid .heatHeaderField--def{ grid-column: 1; grid-row: auto; }
+  .heatHeaderGrid .heatHeaderField--sort{ grid-column: 1; grid-row: auto; }
+  .heatHeaderGrid .heatHeaderField--dir{ grid-column: 1; grid-row: auto; }
   #loadStatus{
     width:100%;
     justify-content:flex-start;
