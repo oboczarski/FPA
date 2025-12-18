@@ -13,28 +13,6 @@
 <body>
   <canvas id="stars" aria-hidden="true"></canvas>
 
-  <header class="topbar">
-    <div class="topbar__left">
-      <div class="badge">FPA</div>
-      <div>
-        <div class="title">2025 Fantasy Points Against</div>
-        <div class="subtitle">Matchup Explorer • Full season vs Weeks 9–15 • Player-level drilldowns</div>
-      </div>
-    </div>
-
-    <div class="topbar__right">
-      <div class="segmented" role="tablist" aria-label="Dataset selector">
-        <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
-        <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
-      </div>
-
-      <div class="pill" id="loadStatus" title="Data load status">
-        <span class="dot is-warn"></span>
-        <span>Loading CSVs…</span>
-      </div>
-    </div>
-  </header>
-
   <main class="wrap">
     <section class="panel hero">
       <div class="hero__grid">
@@ -104,10 +82,10 @@
           </p>
 
           <div class="chartCard">
-            <div class="chartTitleRow">
-              <div class="chartTitle">
-                <span id="scatterTitle">QB</span> — Season vs Weeks 9–15
-              </div>
+	            <div class="chartTitleRow">
+	              <div class="chartTitle">
+	                <span id="scatterTitle" class="posText" data-pos="QB">QB</span> — Season vs Weeks 9–15
+	              </div>
               <div class="smallToggle">
                 <button class="smallToggle__btn is-active" data-scatmode="avg">Avg</button>
                 <button class="smallToggle__btn" data-scatmode="rank">Rank</button>
@@ -165,54 +143,68 @@
 	    </section>
 
     <section class="grid2">
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <h2>Matchup Heatmap</h2>
-            <div class="muted">Click any cell to see weekly totals and the players who drove them.</div>
-          </div>
+	      <section class="panel">
+	        <div class="panelHeader panelHeader--heat">
+	          <div class="panelHeader__left">
+	            <h2>Matchup Heatmap</h2>
+	            <div class="muted">Click any cell to see weekly totals and the players who drove them.</div>
+	          </div>
 
-	          <div class="panelHeader__right">
-	            <label class="field small">
-	              <span>Heat Pos</span>
-	              <select id="heatPosSelect" class="select">
-	                <option value="QB">QB</option>
-	                <option value="RB">RB</option>
-	                <option value="WR">WR</option>
-	                <option value="TE">TE</option>
-	              </select>
-	            </label>
+	          <div class="panelHeader__right panelHeader__right--heat">
+	            <div class="heatHeaderRow heatHeaderRow--meta">
+	              <div class="segmented" role="tablist" aria-label="Dataset selector">
+	                <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
+	                <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
+	              </div>
 
-	            <label class="field small">
-	              <span>Heat DEF</span>
-	              <select id="heatTeamSelect" class="select"></select>
-	            </label>
+	              <div class="pill" id="loadStatus" title="Data load status">
+	                <span class="dot is-warn"></span>
+	                <span>Loading CSVs…</span>
+	              </div>
+	            </div>
 
-	            <label class="field small">
-	              <span>Sort by</span>
-	              <select id="sortSelect" class="select">
-                <option value="Total_Rk">Total (rank)</option>
-                <option value="QB_Rk">QB (rank)</option>
-                <option value="RB_Rk">RB (rank)</option>
-                <option value="WR_Rk">WR (rank)</option>
-                <option value="TE_Rk">TE (rank)</option>
-                <option value="Total Avg">Total (avg)</option>
-                <option value="QB_Avg">QB (avg)</option>
-                <option value="RB_Avg">RB (avg)</option>
-                <option value="WR_Avg">WR (avg)</option>
-                <option value="TE_Avg">TE (avg)</option>
-              </select>
-            </label>
+	            <div class="heatHeaderRow heatHeaderRow--controls">
+	              <div class="field small">
+	                <span>Position</span>
+	                <div id="heatPosToggle" class="heatPosToggle" role="group" aria-label="Heatmap position">
+	                  <button type="button" class="heatPosBtn is-active" data-pos="QB" aria-pressed="true">QB</button>
+	                  <button type="button" class="heatPosBtn" data-pos="RB" aria-pressed="false">RB</button>
+	                  <button type="button" class="heatPosBtn" data-pos="WR" aria-pressed="false">WR</button>
+	                  <button type="button" class="heatPosBtn" data-pos="TE" aria-pressed="false">TE</button>
+	                </div>
+	              </div>
 
-            <label class="field small">
-              <span>Direction</span>
-              <select id="dirSelect" class="select">
-                <option value="desc">Easiest → Toughest</option>
-                <option value="asc">Toughest → Easiest</option>
-              </select>
-            </label>
-          </div>
-        </div>
+	              <label class="field small">
+	                <span>Defense</span>
+	                <select id="heatTeamSelect" class="select"></select>
+	              </label>
+
+	              <label class="field small">
+	                <span>Sort by</span>
+	                <select id="sortSelect" class="select">
+	                  <option value="Total_Rk">Total (rank)</option>
+	                  <option value="QB_Rk">QB (rank)</option>
+	                  <option value="RB_Rk">RB (rank)</option>
+	                  <option value="WR_Rk">WR (rank)</option>
+	                  <option value="TE_Rk">TE (rank)</option>
+	                  <option value="Total Avg">Total (avg)</option>
+	                  <option value="QB_Avg">QB (avg)</option>
+	                  <option value="RB_Avg">RB (avg)</option>
+	                  <option value="WR_Avg">WR (avg)</option>
+	                  <option value="TE_Avg">TE (avg)</option>
+	                </select>
+	              </label>
+
+	              <label class="field small">
+	                <span>Direction</span>
+	                <select id="dirSelect" class="select">
+	                  <option value="desc">Easiest → Toughest</option>
+	                  <option value="asc">Toughest → Easiest</option>
+	                </select>
+	              </label>
+	            </div>
+	          </div>
+	        </div>
 
         <div class="tableWrap">
           <table class="heat" id="heatTable">

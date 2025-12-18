@@ -22,12 +22,38 @@ const PLAYER_SCATTER_COLORS = {
   TE: "#B469FFca",
 };
 
+const PLAYER_POINTS_THRESHOLDS = {
+  QB: { solid: 16, high: 22 },
+  RB: { solid: 12, high: 18 },
+  WR: { solid: 12, high: 18 },
+  TE: { solid: 11, high: 17 },
+};
+
+const PLAYER_POINTS_COLORS = {
+  high: "#00ffc1",
+  solid: "#00c5ff",
+  low: "#c26cfc",
+};
+
+// Use exact official/team-reference hex values (no auto-brightening).
+const TEAM_COLORS = {
+  SF: "#B3995D", CHI: "#071D46", CIN: "#FB4F14", BUF: "#C60C30",
+  DEN: "#FB4F14", CLE: "#311D00", TB: "#DC4405", ARI: "#97233F",
+  LAC: "#0080C6", SD: "#0080C6", KC: "#E31837", IND: "#002C5F",
+  WAS: "#5A1414", DAL: "#869397", MIA: "#008E97", PHI: "#2B8C4E",
+  ATL: "#A71930", NYG: "#0D2266", JAX: "#006778", NYJ: "#125740",
+  DET: "#0076B6", GB: "#203731", CAR: "#0085CA", NE: "#002244",
+  LV: "#A5ACAF", OAK: "#A5ACAF", LAR: "#003594", STL: "#003594",
+  BAL: "#241773", NO: "#D3BC8D", SEA: "#69BE28", PIT: "#FFB612",
+  HOU: "#00143F", TEN: "#4B92DB", MIN: "#4F2683",
+};
+
 const els = {
   btnSeason: document.getElementById("btnSeason"),
   btnRecent: document.getElementById("btnRecent"),
   loadStatus: document.getElementById("loadStatus"),
   teamSelect: document.getElementById("teamSelect"),
-  heatPosSelect: document.getElementById("heatPosSelect"),
+  heatPosToggle: document.getElementById("heatPosToggle"),
   heatTeamSelect: document.getElementById("heatTeamSelect"),
   sortSelect: document.getElementById("sortSelect"),
   dirSelect: document.getElementById("dirSelect"),
@@ -148,10 +174,10 @@ const PLAYER_SCATTER_RGBA = Object.fromEntries(
   Object.entries(PLAYER_SCATTER_COLORS).map(([k,v]) => [k, hexToRgbaArr(v)])
 );
 
-// tough -> easy gradient (red -> mint)
+// tough -> easy gradient (purple -> aqua)
 function heatColor(score){
-  const cTough = [255, 88, 92];
-  const cEasy  = [72, 245, 177];
+  const cTough = [194, 108, 252];
+  const cEasy  = [0, 255, 193];
   return lerpRGB(cTough, cEasy, clamp(score,0,1));
 }
 
@@ -180,6 +206,33 @@ function pointGradientColor(baseRgba, value, minV, maxV){
   const a = lerp(0.18, aHi, t);
 
   return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+}
+
+function teamColorText(tm){
+  const key = cleanStr(tm).toUpperCase();
+  const hex = TEAM_COLORS[key];
+  if (!hex) return null;
+  return hex;
+}
+
+function syncHeatPosToggle(pos){
+  if (!els.heatPosToggle) return;
+  const p = cleanStr(pos).toUpperCase();
+  $$("button.heatPosBtn", els.heatPosToggle).forEach(b => {
+    const on = b.dataset.pos === p;
+    b.classList.toggle("is-active", on);
+    b.setAttribute("aria-pressed", String(on));
+  });
+}
+
+function pointsColor(pos, pts){
+  const p = cleanStr(pos).toUpperCase();
+  const th = PLAYER_POINTS_THRESHOLDS[p];
+  const v = Number(pts);
+  if (!th || !Number.isFinite(v)) return null;
+  if (v >= th.high) return PLAYER_POINTS_COLORS.high;
+  if (v >= th.solid) return PLAYER_POINTS_COLORS.solid;
+  return PLAYER_POINTS_COLORS.low;
 }
 
 
@@ -399,16 +452,17 @@ function buildTeamSelect(){
   STATE.selectedTeam = teams[0] ?? null;
   els.teamSelect.value = STATE.selectedTeam ?? "";
   els.heatTeamSelect.value = STATE.selectedTeam ?? "";
-  els.heatPosSelect.value = STATE.pos;
+  syncHeatPosToggle(STATE.pos);
 }
 
 function buildMiniLists(){
   const pos = STATE.pos;
 
-  if (els.topSeasonTitle) els.topSeasonTitle.textContent = `Best matchups (through 2025) — ${pos}`;
-  if (els.topRecentTitle) els.topRecentTitle.textContent = `Best matchups (last 7 games) — ${pos}`;
-  if (els.trendUpTitle) els.trendUpTitle.textContent = `Trending up (Easier) — ${pos}`;
-  if (els.trendDownTitle) els.trendDownTitle.textContent = `Trending down (Tougher) — ${pos}`;
+  const posTag = `<span class="posText" data-pos="${pos}">${pos}</span>`;
+  if (els.topSeasonTitle) els.topSeasonTitle.innerHTML = `Best matchups (through 2025) — ${posTag}`;
+  if (els.topRecentTitle) els.topRecentTitle.innerHTML = `Best matchups (last 7 games) — ${posTag}`;
+  if (els.trendUpTitle) els.trendUpTitle.innerHTML = `Trending up (Easier) — ${posTag}`;
+  if (els.trendDownTitle) els.trendDownTitle.innerHTML = `Trending down (Tougher) — ${posTag}`;
 
   // Easiest lists
   const teams = [...DATA.byTeamSeason.keys()];
@@ -653,6 +707,7 @@ function buildScatter(){
 
   const pos = STATE.pos;
   els.scatterTitle.textContent = pos;
+  els.scatterTitle.dataset.pos = pos;
 
   const teams = [...DATA.byTeamSeason.keys()].sort();
   const points = teams.map(t => {
@@ -848,6 +903,8 @@ function buildPlayerWeekScatter(){
           grid: { color: "rgba(255,255,255,0.07)" },
         },
         y: {
+          min: 0,
+          suggestedMax: 40,
           title: { display: true, text: "Points" },
           grid: { color: "rgba(255,255,255,0.07)" },
         }
@@ -922,23 +979,30 @@ function buildPlayerTable(team, pos){
     {k:"pts", label:"PPR"},
   ];
 
-  els.playerTable.innerHTML = `
-    <thead>
-      <tr>
-        ${headers.map(h => `<th data-k="${h.k}">${h.label}${STATE.playerSort.key === h.k ? (STATE.playerSort.dir === "asc" ? " ▲" : " ▼") : ""}</th>`).join("")}
-      </tr>
-    </thead>
-    <tbody>
-      ${rows.map(r => `
-        <tr>
-          <td>W${r.week}</td>
-          <td>${r.player}</td>
-          <td>${r.playerTeam || "—"}</td>
-          <td style="font-weight:850;">${fmt(r.pts,2)}</td>
-        </tr>
-      `).join("")}
-    </tbody>
-  `;
+	  els.playerTable.innerHTML = `
+	    <thead>
+	      <tr>
+	        ${headers.map(h => `<th data-k="${h.k}">${h.label}${STATE.playerSort.key === h.k ? (STATE.playerSort.dir === "asc" ? " ▲" : " ▼") : ""}</th>`).join("")}
+	      </tr>
+	    </thead>
+	    <tbody>
+	      ${rows.map(r => {
+	        const tm = r.playerTeam || "—";
+	        const tmColor = teamColorText(tm);
+	        const ptsColor = pointsColor(r.pos, r.pts);
+	        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
+	        const tmStyle = tmColor ? `style="font-weight:900;color:${tmColor};"` : `style="font-weight:900;"`;
+	        return `
+	          <tr>
+	            <td>W${r.week}</td>
+	            <td>${r.player}</td>
+	            <td><span ${tmStyle}>${tm}</span></td>
+	            <td style="${ptsStyle}">${fmt(r.pts,2)}</td>
+	          </tr>
+	        `;
+	      }).join("")}
+	    </tbody>
+	  `;
 
   // bind sort headers
   $$("thead th", els.playerTable).forEach(th => {
@@ -961,7 +1025,7 @@ function buildPlayersSection(team, pos){
     if (els.playerTable) els.playerTable.innerHTML = "";
     return;
   }
-  if (els.playersSub) els.playersSub.textContent = `${team} vs ${pos} • players by week`;
+  if (els.playersSub) els.playersSub.innerHTML = `${team} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
   buildPlayerTable(team, pos);
 }
 
@@ -990,11 +1054,11 @@ function selectTeam(team, pos = STATE.pos){
   // update select + pos buttons
   els.teamSelect.value = team;
   els.heatTeamSelect.value = team;
-  els.heatPosSelect.value = STATE.pos;
+  syncHeatPosToggle(STATE.pos);
   $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
 
   // pill
-  els.profilePill.querySelector("span:last-child").innerHTML = `Selected: <strong>${team}</strong> • Position: <strong>${STATE.pos}</strong>`;
+  els.profilePill.querySelector("span:last-child").innerHTML = `Selected: <strong>${team}</strong> • Position: <strong class="posText" data-pos="${STATE.pos}">${STATE.pos}</strong>`;
   els.profilePill.querySelector(".dot").style.background = "rgba(0,191,255,0.85)";
   els.profilePill.querySelector(".dot").style.boxShadow = "0 0 0 3px rgba(0,191,255,0.12)";
 
@@ -1071,9 +1135,13 @@ function bindEvents(){
     selectTeam(els.teamSelect.value, STATE.pos);
   });
 
-  els.heatPosSelect.addEventListener("change", () => {
-    selectTeam(STATE.selectedTeam, els.heatPosSelect.value);
-  });
+  if (els.heatPosToggle){
+    $$("button.heatPosBtn", els.heatPosToggle).forEach(b => b.addEventListener("click", () => {
+      const p = b.dataset.pos;
+      if (!CONFIG.positions.includes(p)) return;
+      selectTeam(STATE.selectedTeam, p);
+    }));
+  }
 
   els.heatTeamSelect.addEventListener("change", () => {
     selectTeam(els.heatTeamSelect.value, STATE.pos);
