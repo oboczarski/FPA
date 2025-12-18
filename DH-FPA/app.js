@@ -118,6 +118,8 @@ let STATE = {
   activeDataset: "season", // "season" | "recent" (controls heatmap + quick cards primary)
   pos: "QB",
   selectedTeam: null, // defense team for profile
+  heatPos: "QB",
+  heatTeam: null,
   scatterMode: "avg", // "avg" | "rank"
   sortKey: "Total_Rk",
   sortDir: "desc",
@@ -143,6 +145,12 @@ let charts = {
 function $(sel, root=document){ return root.querySelector(sel); }
 function $$ (sel, root=document){ return [...root.querySelectorAll(sel)]; }
 function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
+function cssEsc(s){
+  try{
+    if (typeof CSS !== "undefined" && typeof CSS.escape === "function") return CSS.escape(String(s));
+  }catch{}
+  return String(s);
+}
 
 function fmt(x, d=2){
   if (x === null || x === undefined || x === "" || Number.isNaN(x)) return "—";
@@ -271,6 +279,46 @@ function setPlayerWeekScatterPos(pos, { rebuild = true } = {}){
   STATE.playerWeekScatterPos = next;
   syncPlayerScatterPosToggle(next);
   if (rebuild) buildPlayerWeekScatter();
+}
+
+function applyHeatHighlights(){
+  if (!els.heatTable) return;
+  const cells = $$(".cell", els.heatTable);
+  if (!cells.length) return;
+
+  const mainTeam = STATE.selectedTeam;
+  const mainPos = STATE.pos;
+  const heatTeam = STATE.heatTeam;
+  const heatPos = STATE.heatPos;
+
+  for (const c of cells){
+    const isMain = !!mainTeam && c.dataset.team === mainTeam && (c.dataset.pos === mainPos || c.dataset.pos === "TOTAL");
+    c.classList.toggle("is-selected", isMain);
+
+    const isHeat = !!heatTeam && !!heatPos && c.dataset.team === heatTeam && c.dataset.pos === heatPos;
+    c.classList.toggle("is-heat-focus", isHeat);
+  }
+}
+
+function setHeatPos(pos){
+  const p = cleanStr(pos).toUpperCase();
+  if (!CONFIG.positions.includes(p)) return;
+  STATE.heatPos = p;
+  syncHeatPosToggle(p);
+  applyHeatHighlights();
+}
+
+function setHeatTeam(team, { scroll = true } = {}){
+  const t = cleanStr(team).toUpperCase();
+  if (!t) return;
+  STATE.heatTeam = t;
+  if (els.heatTeamSelect) els.heatTeamSelect.value = t;
+  applyHeatHighlights();
+
+  if (scroll){
+    const cell = $(`.cell[data-team="${cssEsc(t)}"][data-pos="${cssEsc(STATE.heatPos)}"]`, els.heatTable);
+    cell?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
 }
 
 function pointsColor(pos, pts){
@@ -498,9 +546,10 @@ function buildTeamSelect(){
     els.heatTeamSelect.appendChild(opt2);
   }
   STATE.selectedTeam = teams[0] ?? null;
+  STATE.heatTeam = teams[0] ?? null;
   els.teamSelect.value = STATE.selectedTeam ?? "";
-  els.heatTeamSelect.value = STATE.selectedTeam ?? "";
-  syncHeatPosToggle(STATE.pos);
+  els.heatTeamSelect.value = STATE.heatTeam ?? "";
+  syncHeatPosToggle(STATE.heatPos);
 }
 
 function buildMiniLists(){
@@ -734,10 +783,16 @@ function buildHeatTable(){
   $$(".cell", els.heatTable).forEach(cell => {
     cell.addEventListener("click", () => {
       const team = cell.dataset.team;
-      const pos = cell.dataset.pos === "TOTAL" ? STATE.pos : cell.dataset.pos;
+      const rawPos = cell.dataset.pos;
+      if (team) setHeatTeam(team, { scroll: false });
+      if (CONFIG.positions.includes(rawPos)) setHeatPos(rawPos);
+
+      const pos = rawPos === "TOTAL" ? STATE.pos : rawPos;
       selectTeam(team, pos);
     });
   });
+
+  applyHeatHighlights();
 }
 
 // =====================
@@ -750,93 +805,98 @@ function chartCommon(){
   Chart.defaults.plugins.legend.labels.boxWidth = 10;
 }
 
-// Scatter: nudge points in pixel space so they don't visually overlap.
+// Scatter: resolve visual overlap by iteratively separating point elements in pixel space.
+// Note: we intentionally operate on Chart.js element x/y so tooltips/clicks match what the user sees.
 const NO_OVERLAP_SCATTER_PLUGIN = {
   id: "noOverlapScatter",
-  afterUpdate(chart, _, opts){
+  afterDatasetsUpdate(chart, _, opts){
     const datasetIndex = Number.isFinite(opts?.datasetIndex) ? opts.datasetIndex : 0;
     const meta = chart.getDatasetMeta(datasetIndex);
-    if (!meta?.data || meta.data.length < 2) return;
+    const elements = meta?.data ?? [];
+    if (elements.length < 2) return;
 
     const area = chart.chartArea;
     if (!area) return;
 
-    const radius = Number.isFinite(opts?.radius) ? opts.radius : 5;
-    const minDist = Number.isFinite(opts?.minDist) ? opts.minDist : (radius * 2 + 6);
-    const padding = Number.isFinite(opts?.padding) ? opts.padding : (radius + 2);
-    const iterations = Number.isFinite(opts?.iterations) ? opts.iterations : 80;
-    const spring = Number.isFinite(opts?.spring) ? opts.spring : 0.045;
-    const step = Number.isFinite(opts?.step) ? opts.step : 0.75;
+    const ds = chart.data?.datasets?.[datasetIndex] ?? {};
+    const dsRadius = typeof ds.pointRadius === "number" ? ds.pointRadius : NaN;
+    const radius = Number.isFinite(dsRadius) ? dsRadius : (Number.isFinite(opts?.radius) ? opts.radius : 5);
 
-    const nodes = meta.data.map((el, i) => ({ i, x: el.x, y: el.y, x0: el.x, y0: el.y }));
+    const minDistTarget = Number.isFinite(opts?.minDist) ? opts.minDist : (radius * 2 + 4);
+    const minDistFloor = Math.max(radius * 2 + 2, 2);
+    const padding = Number.isFinite(opts?.padding) ? opts.padding : (radius + 3);
+    const iterations = Number.isFinite(opts?.iterations) ? opts.iterations : 240;
+    const spring = Number.isFinite(opts?.spring) ? opts.spring : 0.012;
 
     const clampNode = (n) => {
       n.x = clamp(n.x, area.left + padding, area.right - padding);
       n.y = clamp(n.y, area.top + padding, area.bottom - padding);
     };
+
+    const nodes = elements.map((el, i) => ({ i, x: el.x, y: el.y, x0: el.x, y0: el.y }));
     nodes.forEach(clampNode);
 
-    for (let iter = 0; iter < iterations; iter++){
-      const fx = new Array(nodes.length).fill(0);
-      const fy = new Array(nodes.length).fill(0);
+    const run = (minDist) => {
+      for (let iter = 0; iter < iterations; iter++){
+        let overlaps = 0;
 
-      // repulsion for overlaps
-      for (let a = 0; a < nodes.length; a++){
-        for (let b = a + 1; b < nodes.length; b++){
-          const p = nodes[a];
-          const q = nodes[b];
+        // collision resolution pass (pairwise, symmetric)
+        for (let a = 0; a < nodes.length; a++){
+          for (let b = a + 1; b < nodes.length; b++){
+            const p = nodes[a];
+            const q = nodes[b];
 
-          let dx = p.x - q.x;
-          let dy = p.y - q.y;
-          let dist = Math.hypot(dx, dy);
-          if (!Number.isFinite(dist)) continue;
+            let dx = p.x - q.x;
+            let dy = p.y - q.y;
+            let dist = Math.hypot(dx, dy);
+            if (!Number.isFinite(dist)) continue;
 
-          if (dist === 0){
-            const h = ((p.i + 1) * 92821 + (q.i + 1) * 68917) % 360;
-            const ang = (h * Math.PI) / 180;
-            dx = Math.cos(ang);
-            dy = Math.sin(ang);
-            dist = 1;
-          }
+            if (dist === 0){
+              const h = ((p.i + 1) * 92821 + (q.i + 1) * 68917) % 360;
+              const ang = (h * Math.PI) / 180;
+              dx = Math.cos(ang);
+              dy = Math.sin(ang);
+              dist = 1;
+            }
 
-          if (dist < minDist){
-            const overlap = (minDist - dist);
-            const ux = dx / dist;
-            const uy = dy / dist;
-            const f = overlap * 0.55;
-            fx[a] += ux * f;
-            fy[a] += uy * f;
-            fx[b] -= ux * f;
-            fy[b] -= uy * f;
+            if (dist < minDist){
+              overlaps++;
+              const overlap = (minDist - dist);
+              const ux = dx / dist;
+              const uy = dy / dist;
+              const push = overlap / 2 + 0.01;
+              p.x += ux * push;
+              p.y += uy * push;
+              q.x -= ux * push;
+              q.y -= uy * push;
+            }
           }
         }
-      }
 
-      // spring back toward original positions (keeps the plot meaningfully arranged)
-      for (let i = 0; i < nodes.length; i++){
-        fx[i] += (nodes[i].x0 - nodes[i].x) * spring * minDist;
-        fy[i] += (nodes[i].y0 - nodes[i].y) * spring * minDist;
-      }
+        // gentle pull back toward the original layout (keeps the plot meaningfully arranged)
+        for (const n of nodes){
+          n.x += (n.x0 - n.x) * spring;
+          n.y += (n.y0 - n.y) * spring;
+          clampNode(n);
+        }
 
-      let moved = false;
-      for (let i = 0; i < nodes.length; i++){
-        const p = nodes[i];
-        const dx = fx[i] * step;
-        const dy = fy[i] * step;
-        if (Math.abs(dx) + Math.abs(dy) > 0.02) moved = true;
-        p.x += dx;
-        p.y += dy;
-        clampNode(p);
+        if (overlaps === 0) return true;
       }
+      return false;
+    };
 
-      if (!moved) break;
+    // If the requested spacing is too aggressive to fit, step it down a bit while keeping non-overlap.
+    let minDist = minDistTarget;
+    for (let attempt = 0; attempt < 4; attempt++){
+      if (run(minDist)) break;
+      minDist = Math.max(minDistFloor, minDist - 2);
     }
 
     for (const n of nodes){
-      meta.data[n.i].x = n.x;
-      meta.data[n.i].y = n.y;
+      elements[n.i].x = n.x;
+      elements[n.i].y = n.y;
     }
-  }
+  },
 };
 
 function buildScatter(){
@@ -892,10 +952,10 @@ function buildScatter(){
 
   if (charts.scatter) charts.scatter.destroy();
 
-  charts.scatter = new Chart(ctx, {
-    type: "scatter",
-    plugins: [NO_OVERLAP_SCATTER_PLUGIN],
-    data: {
+	  charts.scatter = new Chart(ctx, {
+	    type: "scatter",
+	    plugins: [NO_OVERLAP_SCATTER_PLUGIN],
+	    data: {
       datasets: [
         {
           label: "Defenses",
@@ -921,12 +981,13 @@ function buildScatter(){
         }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      // reduce ResizeObserver churn in some publishing environments
-      resizeDelay: 120,
-      parsing: false,
+	    options: {
+	      responsive: true,
+	      maintainAspectRatio: false,
+	      animation: false,
+	      // reduce ResizeObserver churn in some publishing environments
+	      resizeDelay: 120,
+	      parsing: false,
       scales: {
         x: {
           title: { display: true, text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
@@ -941,11 +1002,11 @@ function buildScatter(){
           grid: { color: "rgba(255,255,255,0.01)" },
         },
       },
-      plugins: {
-        noOverlapScatter: { radius: 5, minDist: 18, iterations: 90, spring: 0.05, step: 0.75, datasetIndex: 0 },
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
+	      plugins: {
+	        noOverlapScatter: { datasetIndex: 0, minDist: 22, padding: 12, iterations: 320, spring: 0.01 },
+	        legend: { display: false },
+	        tooltip: {
+	          callbacks: {
             label: (item) => {
               const t = item.raw.t;
               const tr = calcTrend(t, pos);
@@ -1228,8 +1289,6 @@ function selectTeam(team, pos = STATE.pos){
 
   // update select + pos buttons
   els.teamSelect.value = team;
-  els.heatTeamSelect.value = team;
-  syncHeatPosToggle(STATE.pos);
   $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
 
   // pill
@@ -1243,8 +1302,7 @@ function selectTeam(team, pos = STATE.pos){
   buildPlayerWeekScatter();
   buildPlayersSection(team, STATE.pos);
 
-  // highlight selected heat cells
-  $$(".cell", els.heatTable).forEach(c => c.classList.toggle("is-selected", c.dataset.team === team && (c.dataset.pos === STATE.pos || c.dataset.pos === "TOTAL")));
+  applyHeatHighlights();
 }
 
 // =====================
@@ -1314,12 +1372,12 @@ function bindEvents(){
     $$("button.heatPosBtn", els.heatPosToggle).forEach(b => b.addEventListener("click", () => {
       const p = b.dataset.pos;
       if (!CONFIG.positions.includes(p)) return;
-      selectTeam(STATE.selectedTeam, p);
+      setHeatPos(p);
     }));
   }
 
   els.heatTeamSelect.addEventListener("change", () => {
-    selectTeam(els.heatTeamSelect.value, STATE.pos);
+    setHeatTeam(els.heatTeamSelect.value);
   });
 
   els.sortSelect.addEventListener("change", () => {

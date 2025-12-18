@@ -21,7 +21,7 @@
 	          <p class="finderSubtitle">Pick a position + defense.</p>
 
           <div class="controls">
-            <label class="field">
+            <label class="finderField">
               <span>Position</span>
               <div class="pos-toggle" role="group" aria-label="Position toggle">
                 <button class="pos-btn is-active" data-pos="QB">QB</button>
@@ -31,9 +31,9 @@
               </div>
             </label>
 
-            <label class="field">
+            <label class="finderField">
               <span>Opponent Defense</span>
-              <select id="teamSelect" class="select"></select>
+              <select id="teamSelect" class="finderSelect" aria-label="Opponent defense"></select>
             </label>
           </div>
 
@@ -41,35 +41,32 @@
 	            <!-- populated by JS -->
 	          </div>
 
-	          <div class="playersPanel" id="playersPanel">
-	            <div class="playersHeader">
-	              <div>
-		                <h2 class="playersTitle">Player Drilldown</h2>
-		                <div class="playersSubtitle smallLine" id="playersSub">Select a defense + position to populate.</div>
-	              </div>
-	            </div>
-
-	            <div class="playersFilters">
-	              <label class="field small">
-	                <span>Weeks</span>
-	                <select id="weekRange" class="select">
-	                  <option value="all">All (1–15)</option>
-	                  <option value="recent">Weeks 9–15</option>
-	                  <option value="1-8">Weeks 1–8</option>
-	                  <option value="9-12">Weeks 9–12</option>
-	                  <option value="13-15">Weeks 13–15</option>
-	                </select>
-	              </label>
-
-	              <label class="field small">
-	                <span>Search</span>
-	                <input id="playerSearch" class="input" type="text" placeholder="Player or team…" />
-	              </label>
-	            </div>
-
-		            <div class="playersTableWrap">
-		              <table class="list" id="playerTable"></table>
+		          <div class="playersPanel" id="playersPanel">
+		            <div class="playersHeader">
+		              <div class="playersHeaderTitle" id="playersSub">Select a defense + position to populate.</div>
 		            </div>
+
+		            <div class="playersFilters">
+		              <label class="playersField">
+		                <select id="weekRange" class="playersSelect" aria-label="Week range">
+		                  <option value="all">2025 Season</option>
+		                  <option value="recent">Weeks 9–15</option>
+		                  <option value="1-8">Weeks 1–8</option>
+		                  <option value="9-12">Weeks 9–12</option>
+		                  <option value="13-15">Weeks 13–15</option>
+		                </select>
+		              </label>
+
+		              <label class="playersField">
+		                <input id="playerSearch" class="playersInput" type="text" aria-label="Search player or team" placeholder="Player or team…" />
+		              </label>
+		            </div>
+
+			            <div class="playersTableWrap">
+			              <div class="playersTableScroll">
+			                <table class="list" id="playerTable"></table>
+			              </div>
+			            </div>
 
 	            <div class="muted smallLine playersHint">Sorted by week (desc) by default • click headers to sort</div>
 	          </div>
@@ -119,73 +116,70 @@
 		      </div>
 		    </section>
 
-	    <section class="grid2">
-		      <section class="panel">
-		        <div class="panelHeader panelHeader--heat">
-		          <div class="panelHeader__left">
-		            <h2 class="heatmapTitle">Matchup Heatmap</h2>
-		            <div class="heatmapSubtitle">Click any cell to see weekly totals and the players who drove them.</div>
-		          </div>
+		    <section class="grid2">
+			      <section class="panel">
+			        <div class="panelHeader panelHeader--heat">
+			          <div class="heatHeaderTop">
+			            <h2 class="heatmapTitle">Matchup Heatmap</h2>
 
-		          <div class="panelHeader__right panelHeader__right--heat">
-		            <div class="heatHeaderRow heatHeaderRow--meta">
-		              <div class="segmented" role="tablist" aria-label="Dataset selector">
-		                <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
-		                <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
-		              </div>
+			            <div class="heatHeaderMeta">
+			              <div class="segmented" role="tablist" aria-label="Dataset selector">
+			                <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
+			                <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
+			              </div>
 
-		              <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
+			              <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
 
-		              <div class="pill" id="loadStatus" title="Data load status">
-		                <span class="dot is-warn"></span>
-		                <span>Loading CSVs…</span>
-		              </div>
-		            </div>
+			              <div class="pill" id="loadStatus" title="Data load status">
+			                <span class="dot is-warn"></span>
+			                <span>Loading CSVs…</span>
+			              </div>
+			            </div>
+			          </div>
 
-	            <div class="heatHeaderRow heatHeaderRow--controls">
-	              <div class="field small">
-	                <span>Position</span>
-	                <div id="heatPosToggle" class="heatPosToggle" role="group" aria-label="Heatmap position">
-	                  <button type="button" class="heatPosBtn is-active" data-pos="QB" aria-pressed="true">QB</button>
-	                  <button type="button" class="heatPosBtn" data-pos="RB" aria-pressed="false">RB</button>
-	                  <button type="button" class="heatPosBtn" data-pos="WR" aria-pressed="false">WR</button>
-	                  <button type="button" class="heatPosBtn" data-pos="TE" aria-pressed="false">TE</button>
-	                </div>
-	              </div>
+			          <div class="heatHeaderControls">
+			            <div class="heatHeaderField heatHeaderField--pos">
+			              <div class="heatHeaderLabel">Position</div>
+			              <div id="heatPosToggle" class="heatPosToggle" role="group" aria-label="Heatmap position">
+			                <button type="button" class="heatPosBtn is-active" data-pos="QB" aria-pressed="true">QB</button>
+			                <button type="button" class="heatPosBtn" data-pos="RB" aria-pressed="false">RB</button>
+			                <button type="button" class="heatPosBtn" data-pos="WR" aria-pressed="false">WR</button>
+			                <button type="button" class="heatPosBtn" data-pos="TE" aria-pressed="false">TE</button>
+			              </div>
+			            </div>
 
-	              <label class="field small">
-	                <span>Defense</span>
-	                <select id="heatTeamSelect" class="select"></select>
-	              </label>
+			            <label class="heatHeaderField">
+			              <span class="heatHeaderLabel">Defense</span>
+			              <select id="heatTeamSelect" class="heatSelect" aria-label="Heatmap defense"></select>
+			            </label>
 
-	              <label class="field small">
-	                <span>Sort by</span>
-	                <select id="sortSelect" class="select">
-	                  <option value="Total_Rk">Total (rank)</option>
-	                  <option value="QB_Rk">QB (rank)</option>
-	                  <option value="RB_Rk">RB (rank)</option>
-	                  <option value="WR_Rk">WR (rank)</option>
-	                  <option value="TE_Rk">TE (rank)</option>
-	                  <option value="Total Avg">Total (avg)</option>
-	                  <option value="QB_Avg">QB (avg)</option>
-	                  <option value="RB_Avg">RB (avg)</option>
-	                  <option value="WR_Avg">WR (avg)</option>
-	                  <option value="TE_Avg">TE (avg)</option>
-	                </select>
-	              </label>
+			            <label class="heatHeaderField">
+			              <span class="heatHeaderLabel">Sort by</span>
+			              <select id="sortSelect" class="heatSelect" aria-label="Heatmap sort by">
+			                <option value="Total_Rk">Total (rank)</option>
+			                <option value="QB_Rk">QB (rank)</option>
+			                <option value="RB_Rk">RB (rank)</option>
+			                <option value="WR_Rk">WR (rank)</option>
+			                <option value="TE_Rk">TE (rank)</option>
+			                <option value="Total Avg">Total (avg)</option>
+			                <option value="QB_Avg">QB (avg)</option>
+			                <option value="RB_Avg">RB (avg)</option>
+			                <option value="WR_Avg">WR (avg)</option>
+			                <option value="TE_Avg">TE (avg)</option>
+			              </select>
+			            </label>
 
-	              <label class="field small">
-	                <span>Direction</span>
-	                <select id="dirSelect" class="select">
-	                  <option value="desc">Easiest → Toughest</option>
-	                  <option value="asc">Toughest → Easiest</option>
-	                </select>
-	              </label>
-	            </div>
-	          </div>
-	        </div>
-
-        <div class="tableWrap">
+			            <label class="heatHeaderField">
+			              <span class="heatHeaderLabel">Direction</span>
+			              <select id="dirSelect" class="heatSelect" aria-label="Heatmap sort direction">
+			                <option value="desc">Easiest → Toughest</option>
+			                <option value="asc">Toughest → Easiest</option>
+			              </select>
+			            </label>
+			          </div>
+			        </div>
+	
+	        <div class="tableWrap">
           <table class="heat" id="heatTable">
             <!-- populated by JS -->
           </table>
