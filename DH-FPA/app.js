@@ -258,6 +258,21 @@ function syncHeatPosToggle(pos){
   });
 }
 
+function syncPlayerScatterPosToggle(pos){
+  if (!els.playerScatterPosToggle) return;
+  const next = CONFIG.positions.includes(pos) ? pos : "ALL";
+  $$("button.pos2-btn", els.playerScatterPosToggle).forEach(b => {
+    b.classList.toggle("is-active", b.dataset.pos === next);
+  });
+}
+
+function setPlayerWeekScatterPos(pos, { rebuild = true } = {}){
+  const next = CONFIG.positions.includes(pos) ? pos : "ALL";
+  STATE.playerWeekScatterPos = next;
+  syncPlayerScatterPosToggle(next);
+  if (rebuild) buildPlayerWeekScatter();
+}
+
 function pointsColor(pos, pts){
   const p = cleanStr(pos).toUpperCase();
   const th = PLAYER_POINTS_THRESHOLDS[p];
@@ -735,6 +750,95 @@ function chartCommon(){
   Chart.defaults.plugins.legend.labels.boxWidth = 10;
 }
 
+// Scatter: nudge points in pixel space so they don't visually overlap.
+const NO_OVERLAP_SCATTER_PLUGIN = {
+  id: "noOverlapScatter",
+  afterUpdate(chart, _, opts){
+    const datasetIndex = Number.isFinite(opts?.datasetIndex) ? opts.datasetIndex : 0;
+    const meta = chart.getDatasetMeta(datasetIndex);
+    if (!meta?.data || meta.data.length < 2) return;
+
+    const area = chart.chartArea;
+    if (!area) return;
+
+    const radius = Number.isFinite(opts?.radius) ? opts.radius : 5;
+    const minDist = Number.isFinite(opts?.minDist) ? opts.minDist : (radius * 2 + 6);
+    const padding = Number.isFinite(opts?.padding) ? opts.padding : (radius + 2);
+    const iterations = Number.isFinite(opts?.iterations) ? opts.iterations : 80;
+    const spring = Number.isFinite(opts?.spring) ? opts.spring : 0.045;
+    const step = Number.isFinite(opts?.step) ? opts.step : 0.75;
+
+    const nodes = meta.data.map((el, i) => ({ i, x: el.x, y: el.y, x0: el.x, y0: el.y }));
+
+    const clampNode = (n) => {
+      n.x = clamp(n.x, area.left + padding, area.right - padding);
+      n.y = clamp(n.y, area.top + padding, area.bottom - padding);
+    };
+    nodes.forEach(clampNode);
+
+    for (let iter = 0; iter < iterations; iter++){
+      const fx = new Array(nodes.length).fill(0);
+      const fy = new Array(nodes.length).fill(0);
+
+      // repulsion for overlaps
+      for (let a = 0; a < nodes.length; a++){
+        for (let b = a + 1; b < nodes.length; b++){
+          const p = nodes[a];
+          const q = nodes[b];
+
+          let dx = p.x - q.x;
+          let dy = p.y - q.y;
+          let dist = Math.hypot(dx, dy);
+          if (!Number.isFinite(dist)) continue;
+
+          if (dist === 0){
+            const h = ((p.i + 1) * 92821 + (q.i + 1) * 68917) % 360;
+            const ang = (h * Math.PI) / 180;
+            dx = Math.cos(ang);
+            dy = Math.sin(ang);
+            dist = 1;
+          }
+
+          if (dist < minDist){
+            const overlap = (minDist - dist);
+            const ux = dx / dist;
+            const uy = dy / dist;
+            const f = overlap * 0.55;
+            fx[a] += ux * f;
+            fy[a] += uy * f;
+            fx[b] -= ux * f;
+            fy[b] -= uy * f;
+          }
+        }
+      }
+
+      // spring back toward original positions (keeps the plot meaningfully arranged)
+      for (let i = 0; i < nodes.length; i++){
+        fx[i] += (nodes[i].x0 - nodes[i].x) * spring * minDist;
+        fy[i] += (nodes[i].y0 - nodes[i].y) * spring * minDist;
+      }
+
+      let moved = false;
+      for (let i = 0; i < nodes.length; i++){
+        const p = nodes[i];
+        const dx = fx[i] * step;
+        const dy = fy[i] * step;
+        if (Math.abs(dx) + Math.abs(dy) > 0.02) moved = true;
+        p.x += dx;
+        p.y += dy;
+        clampNode(p);
+      }
+
+      if (!moved) break;
+    }
+
+    for (const n of nodes){
+      meta.data[n.i].x = n.x;
+      meta.data[n.i].y = n.y;
+    }
+  }
+};
+
 function buildScatter(){
   if (!DATA.byTeamSeason || !DATA.byTeamRecent) return;
 
@@ -749,16 +853,40 @@ function buildScatter(){
     return { x, y, t };
   }).filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
 
-  // diagonal bounds
+  // Dynamic bounds (esp. important in AVG mode so points aren't overly compressed).
   const xs = points.map(p => p.x);
   const ys = points.map(p => p.y);
-  const minV = Math.min(...xs, ...ys);
-  const maxV = Math.max(...xs, ...ys);
 
-  const diag = [
-    {x:minV, y:minV},
-    {x:maxV, y:maxV}
-  ];
+  const xMinData = Math.min(...xs);
+  const xMaxData = Math.max(...xs);
+  const yMinData = Math.min(...ys);
+  const yMaxData = Math.max(...ys);
+
+  const isAvg = STATE.scatterMode === "avg";
+  const padMinMax = (mn, mx, frac = 0.06) => {
+    const range = mx - mn;
+    const pad = range > 0 ? (range * frac) : (isAvg ? 0.5 : 1);
+    return [mn - pad, mx + pad];
+  };
+
+  let xMin, xMax, yMin, yMax;
+  if (isAvg){
+    [xMin, xMax] = padMinMax(xMinData, xMaxData, 0.065);
+    [yMin, yMax] = padMinMax(yMinData, yMaxData, 0.065);
+  }else{
+    // ranks are ~1..32
+    xMin = 0.5;
+    xMax = 32.5;
+    yMin = 0.5;
+    yMax = 32.5;
+  }
+
+  // "No change" line (y=x), clipped to the visible intersection of x/y ranges.
+  const dMin = Math.max(xMin, yMin);
+  const dMax = Math.min(xMax, yMax);
+  const diag = (Number.isFinite(dMin) && Number.isFinite(dMax) && dMin < dMax)
+    ? [{x:dMin, y:dMin}, {x:dMax, y:dMax}]
+    : [{x:xMinData, y:xMinData}, {x:xMaxData, y:xMaxData}];
 
   const ctx = document.getElementById("scatterChart").getContext("2d");
 
@@ -766,14 +894,16 @@ function buildScatter(){
 
   charts.scatter = new Chart(ctx, {
     type: "scatter",
+    plugins: [NO_OVERLAP_SCATTER_PLUGIN],
     data: {
       datasets: [
         {
           label: "Defenses",
           data: points,
-          pointRadius: 5,
+          pointRadius: 8,
           pointHoverRadius: 15,
-          borderWidth: 0,
+          borderWidth: 1,
+          borderColor: "rgba(255, 255, 255, 0.92)",
           pointBackgroundColor: (ctx) => {
             const team = ctx.raw?.t;
             const rk = getMetric(team, STATE.activeDataset, `${pos}_Rk`);
@@ -800,14 +930,19 @@ function buildScatter(){
       scales: {
         x: {
           title: { display: true, text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
+          min: xMin,
+          max: xMax,
           grid: { color: "rgba(255,255,255,0.01)" },
         },
         y: {
           title: { display: true, text: `Weeks 9–15 (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
+          min: yMin,
+          max: yMax,
           grid: { color: "rgba(255,255,255,0.01)" },
         },
       },
       plugins: {
+        noOverlapScatter: { radius: 5, minDist: 18, iterations: 90, spring: 0.05, step: 0.75, datasetIndex: 0 },
         legend: { display: false },
         tooltip: {
           callbacks: {
@@ -1082,8 +1217,14 @@ function setDataset(name){
 }
 
 function selectTeam(team, pos = STATE.pos){
+  const prevPos = STATE.pos;
   STATE.selectedTeam = team;
   STATE.pos = pos;
+  const posChanged = prevPos !== STATE.pos;
+  if (posChanged){
+    // Main position controls the player-week scatter too (unless the user later overrides via pos2).
+    setPlayerWeekScatterPos(STATE.pos, { rebuild: false });
+  }
 
   // update select + pos buttons
   els.teamSelect.value = team;
@@ -1201,14 +1342,10 @@ function bindEvents(){
   if (els.playerScatterPosToggle){
     const btns = $$("button.pos2-btn", els.playerScatterPosToggle);
     const active = btns.find(b => b.classList.contains("is-active"))?.dataset?.pos ?? "ALL";
-    STATE.playerWeekScatterPos = CONFIG.positions.includes(active) ? active : "ALL";
+    setPlayerWeekScatterPos(active, { rebuild: false });
 
     btns.forEach(b => b.addEventListener("click", () => {
-      const pos = b.dataset.pos;
-      const next = CONFIG.positions.includes(pos) ? pos : "ALL";
-      STATE.playerWeekScatterPos = next;
-      btns.forEach(x => x.classList.toggle("is-active", x.dataset.pos === next));
-      buildPlayerWeekScatter();
+      setPlayerWeekScatterPos(b.dataset.pos, { rebuild: true });
     }));
   }
 

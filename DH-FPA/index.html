@@ -17,8 +17,8 @@
     <section class="panel hero">
       <div class="hero__grid">
 	        <div class="hero__left">
-	          <h2>Matchup Finder</h2>
-	          <p class="muted">Pick a position + defense.</p>
+	          <h2 class="finderTitle">Matchup Finder</h2>
+	          <p class="finderSubtitle">Pick a position + defense.</p>
 
           <div class="controls">
             <label class="field">
@@ -44,8 +44,8 @@
 	          <div class="playersPanel" id="playersPanel">
 	            <div class="playersHeader">
 	              <div>
-	                <h2>Player Drilldown</h2>
-	                <div class="muted smallLine" id="playersSub">Select a defense + position to populate.</div>
+		                <h2 class="playersTitle">Player Drilldown</h2>
+		                <div class="playersSubtitle smallLine" id="playersSub">Select a defense + position to populate.</div>
 	              </div>
 	            </div>
 
@@ -67,17 +67,17 @@
 	              </label>
 	            </div>
 
-	            <div class="tableWrap playersTableWrap">
-	              <table class="list" id="playerTable"></table>
-	            </div>
+		            <div class="playersTableWrap">
+		              <table class="list" id="playerTable"></table>
+		            </div>
 
 	            <div class="muted smallLine playersHint">Sorted by week (desc) by default • click headers to sort</div>
 	          </div>
 	        </div>
 
         <div class="hero__right">
-          <h2>Trends</h2>
-          <p class="muted">
+          <h2 class="trendsTitle">Trends</h2>
+          <p class="trendsSubtitle">
             Each point is a defense. Above the diagonal = more generous recently.
           </p>
 
@@ -122,10 +122,10 @@
 	    <section class="grid2">
 		      <section class="panel">
 		        <div class="panelHeader panelHeader--heat">
-	          <div class="panelHeader__left">
-	            <h2>Matchup Heatmap</h2>
-	            <div class="muted">Click any cell to see weekly totals and the players who drove them.</div>
-	          </div>
+		          <div class="panelHeader__left">
+		            <h2 class="heatmapTitle">Matchup Heatmap</h2>
+		            <div class="heatmapSubtitle">Click any cell to see weekly totals and the players who drove them.</div>
+		          </div>
 
 		          <div class="panelHeader__right panelHeader__right--heat">
 		            <div class="heatHeaderRow heatHeaderRow--meta">
@@ -218,8 +218,8 @@
 	    </section>
 
     <section class="panel uploader" id="uploader">
-      <h2>CSV Loader (only if auto-load fails)</h2>
-      <p class="muted">
+      <h2 class="uploaderTitle">CSV Loader (only if auto-load fails)</h2>
+      <p class="uploaderSubtitle">
         If you opened this page directly as a file (<code>file://</code>), browsers often block CSV fetches.
         Easiest fix: run a tiny local server (example: <code>python -m http.server</code>) or upload these files below.
       </p>
