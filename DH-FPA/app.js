@@ -16,9 +16,6 @@ const CONFIG = {
 };
 
 const els = {
-  btnSeason: document.getElementById("btnSeason"),
-  btnRecent: document.getElementById("btnRecent"),
-  loadStatus: document.getElementById("loadStatus"),
   teamSelect: document.getElementById("teamSelect"),
   heatPosSelect: document.getElementById("heatPosSelect"),
   heatTeamSelect: document.getElementById("heatTeamSelect"),
@@ -124,11 +121,19 @@ function lerpRGB(c1, c2, t){
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-// tough -> easy gradient (red -> mint)
+// tough -> easy gradient (purple -> cyan -> mint)
 function heatColor(score){
-  const cTough = [255, 88, 92];
-  const cEasy  = [72, 245, 177];
-  return lerpRGB(cTough, cEasy, clamp(score,0,1));
+  const s = clamp(score, 0, 1);
+  // Three-stop gradient: purple (tough) -> cyan (mid) -> mint (easy)
+  if (s < 0.5) {
+    // purple to cyan
+    const t = s * 2;
+    return lerpRGB([180, 100, 255], [0, 191, 255], t);
+  } else {
+    // cyan to mint
+    const t = (s - 0.5) * 2;
+    return lerpRGB([0, 191, 255], [0, 255, 193], t);
+  }
 }
 
 // Position colors for player scatter
@@ -138,6 +143,46 @@ const POS_COLORS = {
   WR: { base: [88, 167, 255], hex: "#58A7FF" },   // sky blue
   TE: { base: [180, 105, 255], hex: "#B469FF" },  // purple
 };
+
+// NFL Team colors (adjusted for dark theme visibility)
+const NFL_TEAM_COLORS = {
+  'SF': '#B3995D', 'CHI': '#C83803', 'CIN': '#FB4F14', 'BUF': '#C60C30',
+  'DEN': '#FB4F14', 'CLE': '#FF3C00', 'TB': '#DC4405', 'ARI': '#97233F',
+  'LAC': '#0080C6', 'SD': '#0080C6', 'KC': '#E31837', 'IND': '#3D7EDB',
+  'WAS': '#991515', 'DAL': '#869397', 'MIA': '#008E97', 'PHI': '#4CCC6E',
+  'ATL': '#A71930', 'NYG': '#4169E1', 'JAX': '#00A8A8', 'NYJ': '#1C8F5E',
+  'DET': '#0076B6', 'GB': '#2C8244', 'CAR': '#0085CA', 'NE': '#3C6491',
+  'LV': '#A5ACAF', 'OAK': '#A5ACAF', 'LAR': '#4876D6', 'STL': '#003594',
+  'BAL': '#6B5CD6', 'NO': '#D3BC8D', 'SEA': '#69BE28', 'PIT': '#FFB612',
+  'HOU': '#4080C0', 'TEN': '#4B92DB', 'MIN': '#7B4EC2'
+};
+
+// Points thresholds for conditional formatting
+const PTS_THRESHOLDS = {
+  QB: { solid: 16, high: 22 },
+  RB: { solid: 12, high: 18 },
+  WR: { solid: 12, high: 18 },
+  TE: { solid: 11, high: 17 },
+};
+
+const PTS_COLORS = {
+  high: '#00ffc1',
+  solid: '#00c5ff',
+  low: '#c26cfc'
+};
+
+// Get color for points based on position thresholds
+function getPtsColor(pts, pos) {
+  const thresholds = PTS_THRESHOLDS[pos] || PTS_THRESHOLDS.WR;
+  if (pts >= thresholds.high) return PTS_COLORS.high;
+  if (pts >= thresholds.solid) return PTS_COLORS.solid;
+  return PTS_COLORS.low;
+}
+
+// Get NFL team color
+function getTeamColor(team) {
+  return NFL_TEAM_COLORS[team] || 'rgba(255,255,255,0.7)';
+}
 
 // Get position color with brightness based on points (0-1 scale)
 function getPosColor(pos, brightness = 0.7) {
@@ -156,14 +201,6 @@ function rgbaOf(color, alpha){
   const m = s.match(/rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?\)/i);
   if (!m) return `rgba(255,255,255,${alpha})`;
   return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
-}
-
-function setStatus(kind, text){
-  const dot = els.loadStatus.querySelector(".dot");
-  dot.classList.remove("is-warn");
-  dot.style.background = kind === "ok" ? "rgba(72,245,177,0.85)" : (kind === "err" ? "rgba(255,88,92,0.95)" : "rgba(255,209,102,0.95)");
-  dot.style.boxShadow = kind === "ok" ? "0 0 0 3px rgba(72,245,177,0.12)" : (kind === "err" ? "0 0 0 3px rgba(255,88,92,0.12)" : "0 0 0 3px rgba(255,209,102,0.12)");
-  els.loadStatus.querySelector("span:last-child").textContent = text;
 }
 
 // =====================
@@ -197,7 +234,6 @@ function loadCSVViaFetch(path){
 }
 
 async function tryAutoLoad(){
-  setStatus("warn", "Loading CSVs…");
   try{
     const [playersWide, season, recent] = await Promise.all([
       loadCSVViaFetch(CONFIG.paths.players),
@@ -207,12 +243,10 @@ async function tryAutoLoad(){
     DATA.playersWide = playersWide;
     DATA.season = season;
     DATA.recent = recent;
-    setStatus("ok", "Data loaded");
     els.uploader.style.display = "none";
     return true;
   }catch(e){
     console.warn("Auto-load failed", e);
-    setStatus("warn", "Auto-load blocked — upload CSVs below");
     els.uploader.style.display = "block";
     return false;
   }
@@ -226,13 +260,11 @@ async function handleFileUpload(files){
   const needed = [CONFIG.paths.players, CONFIG.paths.season, CONFIG.paths.recent];
   const missing = needed.filter(n => !byName.has(n));
   if (missing.length){
-    setStatus("err", `Missing: ${missing.join(", ")}`);
+    console.error(`Missing: ${missing.join(", ")}`);
     return;
   }
 
   try{
-    setStatus("warn", "Reading uploaded CSVs…");
-
     const readText = (file) => new Promise((resolve, reject) => {
       const fr = new FileReader();
       fr.onload = () => resolve(fr.result);
@@ -256,12 +288,10 @@ async function handleFileUpload(files){
     DATA.season = season;
     DATA.recent = recent;
 
-    setStatus("ok", "Data loaded");
     els.uploader.style.display = "none";
     bootstrap();
   }catch(e){
-    console.error(e);
-    setStatus("err", "Upload parse failed");
+    console.error("Upload parse failed", e);
   }
 }
 
@@ -371,11 +401,12 @@ function buildTeamSelect(){
 
 function buildMiniLists(){
   const pos = STATE.pos;
+  const posColor = POS_COLORS[pos]?.hex || '#fff';
 
-  if (els.topSeasonTitle) els.topSeasonTitle.textContent = `Best matchups (through 2025) — ${pos}`;
-  if (els.topRecentTitle) els.topRecentTitle.textContent = `Best matchups (last 7 games) — ${pos}`;
-  if (els.trendUpTitle) els.trendUpTitle.textContent = `Trending up (Easier) — ${pos}`;
-  if (els.trendDownTitle) els.trendDownTitle.textContent = `Trending down (Tougher) — ${pos}`;
+  if (els.topSeasonTitle) els.topSeasonTitle.innerHTML = `Best matchups (through 2025) — <span style="color:${posColor}">${pos}</span>`;
+  if (els.topRecentTitle) els.topRecentTitle.innerHTML = `Best matchups (last 7 games) — <span style="color:${posColor}">${pos}</span>`;
+  if (els.trendUpTitle) els.trendUpTitle.innerHTML = `Trending up (Easier) — <span style="color:${posColor}">${pos}</span>`;
+  if (els.trendDownTitle) els.trendDownTitle.innerHTML = `Trending down (Tougher) — <span style="color:${posColor}">${pos}</span>`;
 
   // Easiest lists
   const teams = [...DATA.byTeamSeason.keys()];
@@ -807,7 +838,7 @@ function buildPlayerScatter() {
         y: {
           title: { display: true, text: "Fantasy Points (PPR)" },
           min: 0,
-          max: Math.ceil(maxPtsForScale / 5) * 5 + 5, // Round up to nearest 5 + padding
+          max: 40, // Fixed max for consistent scale across positions
           grid: { color: "rgba(255,255,255,0.07)" },
         },
       },
@@ -899,14 +930,18 @@ function buildPlayerTable(team, pos){
       </tr>
     </thead>
     <tbody>
-      ${rows.map(r => `
+      ${rows.map(r => {
+        const ptsColor = getPtsColor(r.pts, pos);
+        const teamColor = getTeamColor(r.playerTeam);
+        return `
         <tr>
           <td>W${r.week}</td>
           <td>${r.player}</td>
-          <td>${r.playerTeam || "—"}</td>
-          <td style="font-weight:850;">${fmt(r.pts,2)}</td>
+          <td style="color:${teamColor}; font-weight:800;">${r.playerTeam || "—"}</td>
+          <td style="font-weight:850; color:${ptsColor};">${fmt(r.pts,2)}</td>
         </tr>
-      `).join("")}
+      `;
+      }).join("")}
     </tbody>
   `;
 
@@ -931,7 +966,9 @@ function buildPlayersSection(team, pos){
     if (els.playerTable) els.playerTable.innerHTML = "";
     return;
   }
-  if (els.playersSub) els.playersSub.textContent = `${team} vs ${pos} • players by week`;
+  const posColor = POS_COLORS[pos]?.hex || '#fff';
+  const teamColor = getTeamColor(team);
+  if (els.playersSub) els.playersSub.innerHTML = `<span style="color:${teamColor}; font-weight:800;">${team}</span> vs <span style="color:${posColor}; font-weight:800;">${pos}</span> • players by week`;
   buildPlayerTable(team, pos);
 }
 
@@ -940,13 +977,6 @@ function buildPlayersSection(team, pos){
 // =====================
 function setDataset(name){
   STATE.activeDataset = name;
-
-  // buttons
-  const isSeason = name === "season";
-  els.btnSeason.classList.toggle("is-active", isSeason);
-  els.btnRecent.classList.toggle("is-active", !isSeason);
-  els.btnSeason.setAttribute("aria-selected", String(isSeason));
-  els.btnRecent.setAttribute("aria-selected", String(!isSeason));
 
   buildHeatTable();
   buildScatter();
@@ -1032,9 +1062,6 @@ function startStars(){
 // Bootstrap
 // =====================
 function bindEvents(){
-  els.btnSeason.addEventListener("click", () => setDataset("season"));
-  els.btnRecent.addEventListener("click", () => setDataset("recent"));
-
   // Main position buttons (exclude player scatter buttons)
   $$(".pos-btn:not(.pos-btn--player)").forEach(b => b.addEventListener("click", () => {
     if (b.dataset.pos) selectTeam(STATE.selectedTeam, b.dataset.pos);
