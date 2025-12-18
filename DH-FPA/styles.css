@@ -904,7 +904,7 @@ body::before{
 
   /* quick cards + players (shrink everything on mobile only) */
   .cards{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     margin-top: 10px;
   }
@@ -912,11 +912,14 @@ body::before{
   .card__title{ font-size: 11px; }
   .card__big{ font-size: 18px; }
   .card__sub{ font-size: 11px; }
+  .chip{ padding: 4px 5px; font-size: 9px; }
+  .chip .swatch{ width: 8px; height: 8px; box-shadow: 0 0 0 2px rgba(255,255,255,0.08); }
 
   .playersPanel{ padding: 8px 8px 10px; }
   .playersHeader{ padding: 1px 2px 5px; }
   .playersHeaderTitle{ font-size: 13px; }
-  .playersFilters{ gap: 8px; margin: 6px 2px 8px; }
+  .playersFilters{ gap: 6px; margin: 6px 2px 8px; flex-wrap: nowrap; }
+  .playersFilters .playersField{ flex: 1 1 0; min-width: 0; }
   .playersSelect, .playersInput{ padding: 9px 10px; border-radius: 11px; font-size: 12px; }
   .playersTableWrap{ border-radius: 12px; height: 26rem; }
   .list thead th{ padding: 7px 8px; font-size: 11px; }
@@ -972,6 +975,7 @@ body::before{
   .cards{ gap: 7px; }
   .card{ padding: 9px; }
   .card__big{ font-size: 17px; }
+  .chip{ padding: 4px 5px; font-size: 9px; }
 
   .playersPanel{ padding: 7px 7px 9px; }
   .playersHeaderTitle{ font-size: 12px; }
@@ -985,13 +989,8 @@ body::before{
   .canvasBox--scatter{ height: 300px; }
   .canvasBox--playerWeekScatter{ height: 310px; }
 
-  .playersFilters{
-    flex-direction:column;
-    gap:8px;
-  }
-  .playersFilters .playersField{
-    flex: 1 1 auto;
-  }
+  .playersFilters{ gap: 6px; flex-wrap: nowrap; }
+  .playersFilters .playersField{ flex: 1 1 0; min-width: 0; }
 
   .chartTitleRow{
     flex-direction:column;

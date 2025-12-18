@@ -55,7 +55,7 @@ const TEAM_LOGO_ALIASES = {
   JAC: "JAX",
 };
 
-const SCATTER_TEAM_LOGO_PX = 20; // Chart.js draws image pointStyles at intrinsic width/height
+const SCATTER_TEAM_LOGO_PX = 34; // Chart.js draws image pointStyles at intrinsic width/height
 const TEAM_LOGOS = new Map(); // TEAM -> HTMLImageElement (sized for scatter points)
 
 function canonicalTeamCode(team){
