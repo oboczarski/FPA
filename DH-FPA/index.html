@@ -13,33 +13,64 @@
 <body>
   <canvas id="stars" aria-hidden="true"></canvas>
 
-  <main class="wrap">
-    <section class="panel hero">
-      <div class="hero__grid">
-	        <div class="hero__left">
-	          <h2 class="finderTitle">Matchup Finder</h2>
-	          <p class="finderSubtitle">Pick a position + defense.</p>
-
-          <div class="controls">
-            <label class="finderField">
-              <span>Position</span>
-              <div class="pos-toggle" role="group" aria-label="Position toggle">
-                <button class="pos-btn is-active" data-pos="QB">QB</button>
-                <button class="pos-btn" data-pos="RB">RB</button>
-                <button class="pos-btn" data-pos="WR">WR</button>
-                <button class="pos-btn" data-pos="TE">TE</button>
-              </div>
-            </label>
-
-            <label class="finderField">
-              <span>Opponent Defense</span>
-              <select id="teamSelect" class="finderSelect" aria-label="Opponent defense"></select>
-            </label>
-          </div>
-
-	          <div class="cards" id="quickCards">
-	            <!-- populated by JS -->
+	  <main class="wrap">
+	    <section class="panel hero">
+	      <div class="pageHeader">
+	        <div class="pageHeader__top">
+	          <div class="pageTitleBlock">
+	            <h1 class="pageTitle">Fantasy Points Against</h1>
+	            <div class="pageSubtitle">Player &amp; Positional Impact</div>
 	          </div>
+	        </div>
+
+	        <div class="pageHeader__row">
+	          <div class="pageControls" aria-label="Matchup controls">
+	            <div class="pageControl">
+	              <div class="pageControl__label">Opponent Defense</div>
+	              <div class="teamPicker" id="teamPicker">
+	                <button type="button" class="teamPicker__btn" id="teamPickerBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Opponent defense">
+	                  <span class="teamPicker__left">
+	                    <img id="teamPickerLogo" class="teamLogo" alt="" />
+	                    <span id="teamPickerCode" class="teamPicker__code">—</span>
+	                  </span>
+	                  <span class="teamPicker__chev" aria-hidden="true">▾</span>
+	                </button>
+	                <div class="teamPicker__panel" id="teamPickerPanel" role="listbox" aria-label="Opponent defense options"></div>
+	              </div>
+	            </div>
+
+	            <div class="pageControl">
+	              <div class="pageControl__label">Position</div>
+	              <div class="pos-toggle pos-toggle--lg" role="group" aria-label="Position toggle">
+	                <button class="pos-btn is-active" data-pos="QB">QB</button>
+	                <button class="pos-btn" data-pos="RB">RB</button>
+	                <button class="pos-btn" data-pos="WR">WR</button>
+	                <button class="pos-btn" data-pos="TE">TE</button>
+	              </div>
+	            </div>
+	          </div>
+
+	          <div class="pageChips" aria-label="Selected matchup">
+	            <div class="glassChip" id="selTeamChip">
+	              <div class="glassChip__label">Defense</div>
+	              <div class="glassChip__value" id="selTeamText">—</div>
+	            </div>
+	            <div class="glassChip" id="selPosChip">
+	              <div class="glassChip__label">Position</div>
+	              <div class="glassChip__value"><span id="selPosText" class="posText" data-pos="QB">QB</span></div>
+	            </div>
+	          </div>
+	        </div>
+	      </div>
+
+	      <div class="hero__grid">
+		        <div class="hero__left">
+		          <h2 class="finderTitle">Matchup Finder</h2>
+		          <p class="finderSubtitle">Pick a position + defense.</p>
+
+		          <div class="cards" id="quickCards">
+		            <!-- populated by JS -->
+		          </div>
 
 		          <div class="playersPanel" id="playersPanel">
 		            <div class="playersHeader">
@@ -72,16 +103,11 @@
 	          </div>
 	        </div>
 
-        <div class="hero__right">
-          <h2 class="trendsTitle">Trends</h2>
-          <p class="trendsSubtitle">
-            Each point is a defense. Above the diagonal = more generous recently.
-          </p>
-
-          <div class="chartCard">
-	            <div class="chartTitleRow">
-	              <div class="chartTitle">
-	                <span id="scatterTitle" class="posText" data-pos="QB">QB</span> — Season vs Weeks 9–15
+	        <div class="hero__right">
+	          <div class="chartCard">
+		            <div class="chartTitleRow">
+		              <div class="chartTitle">
+		                <span id="scatterTitle" class="posText" data-pos="QB">QB</span> — Season vs Weeks 9–15
 	              </div>
               <div class="smallToggle">
                 <button class="smallToggle__btn is-active" data-scatmode="avg">Avg</button>
@@ -96,15 +122,16 @@
 
 		            <div class="chartDivider"></div>
 
-	            <div class="chartTitleRow chartTitleRow--wrap">
-	              <div class="chartTitle">Player Week Scatter (PPR)</div>
-	              <div class="pos2-toggle" id="playerScatterPosToggle" role="group" aria-label="Player week scatter position filters">
-	                <button class="pos2-btn is-active" data-pos="ALL">All</button>
-	                <button class="pos2-btn" data-pos="QB">QB</button>
-	                <button class="pos2-btn" data-pos="RB">RB</button>
-	                <button class="pos2-btn" data-pos="WR">WR</button>
-	                <button class="pos2-btn" data-pos="TE">TE</button>
-	              </div>
+		            <div class="chartTitleRow chartTitleRow--wrap">
+		              <div class="chartTitle">Player Week Scatter (PPR)</div>
+		              <div class="avgPills" id="playerWeekAvgPills" aria-label="Player week scatter averages"></div>
+		              <div class="pos2-toggle" id="playerScatterPosToggle" role="group" aria-label="Player week scatter position filters">
+		                <button class="pos2-btn" data-pos="ALL">All</button>
+		                <button class="pos2-btn is-active" data-pos="QB">QB</button>
+		                <button class="pos2-btn" data-pos="RB">RB</button>
+		                <button class="pos2-btn" data-pos="WR">WR</button>
+		                <button class="pos2-btn" data-pos="TE">TE</button>
+		              </div>
 	            </div>
 
 		            <div class="canvasBox canvasBox--playerWeekScatter">

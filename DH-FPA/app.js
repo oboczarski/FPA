@@ -35,57 +35,69 @@ const PLAYER_POINTS_COLORS = {
   low: "#c26cfce8",
 };
 
-// Use exact official/team-reference hex values (no auto-brightening).
+// Team colors (use provided/official hex values; do not auto-brighten).
 const TEAM_COLORS = {
-  // AFC North
-  'BAL': '#241773',  // Ravens Purple
-  'CIN': '#FB4F14',  // Bengals Orange
-  'CLE': '#FF3C00',  // Browns Orange
-  'PIT': '#FFB612',  // Steelers Gold
-  // AFC East
-  'BUF': '#00338D',  // Bills Blue
-  'MIA': '#008E97',  // Dolphins Aqua
-  'NE': '#00376eff',   // Patriots Nautical Blue
-  'NYJ': '#125740',  // Jets Gotham Green
-  // AFC South
-  'HOU': '#A71930',  // Texans Battle Red
-  'IND': '#062dccff',  // Colts Speed Blue
-  'JAX': '#006778',  // Jaguars Teal
-  'TEN': '#4B92DB',  // Titans Blue
-  // AFC West
-  'DEN': '#FB4F14',  // Broncos Orange
-  'KC': '#E31837',   // Chiefs Red
-  'LV': '#A5ACAF',   // Raiders Silver
-  'OAK': '#A5ACAF',  // Raiders Silver (old)
-  'LAC': '#0080C6',  // Chargers Powder Blue
-  'SD': '#0080C6',   // Chargers (old)
-  // NFC North
-  'CHI': '#C83803',  // Bears Orange
-  'DET': '#0076B6',  // Lions Honolulu Blue
-  'GB': '#2c5349ff',   // Packers Dark Green
-  'MIN': '#4F2683',  // Vikings Purple
-  // NFC East
-  'DAL': '#96a7c6ff',  // Cowboys Royal Blue
-  'NYG': '#0B2265',  // Giants Dark Blue
-  'PHI': '#004C54',  // Eagles Midnight Green
-  'WAS': '#5A1414',  // Commanders Burgundy
-  // NFC South
-  'ATL': '#A71930',  // Falcons Red
-  'CAR': '#0085CA',  // Panthers Carolina Blue
-  'NO': '#D3BC8D',   // Saints Old Gold
-  'TB': '#D50A0A',   // Buccaneers Red
-  // NFC West
-  'ARI': '#97233F',  // Cardinals Red
-  'LAR': '#003594',  // Rams Blue
-  'STL': '#003594',  // Rams (old)
-  'SF': '#aca85dff',   // 49ers Red
-  'SEA': '#69BE28',  // Seahawks Action Green
+  'SF': '#B3995D', 'CHI': '#071d46', 'CIN': '#FB4F14', 'BUF': '#C60C30',
+  'DEN': '#FB4F14', 'CLE': '#311D00', 'TB': '#DC4405', 'ARI': '#97233F',
+  'LAC': '#0080C6', 'SD': '#0080C6', 'KC': '#E31837', 'IND': '#002C5F',
+  'WAS': '#5A1414', 'DAL': '#869397', 'MIA': '#008E97', 'PHI': '#2B8C4E',
+  'ATL': '#A71930', 'NYG': '#0D2266', 'JAX': '#006778', 'NYJ': '#125740',
+  'DET': '#0076B6', 'GB': '#203731', 'CAR': '#0085CA', 'NE': '#002244',
+  'LV': '#A5ACAF', 'OAK': '#A5ACAF', 'LAR': '#003594', 'STL': '#003594',
+  'BAL': '#241773', 'NO': '#D3BC8D', 'SEA': '#69BE28', 'PIT': '#FFB612',
+  'HOU': '#00143f', 'TEN': '#4B92DB', 'MIN': '#4F2683'
 };
+
+const TEAM_LOGO_ALIASES = {
+  SD: "LAC",
+  OAK: "LV",
+  STL: "LAR",
+  JAC: "JAX",
+};
+
+const TEAM_LOGOS = new Map(); // TEAM -> HTMLImageElement
+
+function canonicalTeamCode(team){
+  const t = cleanStr(team).toUpperCase();
+  return TEAM_LOGO_ALIASES[t] ?? t;
+}
+
+function teamLogoSrc(team){
+  const code = canonicalTeamCode(team);
+  return `assets/NFL-Tags_webp/${code.toLowerCase()}.webp`;
+}
+
+function getTeamLogo(team){
+  const code = canonicalTeamCode(team);
+  return TEAM_LOGOS.get(code) ?? null;
+}
+
+async function loadTeamLogos(codes){
+  const unique = [...new Set((codes ?? []).map(canonicalTeamCode).filter(Boolean))];
+  const loaders = unique.map((code) => new Promise((resolve) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.loading = "eager";
+    img.src = teamLogoSrc(code);
+    img.onload = () => resolve([code, img]);
+    img.onerror = () => resolve([code, null]);
+  }));
+  const entries = await Promise.all(loaders);
+  for (const [code, img] of entries){
+    if (img) TEAM_LOGOS.set(code, img);
+  }
+}
 const els = {
   btnSeason: document.getElementById("btnSeason"),
   btnRecent: document.getElementById("btnRecent"),
   loadStatus: document.getElementById("loadStatus"),
-  teamSelect: document.getElementById("teamSelect"),
+  teamPicker: document.getElementById("teamPicker"),
+  teamPickerBtn: document.getElementById("teamPickerBtn"),
+  teamPickerPanel: document.getElementById("teamPickerPanel"),
+  teamPickerLogo: document.getElementById("teamPickerLogo"),
+  teamPickerCode: document.getElementById("teamPickerCode"),
+  selTeamText: document.getElementById("selTeamText"),
+  selPosText: document.getElementById("selPosText"),
   heatPosToggle: document.getElementById("heatPosToggle"),
   heatTeamSelect: document.getElementById("heatTeamSelect"),
   sortSelect: document.getElementById("sortSelect"),
@@ -97,6 +109,7 @@ const els = {
 
   scatterTitle: document.getElementById("scatterTitle"),
   playerScatterPosToggle: document.getElementById("playerScatterPosToggle"),
+  playerWeekAvgPills: document.getElementById("playerWeekAvgPills"),
   topSeason: document.getElementById("topSeason"),
   topSeasonTitle: document.getElementById("topSeasonTitle"),
   topRecent: document.getElementById("topRecent"),
@@ -124,7 +137,7 @@ let STATE = {
   sortKey: "Total_Rk",
   sortDir: "desc",
   playerSort: { key: "week", dir: "desc" },
-  playerWeekScatterPos: "ALL", // "ALL" | "QB" | "RB" | "WR" | "TE"
+  playerWeekScatterPos: "QB", // "ALL" | "QB" | "RB" | "WR" | "TE"
 };
 
 let DATA = {
@@ -133,6 +146,7 @@ let DATA = {
   playersWide: null,
   playersLong: null, // derived
   playersWeeklyTotals: null, // Map key: team|pos => [{week,total}]
+  leaguePosAvg: null, // { season: {QB:number,...}, recent: {QB:number,...} }
   byTeamSeason: null, // Map team => row
   byTeamRecent: null,
 };
@@ -279,6 +293,63 @@ function setPlayerWeekScatterPos(pos, { rebuild = true } = {}){
   STATE.playerWeekScatterPos = next;
   syncPlayerScatterPosToggle(next);
   if (rebuild) buildPlayerWeekScatter();
+}
+
+function isTeamPickerOpen(){
+  return !!els.teamPicker?.classList?.contains("is-open");
+}
+
+function setTeamPickerOpen(open){
+  if (!els.teamPicker) return;
+  els.teamPicker.classList.toggle("is-open", !!open);
+  if (els.teamPickerBtn) els.teamPickerBtn.setAttribute("aria-expanded", String(!!open));
+}
+
+function syncTeamPicker(team){
+  const t = cleanStr(team).toUpperCase();
+
+  if (els.teamPickerCode) els.teamPickerCode.textContent = t || "—";
+  if (els.teamPickerLogo){
+    if (t){
+      els.teamPickerLogo.src = teamLogoSrc(t);
+      els.teamPickerLogo.alt = t;
+      els.teamPickerLogo.style.opacity = "1";
+    }else{
+      els.teamPickerLogo.removeAttribute("src");
+      els.teamPickerLogo.alt = "";
+      els.teamPickerLogo.style.opacity = "0";
+    }
+  }
+
+  if (els.teamPickerPanel){
+    $$("button.teamOption", els.teamPickerPanel).forEach(btn => {
+      const on = btn.dataset.team === t;
+      btn.classList.toggle("is-selected", on);
+      btn.setAttribute("aria-selected", String(on));
+    });
+  }
+}
+
+function syncSelectionChips(team, pos){
+  const t = cleanStr(team).toUpperCase();
+  const p = cleanStr(pos).toUpperCase();
+
+  if (els.selTeamText){
+    els.selTeamText.textContent = t || "—";
+    const c = teamColorText(t);
+    if (c){
+      els.selTeamText.style.color = c;
+      els.selTeamText.style.textShadow = `0 0 16px ${rgbaOf(`rgb(${hexToRgbaArr(c).slice(0,3).join(",")})`, 0.30)}`;
+    }else{
+      els.selTeamText.style.color = "rgba(255,255,255,0.86)";
+      els.selTeamText.style.textShadow = "none";
+    }
+  }
+
+  if (els.selPosText){
+    els.selPosText.textContent = p || "—";
+    els.selPosText.dataset.pos = p || "QB";
+  }
 }
 
 function applyHeatHighlights(){
@@ -440,7 +511,7 @@ async function handleFileUpload(files){
 
     setStatus("ok", "Data loaded");
     els.uploader.style.display = "none";
-    bootstrap();
+    await bootstrap();
   }catch(e){
     console.error(e);
     setStatus("err", "Upload parse failed");
@@ -462,6 +533,19 @@ function buildMaps(){
   };
   DATA.byTeamSeason = toMap(DATA.season);
   DATA.byTeamRecent = toMap(DATA.recent);
+
+  const mean = (arr) => {
+    const xs = arr.filter(Number.isFinite);
+    if (!xs.length) return NaN;
+    return xs.reduce((a,b) => a + b, 0) / xs.length;
+  };
+
+  const league = { season: {}, recent: {} };
+  for (const pos of CONFIG.positions){
+    league.season[pos] = mean(DATA.season.map(r => toNum(r[`${pos}_Avg`])));
+    league.recent[pos] = mean(DATA.recent.map(r => toNum(r[`${pos}_Avg`])));
+  }
+  DATA.leaguePosAvg = league;
 }
 
 function buildPlayersLong(){
@@ -531,25 +615,35 @@ function calcTrend(team, pos){
 // UI builders
 // =====================
 function buildTeamSelect(){
-  els.teamSelect.innerHTML = "";
   els.heatTeamSelect.innerHTML = "";
+  if (els.teamPickerPanel) els.teamPickerPanel.innerHTML = "";
   const teams = [...DATA.byTeamSeason.keys()].sort();
   for (const t of teams){
-    const opt = document.createElement("option");
-    opt.value = t;
-    opt.textContent = t;
-    els.teamSelect.appendChild(opt);
-
     const opt2 = document.createElement("option");
     opt2.value = t;
     opt2.textContent = t;
     els.heatTeamSelect.appendChild(opt2);
+
+    if (els.teamPickerPanel){
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "teamOption";
+      btn.setAttribute("role", "option");
+      btn.setAttribute("aria-selected", "false");
+      btn.dataset.team = t;
+      const src = teamLogoSrc(t);
+      btn.innerHTML = `
+        <img class="teamLogo teamLogo--opt" src="${src}" alt="${t}" />
+        <span class="teamOption__code">${t}</span>
+      `;
+      els.teamPickerPanel.appendChild(btn);
+    }
   }
   STATE.selectedTeam = teams[0] ?? null;
   STATE.heatTeam = teams[0] ?? null;
-  els.teamSelect.value = STATE.selectedTeam ?? "";
   els.heatTeamSelect.value = STATE.heatTeam ?? "";
   syncHeatPosToggle(STATE.heatPos);
+  syncTeamPicker(STATE.selectedTeam);
 }
 
 function buildMiniLists(){
@@ -957,19 +1051,19 @@ function buildScatter(){
 	    plugins: [NO_OVERLAP_SCATTER_PLUGIN],
 	    data: {
       datasets: [
-        {
-          label: "Defenses",
-          data: points,
-          pointRadius: 8,
-          pointHoverRadius: 15,
-          borderWidth: 1,
-          borderColor: "rgba(255, 255, 255, 0.92)",
-          pointBackgroundColor: (ctx) => {
-            const team = ctx.raw?.t;
-            const rk = getMetric(team, STATE.activeDataset, `${pos}_Rk`);
-            return heatColor(rankScore(rk));
-          },
-        },
+	        {
+	          label: "Defenses",
+	          data: points,
+	          pointRadius: 11,
+	          pointHoverRadius: 16,
+	          pointBorderWidth: 0,
+	          pointStyle: (ctx) => getTeamLogo(ctx.raw?.t) ?? "circle",
+	          pointBackgroundColor: (ctx) => {
+	            const team = ctx.raw?.t;
+	            const rk = getMetric(team, STATE.activeDataset, `${pos}_Rk`);
+	            return heatColor(rankScore(rk));
+	          },
+	        },
         {
           type: "line",
           label: "No-change line",
@@ -1003,7 +1097,7 @@ function buildScatter(){
         },
       },
 	      plugins: {
-	        noOverlapScatter: { datasetIndex: 0, minDist: 22, padding: 12, iterations: 320, spring: 0.01 },
+	        noOverlapScatter: { datasetIndex: 0, minDist: 26, padding: 16, iterations: 520, spring: 0.008 },
 	        legend: { display: false },
 	        tooltip: {
 	          callbacks: {
@@ -1026,6 +1120,35 @@ function buildScatter(){
   });
 }
 
+function renderPlayerWeekAvgPills(team, pos){
+  if (!els.playerWeekAvgPills) return;
+  const t = cleanStr(team).toUpperCase();
+  const p = cleanStr(pos).toUpperCase();
+  if (!t || !CONFIG.positions.includes(p)){
+    els.playerWeekAvgPills.innerHTML = "";
+    return;
+  }
+
+  const datasetName = STATE.activeDataset;
+  const teamAvg = getMetric(t, datasetName, `${p}_Avg`);
+  const leagueAvg = DATA.leaguePosAvg?.[datasetName]?.[p];
+  const posHex = PLAYER_SCATTER_COLORS[p] ?? "#ffffff";
+  const [pr, pg, pb] = hexToRgbaArr(posHex);
+  const posSwatch = `rgba(${pr}, ${pg}, ${pb}, 0.92)`;
+
+  const pill = (label, value, swatch) => `
+    <div class="avgPill" title="${label}">
+      <span class="avgPill__swatch" style="background:${swatch}; box-shadow:0 0 0 3px ${rgbaOf(swatch,0.10)};"></span>
+      <span>${label}: <strong>${fmt(value,2)}</strong></span>
+    </div>
+  `;
+
+  const parts = [];
+  if (Number.isFinite(teamAvg)) parts.push(pill("Team avg", teamAvg, posSwatch));
+  if (Number.isFinite(leagueAvg)) parts.push(pill("League avg", leagueAvg, "rgba(255,255,255,0.55)"));
+  els.playerWeekAvgPills.innerHTML = parts.join("");
+}
+
 function buildPlayerWeekScatter(){
   const canvas = document.getElementById("playerWeekScatterChart");
   if (!canvas || !DATA.playersLong) return;
@@ -1034,8 +1157,11 @@ function buildPlayerWeekScatter(){
   if (!team){
     if (charts.playerWeekScatter) charts.playerWeekScatter.destroy();
     charts.playerWeekScatter = null;
+    renderPlayerWeekAvgPills(null, null);
     return;
   }
+
+  renderPlayerWeekAvgPills(team, STATE.playerWeekScatterPos);
 
   const activePos = STATE.playerWeekScatterPos === "ALL"
     ? [...CONFIG.positions]
@@ -1093,6 +1219,35 @@ function buildPlayerWeekScatter(){
         return rgbaOf(c, 0.95);
       },
     });
+  }
+
+  // Average indicators (only when a single position is selected)
+  if (CONFIG.positions.includes(STATE.playerWeekScatterPos)){
+    const p = STATE.playerWeekScatterPos;
+    const dsName = STATE.activeDataset;
+    const teamAvg = getMetric(team, dsName, `${p}_Avg`);
+    const leagueAvg = DATA.leaguePosAvg?.[dsName]?.[p];
+    const [r,g,b] = hexToRgbaArr(PLAYER_SCATTER_COLORS[p] ?? "#ffffff");
+    const posLine = `rgba(${r}, ${g}, ${b}, 0.70)`;
+
+    const baseLine = (label, y, color, dash) => ({
+      type: "line",
+      label,
+      data: [{ x: 1, y }, { x: CONFIG.maxWeek, y }],
+      parsing: false,
+      showLine: true,
+      borderColor: color,
+      borderWidth: 1,
+      borderDash: dash,
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      pointHitRadius: 0,
+      tension: 0,
+      order: -10,
+    });
+
+    if (Number.isFinite(teamAvg)) datasets.push(baseLine("Team avg", teamAvg, posLine, [6,5]));
+    if (Number.isFinite(leagueAvg)) datasets.push(baseLine("League avg", leagueAvg, "rgba(255,255,255,0.40)", [3,5]));
   }
 
   const ctx = canvas.getContext("2d");
@@ -1275,20 +1430,22 @@ function setDataset(name){
   buildHeatTable();
   buildScatter();
   buildQuickCards();
+  buildPlayerWeekScatter();
 }
 
 function selectTeam(team, pos = STATE.pos){
   const prevPos = STATE.pos;
   STATE.selectedTeam = team;
   STATE.pos = pos;
+  setTeamPickerOpen(false);
   const posChanged = prevPos !== STATE.pos;
   if (posChanged){
     // Main position controls the player-week scatter too (unless the user later overrides via pos2).
     setPlayerWeekScatterPos(STATE.pos, { rebuild: false });
   }
 
-  // update select + pos buttons
-  els.teamSelect.value = team;
+  // update controls
+  syncTeamPicker(team);
   $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
 
   // pill
@@ -1303,6 +1460,7 @@ function selectTeam(team, pos = STATE.pos){
   buildPlayersSection(team, STATE.pos);
 
   applyHeatHighlights();
+  syncSelectionChips(team, STATE.pos);
 }
 
 // =====================
@@ -1364,9 +1522,33 @@ function bindEvents(){
 
   $$(".pos-btn").forEach(b => b.addEventListener("click", () => selectTeam(STATE.selectedTeam, b.dataset.pos)));
 
-  els.teamSelect.addEventListener("change", () => {
-    selectTeam(els.teamSelect.value, STATE.pos);
-  });
+  // opponent defense picker (custom dropdown)
+  if (els.teamPickerBtn && els.teamPickerPanel){
+    const close = () => setTeamPickerOpen(false);
+
+    els.teamPickerBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      setTeamPickerOpen(!isTeamPickerOpen());
+    });
+
+    els.teamPickerPanel.addEventListener("click", (e) => {
+      const btn = e.target?.closest?.("button.teamOption");
+      const team = btn?.dataset?.team;
+      if (!team) return;
+      close();
+      selectTeam(team, STATE.pos);
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!isTeamPickerOpen()) return;
+      const inside = els.teamPicker?.contains(e.target);
+      if (!inside) close();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && isTeamPickerOpen()) close();
+    });
+  }
 
   if (els.heatPosToggle){
     $$("button.heatPosBtn", els.heatPosToggle).forEach(b => b.addEventListener("click", () => {
@@ -1399,8 +1581,7 @@ function bindEvents(){
   // player week scatter pos filters
   if (els.playerScatterPosToggle){
     const btns = $$("button.pos2-btn", els.playerScatterPosToggle);
-    const active = btns.find(b => b.classList.contains("is-active"))?.dataset?.pos ?? "ALL";
-    setPlayerWeekScatterPos(active, { rebuild: false });
+    setPlayerWeekScatterPos(STATE.playerWeekScatterPos ?? STATE.pos, { rebuild: false });
 
     btns.forEach(b => b.addEventListener("click", () => {
       setPlayerWeekScatterPos(b.dataset.pos, { rebuild: true });
@@ -1419,10 +1600,11 @@ function bindEvents(){
   });
 }
 
-function bootstrap(){
+async function bootstrap(){
   chartCommon();
   buildMaps();
   buildPlayersLong();
+  await loadTeamLogos([...DATA.byTeamSeason.keys()]);
   bindEvents();
 
   buildTeamSelect();
@@ -1437,7 +1619,7 @@ function bootstrap(){
   startStars();
   const ok = await tryAutoLoad();
   if (ok){
-    bootstrap();
+    await bootstrap();
   }else{
     // wait for user upload
   }
