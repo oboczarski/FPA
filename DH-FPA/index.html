@@ -120,48 +120,31 @@
 	          </div>
 	        </div>
 
-	        <!-- Full-width row to avoid the left-column “dead space” you saw in published views -->
-	        <div class="hero__mini">
-	          <div class="miniCard">
-	            <div class="miniCard__title" id="topSeasonTitle">Best matchups (through 2025) — QB</div>
-	            <div class="miniCard__body" id="topSeason"></div>
-	          </div>
-	          <div class="miniCard">
-	            <div class="miniCard__title" id="topRecentTitle">Best matchups (last 7 games) — QB</div>
-	            <div class="miniCard__body" id="topRecent"></div>
-	          </div>
-	          <div class="miniCard">
-	            <div class="miniCard__title" id="trendUpTitle">Trending up (Easier)</div>
-	            <div class="miniCard__body" id="trendUp"></div>
-	          </div>
-	          <div class="miniCard">
-	            <div class="miniCard__title" id="trendDownTitle">Trending down (Tougher)</div>
-	            <div class="miniCard__body" id="trendDown"></div>
-	          </div>
-	        </div>
-	      </div>
-	    </section>
+		      </div>
+		    </section>
 
-    <section class="grid2">
-	      <section class="panel">
-	        <div class="panelHeader panelHeader--heat">
+	    <section class="grid2">
+		      <section class="panel">
+		        <div class="panelHeader panelHeader--heat">
 	          <div class="panelHeader__left">
 	            <h2>Matchup Heatmap</h2>
 	            <div class="muted">Click any cell to see weekly totals and the players who drove them.</div>
 	          </div>
 
-	          <div class="panelHeader__right panelHeader__right--heat">
-	            <div class="heatHeaderRow heatHeaderRow--meta">
-	              <div class="segmented" role="tablist" aria-label="Dataset selector">
-	                <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
-	                <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
-	              </div>
+		          <div class="panelHeader__right panelHeader__right--heat">
+		            <div class="heatHeaderRow heatHeaderRow--meta">
+		              <div class="segmented" role="tablist" aria-label="Dataset selector">
+		                <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
+		                <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
+		              </div>
 
-	              <div class="pill" id="loadStatus" title="Data load status">
-	                <span class="dot is-warn"></span>
-	                <span>Loading CSVs…</span>
-	              </div>
-	            </div>
+		              <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
+
+		              <div class="pill" id="loadStatus" title="Data load status">
+		                <span class="dot is-warn"></span>
+		                <span>Loading CSVs…</span>
+		              </div>
+		            </div>
 
 	            <div class="heatHeaderRow heatHeaderRow--controls">
 	              <div class="field small">
@@ -211,36 +194,32 @@
             <!-- populated by JS -->
           </table>
         </div>
-        <div class="footnote">
-          Ranks: 1 = toughest (fewest points allowed) • 32 = easiest (most allowed)
-        </div>
-      </section>
+	        <div class="footnote">
+	          Ranks: 1 = toughest (fewest points allowed) • 32 = easiest (most allowed)
+	        </div>
+	      </section>
 
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <h2>Defense Snapshot</h2>
-            <div class="muted">Select a defense from the heatmap or scatter to compare full season vs recent.</div>
-          </div>
-          <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
-        </div>
-
-	        <div class="profileGrid">
-	          <div class="profileCard profileCard--placeholder">
-	            <div class="profileCard__title">Charts</div>
-	            <div class="muted smallLine">
-	              Weekly player scoring is now shown in the Player Week Scatter above.
-	            </div>
+	      <div class="miniCol">
+	        <div class="miniStack">
+	          <div class="miniCard">
+	            <div class="miniCard__title" id="topSeasonTitle">Best matchups (through 2025) — QB</div>
+	            <div class="miniCard__body" id="topSeason"></div>
+	          </div>
+	          <div class="miniCard">
+	            <div class="miniCard__title" id="topRecentTitle">Best matchups (last 7 games) — QB</div>
+	            <div class="miniCard__body" id="topRecent"></div>
+	          </div>
+	          <div class="miniCard">
+	            <div class="miniCard__title" id="trendUpTitle">Trending up (Easier)</div>
+	            <div class="miniCard__body" id="trendUp"></div>
+	          </div>
+	          <div class="miniCard">
+	            <div class="miniCard__title" id="trendDownTitle">Trending down (Tougher)</div>
+	            <div class="miniCard__body" id="trendDown"></div>
 	          </div>
 	        </div>
-
-        <div class="profileFooter">
-          <div class="muted smallLine">
-            Drilldowns use <strong>WKLY-DEF_vs_POS_by_Player.csv</strong> to show which players drove each week’s totals.
-          </div>
-        </div>
-      </section>
-    </section>
+	      </div>
+	    </section>
 
     <section class="panel uploader" id="uploader">
       <h2>CSV Loader (only if auto-load fails)</h2>

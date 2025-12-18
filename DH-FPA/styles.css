@@ -83,7 +83,7 @@ body::before{
 .wrap{
   position:relative;
   z-index:1;
-  width:min(1220px, calc(100% - 36px));
+  width:min(1440px, calc(100% - 36px));
   margin: 18px auto 44px;
 }
 
@@ -143,9 +143,8 @@ p{ margin: 10px 0 0; }
 
 .hero__grid{
   display:grid;
-  grid-template-columns: 1.05fr 1.05fr 0.52fr;
-  grid-template-areas:
-    "left right mini";
+  grid-template-columns: 1.05fr 1.35fr;
+  grid-template-areas: "left right";
   gap: 14px;
   align-items:start;
 }
@@ -154,8 +153,7 @@ p{ margin: 10px 0 0; }
     grid-template-columns: 1fr;
     grid-template-areas:
       "left"
-      "right"
-      "mini";
+      "right";
   }
 }
 
@@ -387,8 +385,8 @@ p{ margin: 10px 0 0; }
   color: var(--text);
 }
 
-.hero__mini{
-  grid-area: mini;
+.miniCol{ align-self: start; }
+.miniStack{
   display:flex;
   flex-direction:column;
   gap: 6px;
@@ -458,7 +456,7 @@ p{ margin: 10px 0 0; }
 .grid2{
   margin-top: 16px;
   display:grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: 1.55fr 0.45fr;
   gap: 16px;
 }
 @media (max-width: 980px){
@@ -556,6 +554,10 @@ p{ margin: 10px 0 0; }
     width:100%;
     justify-content:flex-start;
   }
+  #profilePill{
+    width:100%;
+    justify-content:flex-start;
+  }
 }
 
 @media (max-width: 520px){
@@ -602,12 +604,12 @@ table{
   top:0;
   z-index:2;
   background: rgba(8,8,18,0.82);
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(15px);
   border-bottom:1px solid rgba(255,255,255,0.12);
   padding: 10px 10px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted);
-  text-align:left;
+  text-align: center;
   letter-spacing:0.03em;
 }
 .heat tbody td{
@@ -622,6 +624,7 @@ table{
   font-weight: 900;
   letter-spacing: 0.05em;
   white-space:nowrap;
+  text-align: center;
 }
 .cell{
   border-radius: 14px;
