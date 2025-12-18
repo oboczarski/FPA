@@ -792,20 +792,80 @@ body::before{
 
 /* ===== Mobile polish ===== */
 @media (max-width: 760px){
-  .wrap{
-    width: calc(100% - 20px);
-    margin: 12px auto 34px;
+  :root{
+    --r: 16px;
+    --r2: 12px;
   }
 
+  .wrap{
+    width: calc(100% - 16px);
+    margin: 10px auto 28px;
+  }
+
+  .hero{ padding: 8px 8px 7px; }
+
   .pageHeader{
-    padding: 10px 10px 10px;
+    padding: 8px 8px 8px;
     margin-bottom: 10px;
   }
-  .pageTitle{ font-size: 20px; }
-  .pageControls{ width: 100%; }
-  .pageControl{ min-width: 0; flex: 1 1 240px; }
-  .pageChips{ width: 100%; justify-content:flex-start; }
-  .glassChip{ min-width: 150px; }
+  .pageHeader__row{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    align-items:stretch;
+  }
+
+  .pageTitle{ font-size: 18px; }
+  .pageSubtitle{ font-size: 11px; margin-top: 2px; }
+
+  .pageControls{
+    width: 100%;
+    display:grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 8px;
+    align-items:end;
+  }
+  .pageControl{ min-width: 0; }
+  .pageControl__label{
+    font-size: 10px;
+    margin-bottom: 5px;
+  }
+
+  .teamPicker__btn{
+    padding: 10px 10px;
+    border-radius: 14px;
+  }
+  .teamPicker__code{ font-size: 13px; }
+
+  .pos-toggle--lg{
+    gap: 6px;
+    flex-wrap:nowrap;
+  }
+  .pos-toggle--lg .pos-btn{
+    padding: 9px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    flex: 1 1 0;
+    text-align:center;
+  }
+
+  .pageChips{
+    width: 100%;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-items:stretch;
+  }
+  .glassChip{
+    min-width: 0;
+    padding: 7px 9px 7px;
+    border-radius: 14px;
+  }
+  .glassChip__label{ font-size: 8px; }
+  .glassChip__value{ font-size: 13px; }
+
+  .teamLogo{ width: 16px; height: 16px; }
+  .teamLogo--chip{ width: 16px; height: 16px; }
 
   .teamPicker__panel{
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -814,39 +874,116 @@ body::before{
   }
 
   .panelHeader{
-    padding: 12px 12px 10px;
-    flex-direction:column;
-    align-items:flex-start;
+    padding: 10px 10px 8px;
   }
   .heatHeaderGrid{
     width:100%;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px 8px;
   }
-  .heatHeaderGrid .heatmapTitle{ grid-column: 1; grid-row: auto; }
-  .heatHeaderGrid .segmented{ grid-column: 1; grid-row: auto; justify-self: start; }
-  .heatHeaderGrid #profilePill{ grid-column: 1; grid-row: auto; }
-  .heatHeaderGrid #loadStatus{ grid-column: 1; grid-row: auto; }
-  .heatHeaderGrid .heatHeaderField--pos{ grid-column: 1; grid-row: auto; }
-  .heatHeaderGrid .heatHeaderField--def{ grid-column: 1; grid-row: auto; }
-  .heatHeaderGrid .heatHeaderField--sort{ grid-column: 1; grid-row: auto; }
-  .heatHeaderGrid .heatHeaderField--dir{ grid-column: 1; grid-row: auto; }
-  #loadStatus{
-    width:100%;
-    justify-content:flex-start;
+  .heatHeaderGrid .heatmapTitle{ grid-column: 1; grid-row: 1; }
+  .heatHeaderGrid .segmented{ grid-column: 2; grid-row: 1; justify-self: end; }
+  .heatHeaderGrid .heatHeaderField--pos{ grid-column: 1 / -1; grid-row: 2; }
+  .heatHeaderGrid .heatHeaderField--def{ grid-column: 1; grid-row: 3; }
+  .heatHeaderGrid .heatHeaderField--sort{ grid-column: 2; grid-row: 3; }
+  .heatHeaderGrid .heatHeaderField--dir{ grid-column: 1; grid-row: 4; }
+  .heatHeaderGrid #profilePill{ grid-column: 2; grid-row: 4; justify-self: end; }
+  .heatHeaderGrid #loadStatus{ grid-column: 1 / -1; grid-row: 5; }
+
+  .heatHeaderLabel{ font-size: 10px; margin-bottom: 4px; }
+
+  .segmented{ padding: 4px; border-radius: 12px; }
+  .segmented__btn{ padding: 7px 10px; border-radius: 10px; font-size: 11px; }
+
+  .pill{ padding: 7px 10px; font-size: 11px; }
+
+  .heatPosToggle{ gap: 6px; flex-wrap:nowrap; }
+  .heatPosBtn{ flex: 1 1 0; text-align:center; padding: 6px 8px; font-size: 11px; border-radius: 10px; }
+
+  .heatSelect{ padding: 9px 10px; border-radius: 11px; font-size: 12px; }
+
+  /* quick cards + players (shrink everything on mobile only) */
+  .cards{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
   }
-  #profilePill{
-    width:100%;
-    justify-content:flex-start;
-  }
+  .card{ padding: 10px; }
+  .card__title{ font-size: 11px; }
+  .card__big{ font-size: 18px; }
+  .card__sub{ font-size: 11px; }
+
+  .playersPanel{ padding: 8px 8px 10px; }
+  .playersHeader{ padding: 1px 2px 5px; }
+  .playersHeaderTitle{ font-size: 13px; }
+  .playersFilters{ gap: 8px; margin: 6px 2px 8px; }
+  .playersSelect, .playersInput{ padding: 9px 10px; border-radius: 11px; font-size: 12px; }
+  .playersTableWrap{ border-radius: 12px; height: 26rem; }
+  .list thead th{ padding: 7px 8px; font-size: 11px; }
+  .list tbody td{ padding: 7px 8px; font-size: 12px; }
+
+  /* chart controls */
+  .chartCard{ padding: 0px 6px 0px; }
+  .chartTitle{ font-size: 12px; }
+  .avgPill{ padding: 5px 6px; font-size: 8px; }
+  .pos2-btn{ padding: 5px 12px; font-size: 10px; }
+
+  /* chart heights (mobile only) */
+  .canvasBox--scatter{ height: 310px; }
+  .canvasBox--playerWeekScatter{ height: 320px; }
+
+  /* mini cards */
+  .miniCard{ padding: 4px 7px; }
+  .miniCard__title{ font-size: 11px; }
+  .rankRow{ padding: 5px 7px; border-radius: 11px; }
+  .rankRow .tm{ font-size: 12px; }
+  .rankRow .meta{ font-size: 10px; }
+  .rankRow .rhs{ font-size: 10px; }
 }
 
 @media (max-width: 520px){
-  .hero{ padding: 8px 8px 7px; }
+  :root{
+    --r: 15px;
+    --r2: 11px;
+  }
 
-  .pageTitle{ font-size: 18px; }
-  .pageSubtitle{ font-size: 12px; }
-  .pageControl{ width: 100%; }
+  .pageTitle{ font-size: 17px; }
+  .pageSubtitle{ font-size: 10px; }
+
+  .pageControls{
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: 6px;
+  }
+  .pageControl__label{ font-size: 9px; margin-bottom: 4px; }
+  .teamPicker__btn{ padding: 9px 9px; border-radius: 13px; }
+  .teamPicker__code{ font-size: 12px; }
+
+  .pos-toggle--lg{ gap: 5px; }
+  .pos-toggle--lg .pos-btn{ padding: 8px 8px; border-radius: 11px; font-size: 11px; }
+
+  .pageChips{ gap: 6px; }
+  .glassChip{ padding: 6px 7px; border-radius: 13px; }
+  .glassChip__label{ font-size: 7px; }
+  .glassChip__value{ font-size: 12px; }
+  .teamLogo--chip{ width: 15px; height: 15px; }
+
   .teamPicker__panel{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .cards{ gap: 7px; }
+  .card{ padding: 9px; }
+  .card__big{ font-size: 17px; }
+
+  .playersPanel{ padding: 7px 7px 9px; }
+  .playersHeaderTitle{ font-size: 12px; }
+  .playersSelect, .playersInput{ padding: 8px 9px; font-size: 12px; }
+  .playersTableWrap{ height: 24rem; }
+
+  .chartTitle{ font-size: 12px; }
+  .avgPill{ font-size: 8px; }
+  .pos2-btn{ padding: 5px 11px; font-size: 10px; }
+
+  .canvasBox--scatter{ height: 300px; }
+  .canvasBox--playerWeekScatter{ height: 310px; }
 
   .playersFilters{
     flex-direction:column;
@@ -954,11 +1091,15 @@ table{
 .cell.is-heat-focus{ box-shadow: inset 0 0 0 2px rgba(207,120,255,0.42); }
 
 @media (max-width: 680px){
-  .tableWrap{ padding: 10px 8px 10px; }
-  .heat tbody td{ padding: 3px; }
-  .cell{ padding: 6px 8px !important; }
-  .cell__rk{ font-size: 13px; }
-  .cell__avg{ font-size: 11px; }
+  .tableWrap{ padding: 8px 6px 8px; overflow-x: hidden; }
+  .heat{ table-layout: fixed; }
+  .heat thead th{ padding: 7px 4px; font-size: 11px; }
+  .heat tbody td{ padding: 2px; font-size: 11px; }
+  .tmCell{ font-size: 11px; }
+  .cell{ padding: 4px 5px !important; border-radius: 11px; }
+  .cell__text{ gap: 3px; }
+  .cell__rk{ font-size: 12px; }
+  .cell__avg{ display: none; }
 }
 
 .profileGrid{

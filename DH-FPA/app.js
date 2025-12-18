@@ -55,7 +55,8 @@ const TEAM_LOGO_ALIASES = {
   JAC: "JAX",
 };
 
-const TEAM_LOGOS = new Map(); // TEAM -> HTMLImageElement
+const SCATTER_TEAM_LOGO_PX = 20; // Chart.js draws image pointStyles at intrinsic width/height
+const TEAM_LOGOS = new Map(); // TEAM -> HTMLImageElement (sized for scatter points)
 
 function canonicalTeamCode(team){
   const t = cleanStr(team).toUpperCase();
@@ -79,7 +80,12 @@ async function loadTeamLogos(codes){
     img.decoding = "async";
     img.loading = "eager";
     img.src = teamLogoSrc(code);
-    img.onload = () => resolve([code, img]);
+    img.onload = () => {
+      // IMPORTANT: Chart.js uses image.width/height for pointStyle drawing (not pointRadius).
+      img.width = SCATTER_TEAM_LOGO_PX;
+      img.height = SCATTER_TEAM_LOGO_PX;
+      resolve([code, img]);
+    };
     img.onerror = () => resolve([code, null]);
   }));
   const entries = await Promise.all(loaders);
@@ -1142,6 +1148,10 @@ function buildScatter(){
 
   if (charts.scatter) charts.scatter.destroy();
 
+  const logoRadius = Math.max(6, Math.round(SCATTER_TEAM_LOGO_PX / 2));
+  const logoMinDist = logoRadius * 2 + 4;
+  const logoPad = logoRadius + 4;
+
 	  charts.scatter = new Chart(ctx, {
 	    type: "scatter",
 	    plugins: [NO_OVERLAP_SCATTER_PLUGIN],
@@ -1150,8 +1160,8 @@ function buildScatter(){
 	        {
 	          label: "Defenses",
 	          data: points,
-	          pointRadius: 6,
-	          pointHoverRadius: 9,
+	          pointRadius: logoRadius,
+	          pointHoverRadius: logoRadius,
 	          pointBorderWidth: 0,
 	          pointStyle: (ctx) => getTeamLogo(ctx.raw?.t) ?? "circle",
 	          pointBackgroundColor: (ctx) => {
@@ -1178,6 +1188,7 @@ function buildScatter(){
 	      // reduce ResizeObserver churn in some publishing environments
 	      resizeDelay: 120,
 	      parsing: false,
+        layout: { padding: { left: 10, right: 10, top: 8, bottom: 6 } },
       scales: {
         x: {
           title: { display: true, text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
@@ -1193,7 +1204,7 @@ function buildScatter(){
         },
       },
 	      plugins: {
-	        noOverlapScatter: { datasetIndex: 0, minDist: 16, padding: 10, iterations: 520, spring: 0.008 },
+	        noOverlapScatter: { datasetIndex: 0, minDist: logoMinDist, padding: logoPad, iterations: 520, spring: 0.008 },
 	        legend: { display: false },
 	        tooltip: {
 	          callbacks: {
