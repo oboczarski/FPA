@@ -17,7 +17,6 @@ const CONFIG = {
 
 const els = {
   teamSelect: document.getElementById("teamSelect"),
-  heatPosSelect: document.getElementById("heatPosSelect"),
   heatTeamSelect: document.getElementById("heatTeamSelect"),
   sortSelect: document.getElementById("sortSelect"),
   dirSelect: document.getElementById("dirSelect"),
@@ -430,7 +429,8 @@ function buildTeamSelect(){
   STATE.selectedTeam = teams[0] ?? null;
   els.teamSelect.value = STATE.selectedTeam ?? "";
   els.heatTeamSelect.value = STATE.selectedTeam ?? "";
-  els.heatPosSelect.value = STATE.pos;
+  // Update heat position buttons
+  $$(".pos-btn--heat").forEach(b => b.classList.toggle("is-active", b.dataset.heatpos === STATE.pos));
 }
 
 function buildMiniLists(){
@@ -1024,8 +1024,8 @@ function selectTeam(team, pos = STATE.pos){
   // update select + pos buttons
   els.teamSelect.value = team;
   els.heatTeamSelect.value = team;
-  els.heatPosSelect.value = STATE.pos;
-  $$(".pos-btn:not(.pos-btn--player)").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
+  $$(".pos-btn:not(.pos-btn--player):not(.pos-btn--heat)").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
+  $$(".pos-btn--heat").forEach(b => b.classList.toggle("is-active", b.dataset.heatpos === STATE.pos));
 
   // pill
   els.profilePill.querySelector("span:last-child").innerHTML = `Selected: <strong>${team}</strong> • Position: <strong>${STATE.pos}</strong>`;
@@ -1096,9 +1096,15 @@ function startStars(){
 // Bootstrap
 // =====================
 function bindEvents(){
-  // Main position buttons (exclude player scatter buttons)
-  $$(".pos-btn:not(.pos-btn--player)").forEach(b => b.addEventListener("click", () => {
+  // Main position buttons (exclude player scatter and heat buttons)
+  $$(".pos-btn:not(.pos-btn--player):not(.pos-btn--heat)").forEach(b => b.addEventListener("click", () => {
     if (b.dataset.pos) selectTeam(STATE.selectedTeam, b.dataset.pos);
+  }));
+
+  // Heatmap position buttons
+  $$(".pos-btn--heat").forEach(b => b.addEventListener("click", () => {
+    const pos = b.dataset.heatpos;
+    if (pos) selectTeam(STATE.selectedTeam, pos);
   }));
 
   // Player scatter position buttons
@@ -1113,10 +1119,6 @@ function bindEvents(){
 
   els.teamSelect.addEventListener("change", () => {
     selectTeam(els.teamSelect.value, STATE.pos);
-  });
-
-  els.heatPosSelect.addEventListener("change", () => {
-    selectTeam(STATE.selectedTeam, els.heatPosSelect.value);
   });
 
   els.heatTeamSelect.addEventListener("change", () => {

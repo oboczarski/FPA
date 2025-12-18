@@ -123,56 +123,39 @@
               <div class="chartHint">Player performances vs selected defense • Brighter = higher score</div>
             </div>
 	        </div>
-
-	        <!-- Full-width row to avoid the left-column “dead space” you saw in published views -->
-	        <div class="hero__mini">
-	          <div class="miniCard">
-	            <div class="miniCard__title" id="topSeasonTitle">Best matchups (through 2025) — QB</div>
-	            <div class="miniCard__body" id="topSeason"></div>
-	          </div>
-	          <div class="miniCard">
-	            <div class="miniCard__title" id="topRecentTitle">Best matchups (last 7 games) — QB</div>
-	            <div class="miniCard__body" id="topRecent"></div>
-	          </div>
-	          <div class="miniCard">
-	            <div class="miniCard__title" id="trendUpTitle">Trending up (Easier)</div>
-	            <div class="miniCard__body" id="trendUp"></div>
-	          </div>
-	          <div class="miniCard">
-	            <div class="miniCard__title" id="trendDownTitle">Trending down (Tougher)</div>
-	            <div class="miniCard__body" id="trendDown"></div>
-	          </div>
-	        </div>
-	      </div>
-	    </section>
+      </div>
+    </section>
 
     <section class="grid2">
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <h2>Matchup Heatmap</h2>
-            <div class="muted">Click any cell to see weekly totals and the players who drove them.</div>
+      <section class="panel heatPanel">
+        <div class="panelHeader panelHeader--heat">
+          <div class="panelHeader__top">
+            <div>
+              <h2>Matchup Heatmap</h2>
+              <div class="muted">Click any cell to see weekly totals and the players who drove them.</div>
+            </div>
+            <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
           </div>
+          
+          <div class="panelHeader__controls">
+            <div class="heatControls__group">
+              <span class="heatControls__label">Position</span>
+              <div class="pos-toggle pos-toggle--heat" role="group" aria-label="Heatmap position filter">
+                <button class="pos-btn pos-btn--heat pos-btn--qb is-active" data-heatpos="QB">QB</button>
+                <button class="pos-btn pos-btn--heat pos-btn--rb" data-heatpos="RB">RB</button>
+                <button class="pos-btn pos-btn--heat pos-btn--wr" data-heatpos="WR">WR</button>
+                <button class="pos-btn pos-btn--heat pos-btn--te" data-heatpos="TE">TE</button>
+              </div>
+            </div>
 
-	          <div class="panelHeader__right">
-	            <label class="field small">
-	              <span>Heat Pos</span>
-	              <select id="heatPosSelect" class="select">
-	                <option value="QB">QB</option>
-	                <option value="RB">RB</option>
-	                <option value="WR">WR</option>
-	                <option value="TE">TE</option>
-	              </select>
-	            </label>
+            <div class="heatControls__group">
+              <span class="heatControls__label">Defense</span>
+              <select id="heatTeamSelect" class="select select--compact"></select>
+            </div>
 
-	            <label class="field small">
-	              <span>Heat DEF</span>
-	              <select id="heatTeamSelect" class="select"></select>
-	            </label>
-
-	            <label class="field small">
-	              <span>Sort by</span>
-	              <select id="sortSelect" class="select">
+            <div class="heatControls__group">
+              <span class="heatControls__label">Sort</span>
+              <select id="sortSelect" class="select select--compact">
                 <option value="Total_Rk">Total (rank)</option>
                 <option value="QB_Rk">QB (rank)</option>
                 <option value="RB_Rk">RB (rank)</option>
@@ -184,15 +167,15 @@
                 <option value="WR_Avg">WR (avg)</option>
                 <option value="TE_Avg">TE (avg)</option>
               </select>
-            </label>
+            </div>
 
-            <label class="field small">
-              <span>Direction</span>
-              <select id="dirSelect" class="select">
-                <option value="desc">Easiest → Toughest</option>
-                <option value="asc">Toughest → Easiest</option>
+            <div class="heatControls__group">
+              <span class="heatControls__label">Order</span>
+              <select id="dirSelect" class="select select--compact">
+                <option value="desc">Easy → Hard</option>
+                <option value="asc">Hard → Easy</option>
               </select>
-            </label>
+            </div>
           </div>
         </div>
 
@@ -206,23 +189,25 @@
         </div>
       </section>
 
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <h2>Defense Snapshot</h2>
-            <div class="muted">Select a defense from the heatmap or scatter to compare full season vs recent.</div>
-          </div>
-          <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
+      <!-- Mini cards next to heatmap -->
+      <div class="miniCardsColumn">
+        <div class="miniCard">
+          <div class="miniCard__title" id="topSeasonTitle">Best matchups (through 2025) — QB</div>
+          <div class="miniCard__body" id="topSeason"></div>
         </div>
-
-        <div class="profileGrid">
-          <div class="profileInfo">
-            <div class="muted smallLine">
-              Select a defense from the heatmap or scatter chart to view detailed player performance data in the Player Drilldown table.
-            </div>
-          </div>
+        <div class="miniCard">
+          <div class="miniCard__title" id="topRecentTitle">Best matchups (last 7 games) — QB</div>
+          <div class="miniCard__body" id="topRecent"></div>
         </div>
-      </section>
+        <div class="miniCard">
+          <div class="miniCard__title" id="trendUpTitle">Trending up (Easier)</div>
+          <div class="miniCard__body" id="trendUp"></div>
+        </div>
+        <div class="miniCard">
+          <div class="miniCard__title" id="trendDownTitle">Trending down (Tougher)</div>
+          <div class="miniCard__body" id="trendDown"></div>
+        </div>
+      </div>
     </section>
 
     <section class="panel uploader" id="uploader">
