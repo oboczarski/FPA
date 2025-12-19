@@ -55,6 +55,25 @@
 }
 .teamInline--tight{ gap: 6px; }
 
+/* ===== Emphasized title team/pos (players + player-week scatter) ===== */
+#playersSub .teamText,
+#playersSub .posText{
+  font-size: 16px;
+}
+#playersSub .teamLogo{
+  width: 22px;
+  height: 22px;
+}
+
+#playerWeekTitleTeam,
+#playerWeekTitlePos{
+  font-size: 16px;
+}
+#playerWeekTitleLogo{
+  width: 22px;
+  height: 22px;
+}
+
 *{ box-sizing:border-box; }
 html, body{ height:100%; }
 
@@ -271,6 +290,11 @@ body::before{
   gap: 10px;
   min-width: 0;
 }
+#teamPickerBtn .teamPicker__left{
+  /* Increase selected logo+abbr size without affecting button layout size */
+  transform: scale(1.14);
+  transform-origin: left center;
+}
 .teamPicker__code{
   font-size: 14px;
   font-weight: 950;
@@ -326,10 +350,53 @@ body::before{
   filter: none;
   display:block;
 }
-.teamLogo.glow{
-  --glow-r3: 1.9px;
-  filter: drop-shadow(0 0 var(--glow-r3) currentColor);
+.teamLogo.glow,
+.chartTooltip__logo.glow{
+  /* Defaults; overridden per-team via [alt="XXX"] below */
+  --team-glow: rgba(0,0,0,0.94);
+  --glow-r3: 3.2px;
+  filter: drop-shadow(0 0 var(--glow-r3) var(--team-glow));
 }
+
+/* === Team Logo Glows (per team) ===================================== */
+.teamLogo.glow[alt="ARI"], .chartTooltip__logo.glow[alt="ARI"]{ --team-glow: rgba(151, 35, 63, 0.95) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="ATL"], .chartTooltip__logo.glow[alt="ATL"]{ --team-glow: rgba(255, 56, 95, 0.93) !important; --glow-r3: 3.0px; }
+.teamLogo.glow[alt="BAL"], .chartTooltip__logo.glow[alt="BAL"]{ --team-glow: rgba(158, 43, 246, 0.95) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="BUF"], .chartTooltip__logo.glow[alt="BUF"]{ --team-glow: rgba(198, 12, 48, 0.93) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="CAR"], .chartTooltip__logo.glow[alt="CAR"]{ --team-glow: rgba(0, 133, 202, 0.95) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="CHI"], .chartTooltip__logo.glow[alt="CHI"]{ --team-glow: rgba(120, 90, 240, 0.93) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="CIN"], .chartTooltip__logo.glow[alt="CIN"]{ --team-glow: rgba(251, 79, 20, 0.95) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="CLE"], .chartTooltip__logo.glow[alt="CLE"]{ --team-glow: rgba(225, 135, 0, 0.68) !important; --glow-r3: 2.4px; }
+.teamLogo.glow[alt="DAL"], .chartTooltip__logo.glow[alt="DAL"]{ --team-glow: rgba(134, 147, 151, 0.86) !important; --glow-r3: 2.4px; }
+.teamLogo.glow[alt="DEN"], .chartTooltip__logo.glow[alt="DEN"]{ --team-glow: rgba(251, 79, 20, 0.93) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="DET"], .chartTooltip__logo.glow[alt="DET"]{ --team-glow: rgba(0, 183, 235, 0.86) !important; --glow-r3: 2.8px; }
+.teamLogo.glow[alt="GB"],  .chartTooltip__logo.glow[alt="GB"] { --team-glow: rgba(0, 235, 150, 0.68) !important; --glow-r3: 2.4px; }
+.teamLogo.glow[alt="HOU"], .chartTooltip__logo.glow[alt="HOU"]{ --team-glow: rgba(167, 25, 48, 0.95) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="IND"], .chartTooltip__logo.glow[alt="IND"]{ --team-glow: rgba(0, 183, 235, 0.93) !important; --glow-r3: 2.4px; }
+.teamLogo.glow[alt="JAX"], .chartTooltip__logo.glow[alt="JAX"]{ --team-glow: rgba(0, 103, 120, 0.95) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="KC"],  .chartTooltip__logo.glow[alt="KC"] { --team-glow: rgba(255, 0, 64, 0.84) !important; --glow-r3: 2.6px; }
+.teamLogo.glow[alt="LAC"], .chartTooltip__logo.glow[alt="LAC"]{ --team-glow: rgba(0, 191, 255, 0.74) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="LAR"], .chartTooltip__logo.glow[alt="LAR"]{ --team-glow: rgba(0, 91, 200, 0.93) !important; --glow-r3: 2.6px; }
+.teamLogo.glow[alt="LV"],  .chartTooltip__logo.glow[alt="LV"] { --team-glow: rgba(165, 172, 175, 0.86) !important; --glow-r3: 2.8px; }
+.teamLogo.glow[alt="MIA"], .chartTooltip__logo.glow[alt="MIA"]{ --team-glow: rgba(0, 142, 151, 0.93) !important; --glow-r3: 2.8px; }
+.teamLogo.glow[alt="MIN"], .chartTooltip__logo.glow[alt="MIN"]{ --team-glow: rgba(115, 0, 255, 0.95) !important; --glow-r3: 3.0px; }
+.teamLogo.glow[alt="NE"],  .chartTooltip__logo.glow[alt="NE"] { --team-glow: rgba(255, 56, 95, 0.93) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="NO"],  .chartTooltip__logo.glow[alt="NO"] { --team-glow: rgba(160, 148, 101, 0.86) !important; --glow-r3: 2.6px; }
+.teamLogo.glow[alt="NYG"], .chartTooltip__logo.glow[alt="NYG"]{ --team-glow: rgba(55, 56, 200, 0.95) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="NYJ"], .chartTooltip__logo.glow[alt="NYJ"]{ --team-glow: rgba(64, 160, 120, 0.95) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="PHI"], .chartTooltip__logo.glow[alt="PHI"]{ --team-glow: rgba(43, 140, 78, 0.95) !important; --glow-r3: 2.6px; }
+.teamLogo.glow[alt="PIT"], .chartTooltip__logo.glow[alt="PIT"]{ --team-glow: rgba(255, 182, 18, 0.61) !important; --glow-r3: 2.4px; }
+.teamLogo.glow[alt="SEA"], .chartTooltip__logo.glow[alt="SEA"]{ --team-glow: rgba(105, 190, 40, 0.86) !important; --glow-r3: 2.4px; }
+.teamLogo.glow[alt="SF"],  .chartTooltip__logo.glow[alt="SF"] { --team-glow: rgba(179, 153, 93, 0.74) !important; --glow-r3: 2.6px; }
+.teamLogo.glow[alt="TB"],  .chartTooltip__logo.glow[alt="TB"] { --team-glow: rgba(247, 122, 97, 0.74) !important; --glow-r3: 2.4px; }
+.teamLogo.glow[alt="TEN"], .chartTooltip__logo.glow[alt="TEN"]{ --team-glow: rgba(75, 146, 219, 0.95) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="WAS"], .chartTooltip__logo.glow[alt="WAS"]{ --team-glow: rgba(180, 36, 36, 0.95) !important; --glow-r3: 3.2px; }
+
+/* Legacy aliases (if they appear in data) */
+.teamLogo.glow[alt="SD"],  .chartTooltip__logo.glow[alt="SD"] { --team-glow: rgba(0, 191, 255, 0.74) !important; --glow-r3: 3.2px; }
+.teamLogo.glow[alt="OAK"], .chartTooltip__logo.glow[alt="OAK"]{ --team-glow: rgba(165, 172, 175, 0.86) !important; --glow-r3: 2.8px; }
+.teamLogo.glow[alt="STL"], .chartTooltip__logo.glow[alt="STL"]{ --team-glow: rgba(0, 91, 200, 0.93) !important; --glow-r3: 2.6px; }
+.teamLogo.glow[alt="JAC"], .chartTooltip__logo.glow[alt="JAC"]{ --team-glow: rgba(0, 103, 120, 0.95) !important; --glow-r3: 3.2px; }
 .teamLogo--opt{ width: 19px; height: 19px; }
 .teamLogo--chip{ width: 22px; height: 22px; }
 
@@ -499,6 +566,12 @@ body::before{
 .cardVs .posText{
   font-size: inherit;
 }
+.trendRankSuffix{
+  font-size: 0.76em;
+  font-weight: 850;
+  color: rgba(255,255,255,0.72);
+  letter-spacing: 0.02em;
+}
 .ord__suf{
   font-size: 0.84em;
   opacity: 0.92;
@@ -591,10 +664,7 @@ body::before{
   flex: 0 0 auto;
   filter: none;
 }
-.chartTooltip__logo.glow{
-  --glow-r3: 3.2px;
-  filter: drop-shadow(0 0 var(--glow-r3) currentColor);
-}
+/* .chartTooltip__logo.glow uses the shared team logo glow rules */
 
 .chartCard{
   margin-top: 12px;
@@ -867,16 +937,23 @@ body::before{
 }
 .heatHeaderGrid{
   display:grid;
-  grid-template-columns:
-    minmax(220px, 1fr)
-    minmax(300px, 1fr)
-    auto;
-  gap: 10px 12px;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 8px 12px;
   align-items:end;
 }
 .heatHeaderGrid .heatmapTitle{ grid-column: 1; grid-row: 1; }
-.heatHeaderGrid .heatHeaderField--def{ grid-column: 2; grid-row: 1; }
-.heatHeaderGrid .segmented{ grid-column: 3; grid-row: 1; justify-self: end; }
+.heatHeaderGrid .segmented{ grid-column: 2; grid-row: 1; justify-self: end; }
+.heatHeaderGrid .heatHeaderHint{ grid-column: 1 / -1; grid-row: 2; }
+.heatHeaderHint{
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .heatHeaderField{
   min-width: 0;
 }
@@ -1005,11 +1082,12 @@ body::before{
     grid-template-columns: 1fr auto;
     gap: 8px 10px;
   }
-  .heatHeaderGrid .heatmapTitle{ grid-column: 1 / -1; grid-row: 1; }
-  .heatHeaderGrid .heatHeaderField--def{ grid-column: 1; grid-row: 2; }
-  .heatHeaderGrid .segmented{ grid-column: 2; grid-row: 2; justify-self: end; }
+  .heatHeaderGrid .heatmapTitle{ grid-column: 1; grid-row: 1; }
+  .heatHeaderGrid .segmented{ grid-column: 2; grid-row: 1; justify-self: end; }
+  .heatHeaderGrid .heatHeaderHint{ grid-column: 1 / -1; grid-row: 2; }
 
   .heatHeaderLabel{ font-size: 10px; margin-bottom: 4px; }
+  .heatHeaderHint{ font-size: 10px; }
 
   .segmented{ padding: 4px; border-radius: 12px; min-height: 44px; }
   .segmented__btn{ padding: 7px 10px; border-radius: 10px; font-size: 11px; }
@@ -1125,6 +1203,15 @@ body::before{
   .heatHeaderField--pos{
     min-width: 0;
   }
+
+  /* title emphasis stays, but scaled down a touch on very small screens */
+  #playersSub .teamText,
+  #playersSub .posText{ font-size: 15px; }
+  #playersSub .teamLogo{ width: 20px; height: 20px; }
+
+  #playerWeekTitleTeam,
+  #playerWeekTitlePos{ font-size: 15px; }
+  #playerWeekTitleLogo{ width: 20px; height: 20px; }
 }
 
 .tableWrap{

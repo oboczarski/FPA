@@ -48,6 +48,43 @@ const TEAM_COLORS = {
   'HOU': '#a71930', 'TEN': '#4B92DB', 'MIN': '#4F2683'
 };
 
+// Per-team logo glow specs (color + radius) to match the CSS glow tuning.
+// blur values are tuned for ~17px logos and scaled for the Season vs Weeks scatter.
+const TEAM_LOGO_GLOW = {
+  ARI: { glow: "rgba(151, 35, 63, 0.95)", blur: 3.2 },
+  ATL: { glow: "rgba(255, 56, 95, 0.93)", blur: 3.0 },
+  BAL: { glow: "rgba(158, 43, 246, 0.95)", blur: 3.2 },
+  BUF: { glow: "rgba(198, 12, 48, 0.93)", blur: 3.2 },
+  CAR: { glow: "rgba(0, 133, 202, 0.95)", blur: 3.2 },
+  CHI: { glow: "rgba(120, 90, 240, 0.93)", blur: 3.2 },
+  CIN: { glow: "rgba(251, 79, 20, 0.95)", blur: 3.2 },
+  CLE: { glow: "rgba(225, 135, 0, 0.68)", blur: 2.4 },
+  DAL: { glow: "rgba(134, 147, 151, 0.86)", blur: 2.4 },
+  DEN: { glow: "rgba(251, 79, 20, 0.93)", blur: 3.2 },
+  DET: { glow: "rgba(0, 183, 235, 0.86)", blur: 2.8 },
+  GB:  { glow: "rgba(0, 235, 150, 0.68)", blur: 2.4 },
+  HOU: { glow: "rgba(167, 25, 48, 0.95)", blur: 3.2 },
+  IND: { glow: "rgba(0, 183, 235, 0.93)", blur: 2.4 },
+  JAX: { glow: "rgba(0, 103, 120, 0.95)", blur: 3.2 },
+  KC:  { glow: "rgba(255, 0, 64, 0.84)", blur: 2.6 },
+  LAC: { glow: "rgba(0, 191, 255, 0.74)", blur: 3.2 },
+  LAR: { glow: "rgba(0, 91, 200, 0.93)", blur: 2.6 },
+  LV:  { glow: "rgba(165, 172, 175, 0.86)", blur: 2.8 },
+  MIA: { glow: "rgba(0, 142, 151, 0.93)", blur: 2.8 },
+  MIN: { glow: "rgba(115, 0, 255, 0.95)", blur: 3.0 },
+  NE:  { glow: "rgba(255, 56, 95, 0.93)", blur: 3.2 },
+  NO:  { glow: "rgba(160, 148, 101, 0.86)", blur: 2.6 },
+  NYG: { glow: "rgba(55, 56, 200, 0.95)", blur: 3.2 },
+  NYJ: { glow: "rgba(64, 160, 120, 0.95)", blur: 3.2 },
+  PHI: { glow: "rgba(43, 140, 78, 0.95)", blur: 2.6 },
+  PIT: { glow: "rgba(255, 182, 18, 0.61)", blur: 2.4 },
+  SEA: { glow: "rgba(105, 190, 40, 0.86)", blur: 2.4 },
+  SF:  { glow: "rgba(179, 153, 93, 0.74)", blur: 2.6 },
+  TB:  { glow: "rgba(247, 122, 97, 0.74)", blur: 2.4 },
+  TEN: { glow: "rgba(75, 146, 219, 0.95)", blur: 3.2 },
+  WAS: { glow: "rgba(180, 36, 36, 0.95)", blur: 3.2 },
+};
+
 const TEAM_LOGO_ALIASES = {
   SD: "LAC",
   OAK: "LV",
@@ -87,6 +124,11 @@ function teamLogoSrc(team){
 function getTeamLogo(team){
   const code = canonicalTeamCode(team);
   return TEAM_LOGOS.get(code) ?? null;
+}
+
+function getTeamLogoGlowSpec(team){
+  const code = canonicalTeamCode(team);
+  return TEAM_LOGO_GLOW[code] ?? null;
 }
 
 function setScatterTeamLogoPx(px){
@@ -130,11 +172,6 @@ const els = {
   selTeamLogo: document.getElementById("selTeamLogo"),
   selTeamText: document.getElementById("selTeamText"),
   selPosText: document.getElementById("selPosText"),
-  heatTeamPicker: document.getElementById("heatTeamPicker"),
-  heatTeamPickerBtn: document.getElementById("heatTeamPickerBtn"),
-  heatTeamPickerPanel: document.getElementById("heatTeamPickerPanel"),
-  heatTeamPickerLogo: document.getElementById("heatTeamPickerLogo"),
-  heatTeamPickerCode: document.getElementById("heatTeamPickerCode"),
   heatTable: document.getElementById("heatTable"),
   quickCards: document.getElementById("quickCards"),
   uploader: document.getElementById("uploader"),
@@ -166,7 +203,6 @@ let STATE = {
   activeDataset: "season", // "season" | "recent" (controls heatmap only)
   pos: "QB",
   selectedTeam: null, // defense team for profile
-  heatTeam: null,
   miniPos: "QB",
   heatSort: { col: "TOTAL", cycle: 0 }, // cycle: 0=default, 1=desc, 2=asc
   scatterMode: "avg", // "avg" | "rank"
@@ -316,21 +352,6 @@ function teamColorText(tm){
   return hex;
 }
 
-function teamGlowColor(tm, alpha = 0.92){
-  const hex = teamColorText(tm);
-  if (!hex) return null;
-  const [r,g,b] = hexToRgbaArr(hex);
-  if (![r,g,b].every(Number.isFinite)) return null;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function applyLogoGlow(imgEl, tm){
-  if (!imgEl) return;
-  imgEl.classList.add("glow");
-  const c = teamGlowColor(tm, 0.92);
-  imgEl.style.color = c ?? "rgba(255,255,255,0.12)";
-}
-
 function syncMiniPosToggle(pos){
   if (!els.miniPosToggle) return;
   const p = cleanStr(pos).toUpperCase();
@@ -374,42 +395,6 @@ function setTeamPickerOpen(open){
   if (els.teamPickerBtn) els.teamPickerBtn.setAttribute("aria-expanded", String(!!open));
 }
 
-function isHeatTeamPickerOpen(){
-  return !!els.heatTeamPicker?.classList?.contains("is-open");
-}
-
-function setHeatTeamPickerOpen(open){
-  if (!els.heatTeamPicker) return;
-  els.heatTeamPicker.classList.toggle("is-open", !!open);
-  if (els.heatTeamPickerBtn) els.heatTeamPickerBtn.setAttribute("aria-expanded", String(!!open));
-}
-
-function syncHeatTeamPicker(team){
-  const t = cleanStr(team).toUpperCase();
-  if (els.heatTeamPickerCode) els.heatTeamPickerCode.textContent = t || "—";
-  if (els.heatTeamPickerLogo){
-    if (t){
-      els.heatTeamPickerLogo.src = teamLogoSrc(t);
-      els.heatTeamPickerLogo.alt = t;
-      els.heatTeamPickerLogo.style.opacity = "1";
-      applyLogoGlow(els.heatTeamPickerLogo, t);
-    }else{
-      els.heatTeamPickerLogo.removeAttribute("src");
-      els.heatTeamPickerLogo.alt = "";
-      els.heatTeamPickerLogo.style.opacity = "0";
-      els.heatTeamPickerLogo.style.color = "rgba(255,255,255,0.12)";
-    }
-  }
-
-  if (els.heatTeamPickerPanel){
-    $$("button.teamOption", els.heatTeamPickerPanel).forEach(btn => {
-      const on = btn.dataset.team === t;
-      btn.classList.toggle("is-selected", on);
-      btn.setAttribute("aria-selected", String(on));
-    });
-  }
-}
-
 function syncTeamPicker(team){
   const t = cleanStr(team).toUpperCase();
 
@@ -419,12 +404,10 @@ function syncTeamPicker(team){
       els.teamPickerLogo.src = teamLogoSrc(t);
       els.teamPickerLogo.alt = t;
       els.teamPickerLogo.style.opacity = "1";
-      applyLogoGlow(els.teamPickerLogo, t);
     }else{
       els.teamPickerLogo.removeAttribute("src");
       els.teamPickerLogo.alt = "";
       els.teamPickerLogo.style.opacity = "0";
-      els.teamPickerLogo.style.color = "rgba(255,255,255,0.12)";
     }
   }
 
@@ -446,12 +429,10 @@ function syncSelectionChips(team, pos){
       els.selTeamLogo.src = teamLogoSrc(t);
       els.selTeamLogo.alt = t;
       els.selTeamLogo.style.opacity = "1";
-      applyLogoGlow(els.selTeamLogo, t);
     }else{
       els.selTeamLogo.removeAttribute("src");
       els.selTeamLogo.alt = "";
       els.selTeamLogo.style.opacity = "0";
-      els.selTeamLogo.style.color = "rgba(255,255,255,0.12)";
     }
   }
 
@@ -499,12 +480,10 @@ function syncPlayerWeekScatterTitle(team){
       els.playerWeekTitleLogo.src = teamLogoSrc(t);
       els.playerWeekTitleLogo.alt = t;
       els.playerWeekTitleLogo.style.opacity = "1";
-      applyLogoGlow(els.playerWeekTitleLogo, t);
     }else{
       els.playerWeekTitleLogo.removeAttribute("src");
       els.playerWeekTitleLogo.alt = "";
       els.playerWeekTitleLogo.style.opacity = "0";
-      els.playerWeekTitleLogo.style.color = "rgba(255,255,255,0.12)";
     }
   }
 }
@@ -516,28 +495,10 @@ function applyHeatHighlights(){
 
   const mainTeam = STATE.selectedTeam;
   const mainPos = STATE.pos;
-  const heatTeam = STATE.heatTeam;
 
   for (const c of cells){
     const isMain = !!mainTeam && c.dataset.team === mainTeam && (c.dataset.pos === mainPos || c.dataset.pos === "TOTAL");
     c.classList.toggle("is-selected", isMain);
-
-    // Heatmap focus highlights the row's TOTAL cell only (keeps heatmap controls independent from page controls).
-    const isHeat = !!heatTeam && c.dataset.team === heatTeam && c.dataset.pos === "TOTAL";
-    c.classList.toggle("is-heat-focus", isHeat);
-  }
-}
-
-function setHeatTeam(team, { scroll = true } = {}){
-  const t = cleanStr(team).toUpperCase();
-  if (!t) return;
-  STATE.heatTeam = t;
-  syncHeatTeamPicker(t);
-  applyHeatHighlights();
-
-  if (scroll){
-    const cell = $(`.cell[data-team="${cssEsc(t)}"][data-pos="TOTAL"]`, els.heatTable);
-    cell?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 }
 
@@ -766,33 +727,27 @@ function calcTrend(team, pos){
 // =====================
 function buildTeamSelect(){
   if (els.teamPickerPanel) els.teamPickerPanel.innerHTML = "";
-  if (els.heatTeamPickerPanel) els.heatTeamPickerPanel.innerHTML = "";
   const teams = [...DATA.byTeamSeason.keys()].sort();
   for (const t of teams){
     const addOption = (panel) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "teamOption";
-      btn.setAttribute("role", "option");
-      btn.setAttribute("aria-selected", "false");
-      btn.dataset.team = t;
-      const src = teamLogoSrc(t);
-      const glow = teamGlowColor(t, 0.92);
-      const glowStyle = glow ? `style="color:${glow};"` : `style="color: rgba(255,255,255,0.12);"`;
-      btn.innerHTML = `
-        <img class="teamLogo teamLogo--opt glow" ${glowStyle} src="${src}" alt="${t}" />
-        <span class="teamOption__code">${t}</span>
-      `;
-      panel.appendChild(btn);
+	      btn.setAttribute("role", "option");
+	      btn.setAttribute("aria-selected", "false");
+	      btn.dataset.team = t;
+	      const src = teamLogoSrc(t);
+	      btn.innerHTML = `
+	        <img class="teamLogo teamLogo--opt glow" src="${src}" alt="${t}" />
+	        <span class="teamOption__code">${t}</span>
+	      `;
+	      panel.appendChild(btn);
     };
 
     if (els.teamPickerPanel) addOption(els.teamPickerPanel);
-    if (els.heatTeamPickerPanel) addOption(els.heatTeamPickerPanel);
   }
   STATE.selectedTeam = teams[0] ?? null;
-  STATE.heatTeam = teams[0] ?? null;
   syncTeamPicker(STATE.selectedTeam);
-  syncHeatTeamPicker(STATE.heatTeam);
   syncMiniPosToggle(STATE.miniPos);
 }
 
@@ -934,15 +889,15 @@ function buildQuickCards(){
               : (trendDir === "down"
                   ? `<i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i>`
                   : `<i class="fa-solid fa-arrow-right" aria-hidden="true"></i>`));
-        const trendChip = `
-          <span class="chip">
-            <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
-            <span class="chip__label">${hasTrend ? `TREND <span class="chip__icon chip__icon--${trendDir}">${trendIcon}</span>` : "—"}</span>
-          </span>
-        `;
-        const big = hasTrend
-          ? `${dRankTxt}`
-          : "—";
+	        const trendChip = `
+	          <span class="chip">
+	            <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
+	            <span class="chip__label">${hasTrend ? `TREND <span class="chip__icon chip__icon--${trendDir}">${trendIcon}</span>` : "—"}</span>
+	          </span>
+	        `;
+	        const big = hasTrend
+	          ? `${dRankTxt} <span class="trendRankSuffix">rank</span> <span class="cardVs">vs. <span class="posText" data-pos="${pos}">${pos}</span></span>`
+	          : "—";
         const sub = hasTrend
           ? `ΔRank: <strong>${dRankTxt}</strong> • ΔAvg: <strong>${dAvgTxt}</strong>`
           : "Trend not available";
@@ -1093,7 +1048,6 @@ function buildHeatTable(){
     cell.addEventListener("click", () => {
       const team = cell.dataset.team;
       const rawPos = cell.dataset.pos;
-      if (team) setHeatTeam(team, { scroll: false });
 
       const pos = rawPos === "TOTAL" ? STATE.pos : rawPos;
       selectTeam(team, pos);
@@ -1149,9 +1103,7 @@ function scatterExternalTooltipHandler(context){
     ? `style="color:${teamHex};"`
     : "";
 
-  const glow = teamGlowColor(t, 0.92);
-  const glowStyle = glow ? `style="color:${glow};"` : `style="color: rgba(255,255,255,0.12);"`;
-  const logo = t ? `<img class="chartTooltip__logo glow" ${glowStyle} src="${teamLogoSrc(t)}" alt="${t}" />` : "";
+  const logo = t ? `<img class="chartTooltip__logo glow" src="${teamLogoSrc(t)}" alt="${t}" />` : "";
   tooltipEl.innerHTML = `
     <div class="chartTooltip__row">
       ${logo}
@@ -1329,12 +1281,61 @@ const PLAYER_WEEK_AVG_MARKERS_PLUGIN = {
   }
 };
 
+// Draw per-team glow behind logo points in the Season vs Weeks scatter.
+const SCATTER_LOGO_GLOW_PLUGIN = {
+  id: "scatterLogoGlow",
+  beforeDatasetDraw(chart, args){
+    if ((args?.index ?? args?.datasetIndex) !== 0) return;
+    const area = chart.chartArea;
+    if (!area) return;
+
+    const meta = chart.getDatasetMeta(0);
+    const elements = meta?.data ?? [];
+    if (!elements.length) return;
+
+    const ds = chart.data?.datasets?.[0] ?? {};
+    const data = ds.data ?? [];
+
+    const ctx = chart.ctx;
+    const basePx = 17; // glow tuning reference from the CSS sample
+    const scale = clamp(SCATTER_TEAM_LOGO_PX / basePx, 0.9, 3.0);
+    const r = Math.max(5, SCATTER_TEAM_LOGO_PX * 0.28);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+    ctx.clip();
+
+    for (let i = 0; i < elements.length; i++){
+      const el = elements[i];
+      if (!el) continue;
+      const raw = data[i] ?? {};
+      const t = cleanStr(raw.t).toUpperCase();
+      const spec = getTeamLogoGlowSpec(t);
+      if (!spec?.glow) continue;
+
+      const blur = (Number(spec.blur) || 3.0) * scale;
+      ctx.shadowColor = spec.glow;
+      ctx.shadowBlur = blur;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.fillStyle = rgbaOf(spec.glow, 0.18);
+      ctx.beginPath();
+      ctx.arc(el.x, el.y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+};
+
 function buildScatter(){
   if (!DATA.byTeamSeason || !DATA.byTeamRecent) return;
 
   const pos = STATE.pos;
   els.scatterTitle.textContent = pos;
   els.scatterTitle.dataset.pos = pos;
+  const isMobile = SCATTER_MOBILE_MQ.matches;
 
   const teams = [...DATA.byTeamSeason.keys()].sort();
   const points = teams.map(t => {
@@ -1390,10 +1391,10 @@ function buildScatter(){
   const logoPad = logoRadius + 0;
 
 	  charts.scatter = new Chart(ctx, {
-	    type: "scatter",
-	    plugins: [NO_OVERLAP_SCATTER_PLUGIN],
-	    data: {
-      datasets: [
+		    type: "scatter",
+		    plugins: [NO_OVERLAP_SCATTER_PLUGIN, SCATTER_LOGO_GLOW_PLUGIN],
+		    data: {
+	      datasets: [
 	        {
 	          label: "Defenses",
 	          data: points,
@@ -1418,28 +1419,38 @@ function buildScatter(){
         }
       ]
     },
-	    options: {
-	      responsive: true,
-	      maintainAspectRatio: false,
-	      animation: false,
-	      // reduce ResizeObserver churn in some publishing environments
-	      resizeDelay: 120,
-	      parsing: false,
-        layout: { padding: { left: 10, right: 10, top: 8, bottom: 6 } },
-      scales: {
-        x: {
-          title: { display: true, text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
-          min: xMin,
-          max: xMax,
-          grid: { color: "rgba(255,255,255,0.01)" },
-        },
-        y: {
-          title: { display: true, text: `Weeks 9–15 (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
-          min: yMin,
-          max: yMax,
-          grid: { color: "rgba(255,255,255,0.01)" },
-        },
-      },
+		    options: {
+		      responsive: true,
+		      maintainAspectRatio: false,
+		      animation: false,
+		      // reduce ResizeObserver churn in some publishing environments
+		      resizeDelay: 120,
+		      parsing: false,
+	        layout: { padding: isMobile ? { left: 6, right: 8, top: 6, bottom: 2 } : { left: 10, right: 10, top: 8, bottom: 6 } },
+	      scales: {
+	        x: {
+	          title: {
+	            display: true,
+	            text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})`,
+	            padding: isMobile ? { top: 4, bottom: 0 } : { top: 8, bottom: 0 },
+	          },
+	          ticks: { padding: isMobile ? 2 : 6 },
+	          min: xMin,
+	          max: xMax,
+	          grid: { color: "rgba(255,255,255,0.01)" },
+	        },
+	        y: {
+	          title: {
+	            display: true,
+	            text: `Weeks 9–15 (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})`,
+	            padding: isMobile ? { top: 0, bottom: 0 } : { top: 0, bottom: 0 },
+	          },
+	          ticks: { padding: isMobile ? 2 : 6 },
+	          min: yMin,
+	          max: yMax,
+	          grid: { color: "rgba(255,255,255,0.01)" },
+	        },
+	      },
 	      plugins: {
 	        noOverlapScatter: { datasetIndex: 0, minDist: logoMinDist, padding: logoPad, iterations: 520, spring: 0.008 },
 	        legend: { display: false },
@@ -1492,6 +1503,7 @@ function renderPlayerWeekAvgPills(team, pos){
 function buildPlayerWeekScatter(){
   const canvas = document.getElementById("playerWeekScatterChart");
   if (!canvas || !DATA.playersLong) return;
+  const isMobile = SCATTER_MOBILE_MQ.matches;
 
   const team = STATE.selectedTeam;
   syncPlayerWeekScatterTitle(team);
@@ -1582,14 +1594,14 @@ function buildPlayerWeekScatter(){
     type: "scatter",
     plugins: [PLAYER_WEEK_AVG_MARKERS_PLUGIN],
     data: { datasets },
-    options: {
+	    options: {
       responsive: true,
       maintainAspectRatio: false,
       resizeDelay: 120,
       parsing: false,
-      interaction: { mode: "nearest", intersect: true },
-      layout: { padding: { left: 14, right: 14, top: 8, bottom: 6 } },
-      plugins: {
+	      interaction: { mode: "nearest", intersect: true },
+	      layout: { padding: isMobile ? { left: 8, right: 10, top: 7, bottom: 3 } : { left: 14, right: 14, top: 8, bottom: 6 } },
+	      plugins: {
         playerWeekAvgMarkers: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)" },
         legend: { display: false },
         tooltip: {
@@ -1602,27 +1614,25 @@ function buildPlayerWeekScatter(){
           }
         }
       },
-      scales: {
-        x: {
-          type: "linear",
-          min: 1,
-          max: CONFIG.maxWeek,
-          ticks: {
-            stepSize: 1,
-            callback: (v) => `W${v}`,
-          },
-          title: { display: true, text: "Week" },
-          grid: { color: "rgba(255,255,255,0.02)" },
-        },
-        y: {
-          min: 0,
-          suggestedMax: 40,
-          title: { display: true, text: "Points" },
-          grid: { color: "rgba(255,255,255,0.03)" },
-        }
-      }
-    }
-  });
+	      scales: {
+	        x: {
+	          type: "linear",
+	          min: 1,
+	          max: CONFIG.maxWeek,
+	          title: { display: true, text: "Week", padding: isMobile ? { top: 4, bottom: 0 } : { top: 8, bottom: 0 } },
+	          ticks: { padding: isMobile ? 2 : 6, stepSize: 1, callback: (v) => `W${v}` },
+	          grid: { color: "rgba(255,255,255,0.02)" },
+	        },
+	        y: {
+	          min: 0,
+	          suggestedMax: 40,
+	          title: { display: true, text: "Points", padding: isMobile ? { top: 0, bottom: 0 } : { top: 0, bottom: 0 } },
+	          ticks: { padding: isMobile ? 2 : 6 },
+	          grid: { color: "rgba(255,255,255,0.03)" },
+	        }
+	      }
+	    }
+	  });
 }
 
 // =====================
@@ -1701,15 +1711,13 @@ function buildPlayerTable(team, pos){
 	      ${rows.map(r => {
 	        const tm = r.playerTeam || "—";
 	        const tmCode = cleanStr(tm).toUpperCase();
-        const tmColor = teamColorText(tmCode);
-        const ptsColor = pointsColor(r.pos, r.pts);
-        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
-        const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
-        const tmGlow = teamGlowColor(tmCode, 0.92);
-        const tmGlowStyle = tmGlow ? `style="color:${tmGlow};"` : `style="color: rgba(255,255,255,0.12);"`;
-        const tmCell = tmCode
-          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" ${tmGlowStyle} src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
-          : `<span class="teamText">—</span>`;
+	        const tmColor = teamColorText(tmCode);
+	        const ptsColor = pointsColor(r.pos, r.pts);
+	        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
+	        const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
+	        const tmCell = tmCode
+	          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
+	          : `<span class="teamText">—</span>`;
         return `
           <tr>
             <td>W${r.week}</td>
@@ -1743,14 +1751,12 @@ function buildPlayersSection(team, pos){
     if (els.playerTable) els.playerTable.innerHTML = "";
     return;
   }
-  const t = cleanStr(team).toUpperCase();
-  const c = teamColorText(t);
-  const style = c ? `style="color:${c};"` : "";
-  const glow = teamGlowColor(t, 0.92);
-  const glowStyle = glow ? `style="color:${glow};"` : `style="color: rgba(255,255,255,0.12);"`;
-  const teamTag = t
-    ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" ${glowStyle} src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${style}>${t}</span></span>`
-    : "—";
+	  const t = cleanStr(team).toUpperCase();
+	  const c = teamColorText(t);
+	  const style = c ? `style="color:${c};"` : "";
+	  const teamTag = t
+	    ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${style}>${t}</span></span>`
+	    : "—";
   if (els.playersSub) els.playersSub.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
   buildPlayerTable(team, pos);
 }
@@ -1880,34 +1886,6 @@ function bindEvents(){
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && isTeamPickerOpen()) close();
-    });
-  }
-
-  // heatmap defense picker (separate from the main controls)
-  if (els.heatTeamPickerBtn && els.heatTeamPickerPanel){
-    const close = () => setHeatTeamPickerOpen(false);
-
-    els.heatTeamPickerBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      setHeatTeamPickerOpen(!isHeatTeamPickerOpen());
-    });
-
-    els.heatTeamPickerPanel.addEventListener("click", (e) => {
-      const btn = e.target?.closest?.("button.teamOption");
-      const team = btn?.dataset?.team;
-      if (!team) return;
-      close();
-      setHeatTeam(team);
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!isHeatTeamPickerOpen()) return;
-      const inside = els.heatTeamPicker?.contains(e.target);
-      if (!inside) close();
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && isHeatTeamPickerOpen()) close();
     });
   }
 
