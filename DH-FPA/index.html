@@ -19,7 +19,7 @@
 	        <div class="pageHeader__top">
 	          <div class="pageTitleBlock">
 	            <h1 class="pageTitle">Fantasy Points Against</h1>
-	            <div class="pageSubtitle">Player &amp; Positional Impact</div>
+	            <div class="pageSubtitle">Player &amp; Positional Matchup Analysis</div>
 	          </div>
 	        </div>
 
@@ -68,9 +68,6 @@
 
 	      <div class="hero__grid">
 		        <div class="hero__left">
-		          <h2 class="finderTitle">Matchup Finder</h2>
-		          <p class="finderSubtitle">Pick a position + defense.</p>
-
 		          <div class="cards" id="quickCards">
 		            <!-- populated by JS -->
 		          </div>
@@ -127,7 +124,13 @@
 
 		            <div class="chartTitleRow chartTitleRow--wrap">
 		              <div class="chartTitle">
-		                <span id="playerWeekTitlePos" class="posText" data-pos="QB">QB</span> — Player Week Scatter (PPR) — <span id="playerWeekTitleTeam" class="teamText">—</span>
+		                <span class="teamInline">
+		                  <img id="playerWeekTitleLogo" class="teamLogo teamLogo--opt" alt="" />
+		                  <span id="playerWeekTitleTeam" class="teamText">—</span>
+		                </span>
+		                <span class="muted">vs</span>
+		                <span id="playerWeekTitlePos" class="posText" data-pos="QB">QB</span>
+		                <span class="muted">• player week scatter (PPR)</span>
 		              </div>
 		              <div class="avgPills" id="playerWeekAvgPills" aria-label="Player week scatter averages"></div>
 		              <div class="pos2-toggle" id="playerScatterPosToggle" role="group" aria-label="Player week scatter position filters">

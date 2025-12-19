@@ -42,6 +42,13 @@
   font-weight: 950;
   letter-spacing: 0.05em;
 }
+.teamInline{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  min-width: 0;
+}
+.teamInline--tight{ gap: 6px; }
 
 *{ box-sizing:border-box; }
 html, body{ height:100%; }
@@ -432,12 +439,19 @@ body::before{
   border:1px solid var(--border2);
   background: rgba(255,255,255,0.045);
   padding: 12px;
+  display:grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "top chip"
+    "big big"
+    "sub sub";
 }
 .card__top{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:flex-start;
   gap:10px;
+  grid-area: top;
 }
 .card__title{
   font-size: 12px;
@@ -447,11 +461,37 @@ body::before{
   margin-top: 6px;
   font-size: 20px;
   font-weight: 850;
+  grid-area: big;
 }
 .card__sub{
   margin-top: 4px;
   font-size: 12px;
   color: var(--muted);
+  grid-area: sub;
+}
+.card__chipRow{
+  display:flex;
+  justify-content:flex-end;
+  grid-area: chip;
+  align-self:center;
+}
+.cardVs{
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--muted);
+}
+.cardVs .posText{
+  font-size: inherit;
+}
+.ord__suf{
+  font-size: 0.84em;
+  opacity: 0.92;
+  letter-spacing: 0.01em;
+}
+.ord{
+  display:inline-flex;
+  align-items:baseline;
+  white-space: nowrap;
 }
 
 .chip{
@@ -464,12 +504,63 @@ body::before{
   background: rgba(255,255,255,0.05);
   font-size: 10px;
   font-weight: 700;
+  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.chip__label{
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .chip .swatch{
   width:10px; height:10px;
   border-radius: 50%;
   background: var(--cyan);
   box-shadow: 0 0 0 3px rgba(0,191,255,0.12);
+}
+
+/* Tooltip used by the Season vs Weeks scatter */
+.chartTooltip{
+  position:absolute;
+  z-index: 3000;
+  pointer-events:none;
+  opacity:0;
+  transform: translate(-50%, calc(-100% - 12px));
+  transition: opacity .10s ease;
+
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(8, 8, 18, 0.92);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 48px rgba(0,0,0,0.55);
+}
+.chartTooltip__row{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+.chartTooltip__title{
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+  line-height: 1.1;
+}
+.chartTooltip__meta{
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.72);
+  white-space: nowrap;
+}
+.chartTooltip__logo{
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,0.12));
 }
 
 .chartCard{
@@ -850,13 +941,7 @@ body::before{
     text-align:center;
   }
 
-  .pageChips{
-    width: 100%;
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    align-items:stretch;
-  }
+  .pageChips{ display:none !important; }
   .glassChip{
     min-width: 0;
     padding: 7px 9px 7px;
@@ -909,10 +994,11 @@ body::before{
     gap: 8px;
     margin-top: 10px;
   }
-  .card{ padding: 10px; }
+  .card{ padding: 10px; display:block; }
   .card__title{ font-size: 11px; }
   .card__big{ font-size: 18px; }
   .card__sub{ font-size: 11px; }
+  .card__chipRow{ margin-top: 10px; }
   .chip{ padding: 4px 5px; font-size: 9px; }
   .chip .swatch{ width: 8px; height: 8px; box-shadow: 0 0 0 2px rgba(255,255,255,0.08); }
 

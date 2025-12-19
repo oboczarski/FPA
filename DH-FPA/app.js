@@ -118,6 +118,7 @@ const els = {
   playerScatterPosToggle: document.getElementById("playerScatterPosToggle"),
   playerWeekAvgPills: document.getElementById("playerWeekAvgPills"),
   playerWeekTitlePos: document.getElementById("playerWeekTitlePos"),
+  playerWeekTitleLogo: document.getElementById("playerWeekTitleLogo"),
   playerWeekTitleTeam: document.getElementById("playerWeekTitleTeam"),
   topSeason: document.getElementById("topSeason"),
   topSeasonTitle: document.getElementById("topSeasonTitle"),
@@ -190,6 +191,18 @@ function ordinal(x){
   const mod10 = n % 10;
   const suf = mod10 === 1 ? "st" : (mod10 === 2 ? "nd" : (mod10 === 3 ? "rd" : "th"));
   return `${n}${suf}`;
+}
+
+function ordinalMarkup(x){
+  const n = Math.round(toNum(x));
+  if (!Number.isFinite(n)) return "—";
+  const mod100 = n % 100;
+  let suf = "th";
+  if (!(mod100 >= 11 && mod100 <= 13)){
+    const mod10 = n % 10;
+    suf = mod10 === 1 ? "st" : (mod10 === 2 ? "nd" : (mod10 === 3 ? "rd" : "th"));
+  }
+  return `<span class="ord"><span class="ord__n">${n}</span><span class="ord__suf">${suf}</span></span>`;
 }
 
 function toNum(x){
@@ -393,6 +406,18 @@ function syncPlayerWeekScatterTitle(team){
     }else{
       els.playerWeekTitleTeam.style.color = "rgba(255,255,255,0.86)";
       els.playerWeekTitleTeam.style.textShadow = "none";
+    }
+  }
+
+  if (els.playerWeekTitleLogo){
+    if (t){
+      els.playerWeekTitleLogo.src = teamLogoSrc(t);
+      els.playerWeekTitleLogo.alt = t;
+      els.playerWeekTitleLogo.style.opacity = "1";
+    }else{
+      els.playerWeekTitleLogo.removeAttribute("src");
+      els.playerWeekTitleLogo.alt = "";
+      els.playerWeekTitleLogo.style.opacity = "0";
     }
   }
 }
@@ -785,22 +810,22 @@ function buildQuickCards(){
     const c = heatColor(sc);
     return `<span class="chip" title="Higher rank = easier matchup">
       <span class="swatch" style="background:${c}; box-shadow:0 0 0 3px rgba(255,255,255,0.08)"></span>
-      ${easyLabel(rk)}
+      <span class="chip__label">${easyLabel(rk)}</span>
     </span>`;
   };
 
   const card = (title, avg, rk, gm, extra) => {
     const accent = heatColor(rankScore(rk));
     const bg = `radial-gradient(260px 90px at 18% 10%, ${rgbaOf(accent,0.22)}, transparent 60%), rgba(255,255,255,0.045)`;
-    const rkTxt = ordinal(rk);
+    const rkHtml = ordinalMarkup(rk);
     return `
     <div class="card" style="background:${bg}; border-color:${rgbaOf(accent,0.22)}">
       <div class="card__top">
         <div class="card__title">${title}</div>
-        ${chipFor(rk)}
       </div>
-      <div class="card__big">${rkTxt} <span class="muted" style="font-size:12px;font-weight:700;">rank</span></div>
+      <div class="card__big">${rkHtml} <span class="cardVs">vs. <span class="posText" data-pos="${pos}">${pos}</span></span></div>
       <div class="card__sub"><strong>${fmt(avg,2)}</strong> FPA • Games: <strong>${fmt(gm,0)}</strong> ${extra ?? ""}</div>
+      <div class="card__chipRow">${chipFor(rk)}</div>
     </div>
   `;
   };
@@ -819,17 +844,31 @@ function buildQuickCards(){
   els.quickCards.innerHTML = [
     card("Season", s.seasonAvg, s.seasonRank, gmS, ""),
     card("Weeks 9–15", s.recentAvg, s.recentRank, gmR, ""),
-	    `<div class="card" style="background:radial-gradient(260px 90px at 18% 10%, ${rgbaOf(trendAccent,0.20)}, transparent 60%), rgba(255,255,255,0.045); border-color:${rgbaOf(trendAccent,0.22)}">
-	      <div class="card__top">
-	        <div class="card__title">Season ↔ Recent Trend</div>
-	        <span class="chip">
-	          <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
-	          ${hasTrend ? "TREND" : "—"}
-	        </span>
-	      </div>
-	      <div class="card__big">${hasTrend ? `${dRankTxt} <span class="muted" style="font-size:12px;font-weight:700;">rank</span>` : "—"}</div>
-	      <div class="card__sub">${hasTrend ? `ΔRank: <strong>${dRankTxt}</strong> • ΔAvg: <strong>${dAvgTxt}</strong>` : "Trend not available"}</div>
-	    </div>`
+	    (() => {
+        const bg = `radial-gradient(260px 90px at 18% 10%, ${rgbaOf(trendAccent,0.20)}, transparent 60%), rgba(255,255,255,0.045)`;
+        const trendChip = `
+          <span class="chip">
+            <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
+            <span class="chip__label">${hasTrend ? "TREND" : "—"}</span>
+          </span>
+        `;
+        const big = hasTrend
+          ? `${dRankTxt}`
+          : "—";
+        const sub = hasTrend
+          ? `ΔRank: <strong>${dRankTxt}</strong> • ΔAvg: <strong>${dAvgTxt}</strong>`
+          : "Trend not available";
+        return `
+          <div class="card" style="background:${bg}; border-color:${rgbaOf(trendAccent,0.22)}">
+            <div class="card__top">
+              <div class="card__title">Season ↔ Recent Trend</div>
+            </div>
+            <div class="card__big">${big}</div>
+            <div class="card__sub">${sub}</div>
+            <div class="card__chipRow">${trendChip}</div>
+          </div>
+        `;
+      })()
 	  ].join("");
 
 }
@@ -943,6 +982,70 @@ function chartCommon(){
   Chart.defaults.borderColor = "rgba(255,255,255,0.10)";
   Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
   Chart.defaults.plugins.legend.labels.boxWidth = 10;
+}
+
+const SCATTER_TOOLTIP_ID = "scatterTooltip";
+function getOrCreateChartTooltip(id){
+  let el = document.getElementById(id);
+  if (el) return el;
+  el = document.createElement("div");
+  el.id = id;
+  el.className = "chartTooltip";
+  document.body.appendChild(el);
+  return el;
+}
+
+function scatterExternalTooltipHandler(context){
+  const { chart, tooltip } = context;
+  const tooltipEl = getOrCreateChartTooltip(SCATTER_TOOLTIP_ID);
+
+  if (!tooltip || tooltip.opacity === 0){
+    tooltipEl.style.opacity = "0";
+    return;
+  }
+
+  const dp = tooltip.dataPoints?.[0];
+  const t = cleanStr(dp?.raw?.t).toUpperCase();
+  const pos = cleanStr(STATE.pos).toUpperCase();
+  const tr = t && CONFIG.positions.includes(pos) ? calcTrend(t, pos) : null;
+
+  const isAvg = STATE.scatterMode === "avg";
+  const seasonVal = tr ? (isAvg ? fmt(tr.seasonAvg, 2) : ordinal(tr.seasonRank)) : "—";
+  const recentVal = tr ? (isAvg ? fmt(tr.recentAvg, 2) : ordinal(tr.recentRank)) : "—";
+  const dRank = tr && Number.isFinite(tr.dRank) ? `${tr.dRank > 0 ? "+" : ""}${fmt(tr.dRank, 0)}` : "—";
+  const dAvg = tr && Number.isFinite(tr.dAvg) ? `${tr.dAvg > 0 ? "+" : ""}${fmt(tr.dAvg, 2)}` : "—";
+
+  const teamHex = teamColorText(t);
+  const teamRgb = teamHex ? `rgb(${hexToRgbaArr(teamHex).slice(0,3).join(",")})` : null;
+  const teamStyle = teamHex
+    ? `style="color:${teamHex}; text-shadow:0 0 14px ${rgbaOf(teamRgb, 0.35)};"`
+    : "";
+
+  const logo = t ? `<img class="chartTooltip__logo" src="${teamLogoSrc(t)}" alt="${t}" />` : "";
+  tooltipEl.innerHTML = `
+    <div class="chartTooltip__row">
+      ${logo}
+      <div>
+        <div class="chartTooltip__title"><span class="teamText" ${teamStyle}>${t || "—"}</span></div>
+        <div class="chartTooltip__meta">
+          ${isAvg ? `Season: <strong>${seasonVal}</strong> • Weeks 9–15: <strong>${recentVal}</strong> • ΔAvg: <strong>${dAvg}</strong> • ΔRk: <strong>${dRank}</strong>`
+            : `Season: <strong>${seasonVal}</strong> • Weeks 9–15: <strong>${recentVal}</strong> • ΔRk: <strong>${dRank}</strong> • ΔAvg: <strong>${dAvg}</strong>`}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const { left, top } = chart.canvas.getBoundingClientRect();
+  const w = tooltipEl.offsetWidth || 0;
+  const pad = 10;
+  const minX = window.pageXOffset + pad + (w / 2);
+  const maxX = window.pageXOffset + window.innerWidth - pad - (w / 2);
+
+  const x = clamp(left + window.pageXOffset + tooltip.caretX, minX, maxX);
+  const y = top + window.pageYOffset + tooltip.caretY;
+  tooltipEl.style.left = `${x}px`;
+  tooltipEl.style.top = `${y}px`;
+  tooltipEl.style.opacity = "1";
 }
 
 // Scatter: resolve visual overlap by iteratively separating point elements in pixel space.
@@ -1147,6 +1250,8 @@ function buildScatter(){
 
   const ctx = document.getElementById("scatterChart").getContext("2d");
 
+  const tip = document.getElementById(SCATTER_TOOLTIP_ID);
+  if (tip) tip.style.opacity = "0";
   if (charts.scatter) charts.scatter.destroy();
 
   const logoRadius = Math.max(6, Math.round(SCATTER_TEAM_LOGO_PX / 3));
@@ -1209,14 +1314,10 @@ function buildScatter(){
 	        noOverlapScatter: { datasetIndex: 0, minDist: logoMinDist, padding: logoPad, iterations: 520, spring: 0.008 },
 	        legend: { display: false },
 	        tooltip: {
-	          callbacks: {
-            label: (item) => {
-              const t = item.raw.t;
-              const tr = calcTrend(t, pos);
-              return `${t} • Season ${STATE.scatterMode === "avg" ? fmt(tr.seasonAvg,2) : fmt(tr.seasonRank,0)} • Recent ${STATE.scatterMode === "avg" ? fmt(tr.recentAvg,2) : fmt(tr.recentRank,0)} • ΔRk ${fmt(tr.dRank,0)}`;
-            }
-          }
-        }
+            enabled: false,
+            external: scatterExternalTooltipHandler,
+            filter: (item) => item.datasetIndex === 0,
+          },
       },
       onClick: (_, elements) => {
         const el = elements?.[0];
@@ -1469,15 +1570,22 @@ function buildPlayerTable(team, pos){
 	    <tbody>
 	      ${rows.map(r => {
 	        const tm = r.playerTeam || "—";
-	        const tmColor = teamColorText(tm);
+	        const tmCode = cleanStr(tm).toUpperCase();
+	        const tmColor = teamColorText(tmCode);
+	        const tmRgb = tmColor ? `rgb(${hexToRgbaArr(tmColor).slice(0,3).join(",")})` : null;
 	        const ptsColor = pointsColor(r.pos, r.pts);
 	        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
-	        const tmStyle = tmColor ? `style="font-weight:900;color:${tmColor};"` : `style="font-weight:900;"`;
+	        const tmStyle = tmColor
+	          ? `style="color:${tmColor}; text-shadow:0 0 14px ${rgbaOf(tmRgb,0.30)};"`
+	          : ``;
+	        const tmCell = tmCode
+	          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt" src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
+	          : `<span class="teamText">—</span>`;
 	        return `
 	          <tr>
 	            <td>W${r.week}</td>
 	            <td>${r.player}</td>
-	            <td><span ${tmStyle}>${tm}</span></td>
+	            <td>${tmCell}</td>
 	            <td style="${ptsStyle}">${fmt(r.pts,2)}</td>
 	          </tr>
 	        `;
@@ -1506,7 +1614,14 @@ function buildPlayersSection(team, pos){
     if (els.playerTable) els.playerTable.innerHTML = "";
     return;
   }
-  if (els.playersSub) els.playersSub.innerHTML = `${team} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
+  const t = cleanStr(team).toUpperCase();
+  const c = teamColorText(t);
+  const rgb = c ? `rgb(${hexToRgbaArr(c).slice(0,3).join(",")})` : null;
+  const style = c ? `style="color:${c}; text-shadow:0 0 16px ${rgbaOf(rgb,0.32)};"` : "";
+  const teamTag = t
+    ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt" src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${style}>${t}</span></span>`
+    : "—";
+  if (els.playersSub) els.playersSub.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
   buildPlayerTable(team, pos);
 }
 
