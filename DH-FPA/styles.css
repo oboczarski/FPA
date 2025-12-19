@@ -323,8 +323,12 @@ body::before{
   object-fit: contain;
   border-radius: 4px;
   flex: 0 0 auto;
-  filter: drop-shadow(0 0 10px rgba(255,255,255,0.10));
+  filter: none;
   display:block;
+}
+.teamLogo.glow{
+  --glow-r3: 3.2px;
+  filter: drop-shadow(0 0 var(--glow-r3) currentColor);
 }
 .teamLogo--opt{ width: 19px; height: 19px; }
 .teamLogo--chip{ width: 22px; height: 22px; }
@@ -526,6 +530,19 @@ body::before{
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.chip__icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-left: 6px;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.95;
+}
+.chip__icon--up{ color: rgb(72, 245, 177); }
+.chip__icon--down{ color: rgb(255, 88, 92); }
+.chip__icon--flat{ color: rgba(255,255,255,0.78); }
+.chip__icon i{ font-size: 0.95em; }
 .chip .swatch{
   width:10px; height:10px;
   border-radius: 50%;
@@ -572,7 +589,11 @@ body::before{
   object-fit: contain;
   border-radius: 4px;
   flex: 0 0 auto;
-  filter: drop-shadow(0 0 10px rgba(255,255,255,0.12));
+  filter: none;
+}
+.chartTooltip__logo.glow{
+  --glow-r3: 3.2px;
+  filter: drop-shadow(0 0 var(--glow-r3) currentColor);
 }
 
 .chartCard{
@@ -941,6 +962,7 @@ body::before{
   .teamPicker__btn{
     padding: 10px 10px;
     border-radius: 14px;
+    min-height: 44px;
   }
   .teamPicker__code{ font-size: 13px; }
 
@@ -949,11 +971,12 @@ body::before{
     flex-wrap:nowrap;
   }
   .pos-toggle--lg .pos-btn{
-    padding: 9px 10px;
-    border-radius: 12px;
+    padding: 10px 10px;
+    border-radius: 14px;
     font-size: 12px;
     flex: 1 1 0;
     text-align:center;
+    min-height: 44px;
   }
 
   .pageChips{ display:none !important; }
@@ -982,13 +1005,13 @@ body::before{
     grid-template-columns: 1fr auto;
     gap: 8px 10px;
   }
-  .heatHeaderGrid .heatmapTitle{ grid-column: 1; grid-row: 1; }
-  .heatHeaderGrid .segmented{ grid-column: 2; grid-row: 1; justify-self: end; }
-  .heatHeaderGrid .heatHeaderField--def{ grid-column: 1 / -1; grid-row: 2; }
+  .heatHeaderGrid .heatmapTitle{ grid-column: 1 / -1; grid-row: 1; }
+  .heatHeaderGrid .heatHeaderField--def{ grid-column: 1; grid-row: 2; }
+  .heatHeaderGrid .segmented{ grid-column: 2; grid-row: 2; justify-self: end; }
 
   .heatHeaderLabel{ font-size: 10px; margin-bottom: 4px; }
 
-  .segmented{ padding: 4px; border-radius: 12px; }
+  .segmented{ padding: 4px; border-radius: 12px; min-height: 44px; }
   .segmented__btn{ padding: 7px 10px; border-radius: 10px; font-size: 11px; }
 
   .heatPosToggle{ gap: 6px; flex-wrap:nowrap; }
@@ -1148,6 +1171,12 @@ table{
 .heatTh.is-active{
   color: rgba(0,191,255,0.92);
   text-shadow: 0 0 16px rgba(0,191,255,0.25);
+}
+.heatSortIcon{
+  font-size: 12px;
+  margin-left: 6px;
+  opacity: 0.85;
+  transform: translateY(1px);
 }
 .heat tbody td{
   border-bottom: 1px solid rgba(255,255,255,0.06);

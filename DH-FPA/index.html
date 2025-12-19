@@ -4,12 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>2025 Fantasy Points Against — Matchup Explorer</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Product+Sans:wght@100;200;300;400;500;700;900&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css?family=Google+Sans:100,200,300,400,500,600,700" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@200;300;400;500;600;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="styles.css" />
-</head>
+	  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+	  <link href="https://fonts.googleapis.com/css2?family=Product+Sans:wght@100;200;300;400;500;700;900&display=swap" rel="stylesheet"/>
+	  <link href="https://fonts.googleapis.com/css?family=Google+Sans:100,200,300,400,500,600,700" rel="stylesheet"/>
+	  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@200;300;400;500;600;700&display=swap" rel="stylesheet"/>
+	  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" />
+	  <link rel="stylesheet" href="styles.css" />
+	</head>
 <body>
   <canvas id="stars" aria-hidden="true"></canvas>
 
@@ -30,7 +31,7 @@
 	              <div class="teamPicker" id="teamPicker">
 	                <button type="button" class="teamPicker__btn" id="teamPickerBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Opponent defense">
 	                  <span class="teamPicker__left">
-	                    <img id="teamPickerLogo" class="teamLogo" alt="" />
+		                    <img id="teamPickerLogo" class="teamLogo glow" alt="" />
 	                    <span id="teamPickerCode" class="teamPicker__code">—</span>
 	                  </span>
 	                  <span class="teamPicker__chev" aria-hidden="true">▾</span>
@@ -54,7 +55,7 @@
 		            <div class="glassChip" id="selTeamChip">
 		              <div class="glassChip__label">Defense</div>
 		              <div class="glassChip__value glassChip__value--row">
-		                <img id="selTeamLogo" class="teamLogo teamLogo--chip" alt="" />
+			                <img id="selTeamLogo" class="teamLogo teamLogo--chip glow" alt="" />
 		                <span id="selTeamText">—</span>
 		              </div>
 		            </div>
@@ -125,7 +126,7 @@
 		            <div class="chartTitleRow chartTitleRow--wrap">
 		              <div class="chartTitle">
 		                <span class="teamInline">
-		                  <img id="playerWeekTitleLogo" class="teamLogo teamLogo--opt" alt="" />
+			                  <img id="playerWeekTitleLogo" class="teamLogo teamLogo--opt glow" alt="" />
 		                  <span id="playerWeekTitleTeam" class="teamText">—</span>
 		                </span>
 		                <span class="muted">vs</span>
@@ -167,7 +168,7 @@
 				              <div class="teamPicker teamPicker--sm" id="heatTeamPicker">
 				                <button type="button" class="teamPicker__btn" id="heatTeamPickerBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Heatmap defense">
 				                  <span class="teamPicker__left">
-				                    <img id="heatTeamPickerLogo" class="teamLogo" alt="" />
+					                    <img id="heatTeamPickerLogo" class="teamLogo glow" alt="" />
 				                    <span id="heatTeamPickerCode" class="teamPicker__code">—</span>
 				                  </span>
 				                  <span class="teamPicker__chev" aria-hidden="true">▾</span>

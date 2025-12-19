@@ -55,12 +55,28 @@ const TEAM_LOGO_ALIASES = {
   JAC: "JAX",
 };
 
-const SCATTER_TEAM_LOGO_PX = 34; // Chart.js draws image pointStyles at intrinsic width/height
+const SCATTER_TEAM_LOGO_PX_DESKTOP = 34;
+const SCATTER_TEAM_LOGO_PX_MOBILE = 28;
+const SCATTER_MOBILE_MQ = window.matchMedia("(max-width: 760px)");
+let SCATTER_TEAM_LOGO_PX = SCATTER_MOBILE_MQ.matches ? SCATTER_TEAM_LOGO_PX_MOBILE : SCATTER_TEAM_LOGO_PX_DESKTOP; // Chart.js draws image pointStyles at intrinsic width/height
 const TEAM_LOGOS = new Map(); // TEAM -> HTMLImageElement (sized for scatter points)
 
 function canonicalTeamCode(team){
   const t = cleanStr(team).toUpperCase();
   return TEAM_LOGO_ALIASES[t] ?? t;
+}
+
+// Keep the Season vs Weeks scatter point-logo sizing responsive to the viewport.
+{
+  const onChange = (e) => {
+    setScatterTeamLogoPx(e.matches ? SCATTER_TEAM_LOGO_PX_MOBILE : SCATTER_TEAM_LOGO_PX_DESKTOP);
+    buildScatter();
+  };
+  if (typeof SCATTER_MOBILE_MQ?.addEventListener === "function"){
+    SCATTER_MOBILE_MQ.addEventListener("change", onChange);
+  }else if (typeof SCATTER_MOBILE_MQ?.addListener === "function"){
+    SCATTER_MOBILE_MQ.addListener(onChange);
+  }
 }
 
 function teamLogoSrc(team){
@@ -71,6 +87,15 @@ function teamLogoSrc(team){
 function getTeamLogo(team){
   const code = canonicalTeamCode(team);
   return TEAM_LOGOS.get(code) ?? null;
+}
+
+function setScatterTeamLogoPx(px){
+  const next = Math.max(16, Math.round(Number(px) || SCATTER_TEAM_LOGO_PX));
+  SCATTER_TEAM_LOGO_PX = next;
+  for (const img of TEAM_LOGOS.values()){
+    img.width = next;
+    img.height = next;
+  }
 }
 
 async function loadTeamLogos(codes){
@@ -291,6 +316,21 @@ function teamColorText(tm){
   return hex;
 }
 
+function teamGlowColor(tm, alpha = 0.92){
+  const hex = teamColorText(tm);
+  if (!hex) return null;
+  const [r,g,b] = hexToRgbaArr(hex);
+  if (![r,g,b].every(Number.isFinite)) return null;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function applyLogoGlow(imgEl, tm){
+  if (!imgEl) return;
+  imgEl.classList.add("glow");
+  const c = teamGlowColor(tm, 0.92);
+  imgEl.style.color = c ?? "rgba(255,255,255,0.12)";
+}
+
 function syncMiniPosToggle(pos){
   if (!els.miniPosToggle) return;
   const p = cleanStr(pos).toUpperCase();
@@ -352,10 +392,12 @@ function syncHeatTeamPicker(team){
       els.heatTeamPickerLogo.src = teamLogoSrc(t);
       els.heatTeamPickerLogo.alt = t;
       els.heatTeamPickerLogo.style.opacity = "1";
+      applyLogoGlow(els.heatTeamPickerLogo, t);
     }else{
       els.heatTeamPickerLogo.removeAttribute("src");
       els.heatTeamPickerLogo.alt = "";
       els.heatTeamPickerLogo.style.opacity = "0";
+      els.heatTeamPickerLogo.style.color = "rgba(255,255,255,0.12)";
     }
   }
 
@@ -377,10 +419,12 @@ function syncTeamPicker(team){
       els.teamPickerLogo.src = teamLogoSrc(t);
       els.teamPickerLogo.alt = t;
       els.teamPickerLogo.style.opacity = "1";
+      applyLogoGlow(els.teamPickerLogo, t);
     }else{
       els.teamPickerLogo.removeAttribute("src");
       els.teamPickerLogo.alt = "";
       els.teamPickerLogo.style.opacity = "0";
+      els.teamPickerLogo.style.color = "rgba(255,255,255,0.12)";
     }
   }
 
@@ -402,10 +446,12 @@ function syncSelectionChips(team, pos){
       els.selTeamLogo.src = teamLogoSrc(t);
       els.selTeamLogo.alt = t;
       els.selTeamLogo.style.opacity = "1";
+      applyLogoGlow(els.selTeamLogo, t);
     }else{
       els.selTeamLogo.removeAttribute("src");
       els.selTeamLogo.alt = "";
       els.selTeamLogo.style.opacity = "0";
+      els.selTeamLogo.style.color = "rgba(255,255,255,0.12)";
     }
   }
 
@@ -414,11 +460,10 @@ function syncSelectionChips(team, pos){
     const c = teamColorText(t);
     if (c){
       els.selTeamText.style.color = c;
-      els.selTeamText.style.textShadow = `0 0 16px ${rgbaOf(`rgb(${hexToRgbaArr(c).slice(0,3).join(",")})`, 0.30)}`;
     }else{
       els.selTeamText.style.color = "rgba(255,255,255,0.86)";
-      els.selTeamText.style.textShadow = "none";
     }
+    els.selTeamText.style.textShadow = "none";
   }
 
   if (els.selPosText){
@@ -443,11 +488,10 @@ function syncPlayerWeekScatterTitle(team){
     const c = teamColorText(t);
     if (c){
       els.playerWeekTitleTeam.style.color = c;
-      els.playerWeekTitleTeam.style.textShadow = `0 0 16px ${rgbaOf(`rgb(${hexToRgbaArr(c).slice(0,3).join(",")})`, 0.24)}`;
     }else{
       els.playerWeekTitleTeam.style.color = "rgba(255,255,255,0.86)";
-      els.playerWeekTitleTeam.style.textShadow = "none";
     }
+    els.playerWeekTitleTeam.style.textShadow = "none";
   }
 
   if (els.playerWeekTitleLogo){
@@ -455,10 +499,12 @@ function syncPlayerWeekScatterTitle(team){
       els.playerWeekTitleLogo.src = teamLogoSrc(t);
       els.playerWeekTitleLogo.alt = t;
       els.playerWeekTitleLogo.style.opacity = "1";
+      applyLogoGlow(els.playerWeekTitleLogo, t);
     }else{
       els.playerWeekTitleLogo.removeAttribute("src");
       els.playerWeekTitleLogo.alt = "";
       els.playerWeekTitleLogo.style.opacity = "0";
+      els.playerWeekTitleLogo.style.color = "rgba(255,255,255,0.12)";
     }
   }
 }
@@ -731,8 +777,10 @@ function buildTeamSelect(){
       btn.setAttribute("aria-selected", "false");
       btn.dataset.team = t;
       const src = teamLogoSrc(t);
+      const glow = teamGlowColor(t, 0.92);
+      const glowStyle = glow ? `style="color:${glow};"` : `style="color: rgba(255,255,255,0.12);"`;
       btn.innerHTML = `
-        <img class="teamLogo teamLogo--opt" src="${src}" alt="${t}" />
+        <img class="teamLogo teamLogo--opt glow" ${glowStyle} src="${src}" alt="${t}" />
         <span class="teamOption__code">${t}</span>
       `;
       panel.appendChild(btn);
@@ -876,12 +924,20 @@ function buildQuickCards(){
   els.quickCards.innerHTML = [
     card("Season", s.seasonAvg, s.seasonRank, gmS, ""),
     card("Weeks 9–15", s.recentAvg, s.recentRank, gmR, ""),
-	    (() => {
+		    (() => {
         const bg = `radial-gradient(260px 90px at 18% 10%, ${rgbaOf(trendAccent,0.20)}, transparent 60%), rgba(255,255,255,0.045)`;
+        const trendDir = hasTrend ? (s.dRank > 0 ? "up" : (s.dRank < 0 ? "down" : "flat")) : "flat";
+        const trendIcon = !hasTrend
+          ? ""
+          : (trendDir === "up"
+              ? `<i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>`
+              : (trendDir === "down"
+                  ? `<i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i>`
+                  : `<i class="fa-solid fa-arrow-right" aria-hidden="true"></i>`));
         const trendChip = `
           <span class="chip">
             <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
-            <span class="chip__label">${hasTrend ? "TREND" : "—"}</span>
+            <span class="chip__label">${hasTrend ? `TREND <span class="chip__icon chip__icon--${trendDir}">${trendIcon}</span>` : "—"}</span>
           </span>
         `;
         const big = hasTrend
@@ -937,8 +993,12 @@ function buildHeatTable(){
   const hdr = (col, label) => {
     const c = cleanStr(col).toUpperCase();
     const active = sortCycle !== 0 && c === sortCol;
-    const arrow = active ? (sortDir === "desc" ? " ▼" : " ▲") : "";
-    return `<th class="heatTh is-sortable${active ? " is-active" : ""}" data-col="${c}">${label}${arrow}</th>`;
+    const icon = active
+      ? (sortDir === "desc"
+          ? ` <i class="fa-solid fa-arrow-down-wide-short heatSortIcon" aria-hidden="true"></i>`
+          : ` <i class="fa-solid fa-arrow-up-short-wide heatSortIcon" aria-hidden="true"></i>`)
+      : "";
+    return `<th class="heatTh is-sortable${active ? " is-active" : ""}" data-col="${c}">${label}${icon}</th>`;
   };
 
   els.heatTable.innerHTML = `
@@ -1085,12 +1145,13 @@ function scatterExternalTooltipHandler(context){
   const dAvg = tr && Number.isFinite(tr.dAvg) ? `${tr.dAvg > 0 ? "+" : ""}${fmt(tr.dAvg, 2)}` : "—";
 
   const teamHex = teamColorText(t);
-  const teamRgb = teamHex ? `rgb(${hexToRgbaArr(teamHex).slice(0,3).join(",")})` : null;
   const teamStyle = teamHex
-    ? `style="color:${teamHex}; text-shadow:0 0 14px ${rgbaOf(teamRgb, 0.35)};"`
+    ? `style="color:${teamHex};"`
     : "";
 
-  const logo = t ? `<img class="chartTooltip__logo" src="${teamLogoSrc(t)}" alt="${t}" />` : "";
+  const glow = teamGlowColor(t, 0.92);
+  const glowStyle = glow ? `style="color:${glow};"` : `style="color: rgba(255,255,255,0.12);"`;
+  const logo = t ? `<img class="chartTooltip__logo glow" ${glowStyle} src="${teamLogoSrc(t)}" alt="${t}" />` : "";
   tooltipEl.innerHTML = `
     <div class="chartTooltip__row">
       ${logo}
@@ -1640,20 +1701,19 @@ function buildPlayerTable(team, pos){
 	      ${rows.map(r => {
 	        const tm = r.playerTeam || "—";
 	        const tmCode = cleanStr(tm).toUpperCase();
-	        const tmColor = teamColorText(tmCode);
-	        const tmRgb = tmColor ? `rgb(${hexToRgbaArr(tmColor).slice(0,3).join(",")})` : null;
-	        const ptsColor = pointsColor(r.pos, r.pts);
-	        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
-	        const tmStyle = tmColor
-	          ? `style="color:${tmColor}; text-shadow:0 0 14px ${rgbaOf(tmRgb,0.30)};"`
-	          : ``;
-	        const tmCell = tmCode
-	          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt" src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
-	          : `<span class="teamText">—</span>`;
-	        return `
-	          <tr>
-	            <td>W${r.week}</td>
-	            <td>${r.player}</td>
+        const tmColor = teamColorText(tmCode);
+        const ptsColor = pointsColor(r.pos, r.pts);
+        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
+        const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
+        const tmGlow = teamGlowColor(tmCode, 0.92);
+        const tmGlowStyle = tmGlow ? `style="color:${tmGlow};"` : `style="color: rgba(255,255,255,0.12);"`;
+        const tmCell = tmCode
+          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" ${tmGlowStyle} src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
+          : `<span class="teamText">—</span>`;
+        return `
+          <tr>
+            <td>W${r.week}</td>
+            <td>${r.player}</td>
 	            <td>${tmCell}</td>
 	            <td style="${ptsStyle}">${fmt(r.pts,2)}</td>
 	          </tr>
@@ -1685,10 +1745,11 @@ function buildPlayersSection(team, pos){
   }
   const t = cleanStr(team).toUpperCase();
   const c = teamColorText(t);
-  const rgb = c ? `rgb(${hexToRgbaArr(c).slice(0,3).join(",")})` : null;
-  const style = c ? `style="color:${c}; text-shadow:0 0 16px ${rgbaOf(rgb,0.32)};"` : "";
+  const style = c ? `style="color:${c};"` : "";
+  const glow = teamGlowColor(t, 0.92);
+  const glowStyle = glow ? `style="color:${glow};"` : `style="color: rgba(255,255,255,0.12);"`;
   const teamTag = t
-    ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt" src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${style}>${t}</span></span>`
+    ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" ${glowStyle} src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${style}>${t}</span></span>`
     : "—";
   if (els.playersSub) els.playersSub.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
   buildPlayerTable(team, pos);
