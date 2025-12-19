@@ -995,10 +995,10 @@ body::before{
     margin-top: 10px;
   }
   .card{ padding: 10px; display:block; }
-  .card__title{font-size: 11px;text-wrap-mode: nowrap;}
+  .card__title{ font-size: 11px; }
   .card__big{ font-size: 18px; }
-  .card__sub{font-size: 10px;text-wrap-mode: nowrap;}
-  .card__chipRow{margin-top: 2px;justify-content: center;border-top: 1px dotted #fff2;filter: saturate(1.5);margin-bottom: -4px;}
+  .card__sub{ font-size: 11px; }
+  .card__chipRow{ margin-top: 10px; }
   .chip{ padding: 4px 5px; font-size: 9px; }
   .chip .swatch{ width: 8px; height: 8px; box-shadow: 0 0 0 2px rgba(255,255,255,0.08); }
 
@@ -1050,7 +1050,7 @@ body::before{
   .teamPicker__code{ font-size: 12px; }
 
   .pos-toggle--lg{ gap: 5px; }
-  .pos-toggle--lg .pos-btn{padding: 8px 8px;border-radius: 11px;font-size: 15px;font-weight: 200;}
+  .pos-toggle--lg .pos-btn{ padding: 8px 8px; border-radius: 11px; font-size: 11px; }
 
   .pageChips{ gap: 6px; }
   .glassChip{ padding: 6px 7px; border-radius: 13px; }
@@ -1062,8 +1062,8 @@ body::before{
 
   .cards{ gap: 7px; }
   .card{ padding: 9px; }
-  .card__big{font-size: 17px;margin-top: 1px;}
-  .chip{padding: 2px 5px;font-size: 11px;margin-top: 4px;}
+  .card__big{ font-size: 17px; }
+  .chip{ padding: 4px 5px; font-size: 9px; }
 
   .playersPanel{ padding: 7px 7px 9px; }
   .playersHeaderTitle{ font-size: 12px; }
