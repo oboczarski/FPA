@@ -1932,7 +1932,10 @@ function bindEvents(){
     setPlayerWeekScatterPos(STATE.playerWeekScatterPos ?? STATE.pos, { rebuild: false });
 
     btns.forEach(b => b.addEventListener("click", () => {
-      setPlayerWeekScatterPos(b.dataset.pos, { rebuild: true });
+      const p = cleanStr(b.dataset.pos).toUpperCase();
+      if (!CONFIG.positions.includes(p)) return;
+      // Keep the chart toggle aligned with the main position toggle.
+      selectTeam(STATE.selectedTeam, p);
     }));
   }
 
