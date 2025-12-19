@@ -949,7 +949,7 @@ function buildQuickCards(){
         return `
           <div class="card" style="background:${bg}; border-color:${rgbaOf(trendAccent,0.22)}">
             <div class="card__top">
-              <div class="card__title">Season ↔ Recent Trend</div>
+              <div class="card__title">Season ↔ Recent</div>
             </div>
             <div class="card__big">${big}</div>
             <div class="card__sub">${sub}</div>
