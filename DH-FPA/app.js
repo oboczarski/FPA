@@ -48,6 +48,41 @@ const TEAM_COLORS = {
   'HOU': '#a71930', 'TEN': '#4B92DB', 'MIN': '#4F2683'
 };
 
+const TEAM_GLOW_PRESETS = {
+  ARI: { color: "rgba(151, 35, 63, 0.95)", r: 3.2 },
+  ATL: { color: "rgba(255, 56, 95, 0.93)", r: 3.0 },
+  BAL: { color: "rgba(158, 43, 246, 0.95)", r: 3.2 },
+  BUF: { color: "rgba(198, 12, 48, 0.93)", r: 3.2 },
+  CAR: { color: "rgba(0, 133, 202, 0.95)", r: 3.2 },
+  CHI: { color: "rgba(120, 90, 240, 0.93)", r: 3.2 },
+  CIN: { color: "rgba(251, 79, 20, 0.95)", r: 3.2 },
+  CLE: { color: "rgba(225, 135, 0, 0.68)", r: 2.4 },
+  DAL: { color: "rgba(134, 147, 151, 0.86)", r: 2.4 },
+  DEN: { color: "rgba(251, 79, 20, 0.93)", r: 3.2 },
+  DET: { color: "rgba(0, 183, 235, 0.86)", r: 2.8 },
+  GB: { color: "rgba(0, 235, 150, 0.68)", r: 2.4 },
+  HOU: { color: "rgba(167, 25, 48, 0.95)", r: 3.2 },
+  IND: { color: "rgba(0, 183, 235, 0.93)", r: 2.4 },
+  JAX: { color: "rgba(0, 103, 120, 0.95)", r: 3.2 },
+  KC: { color: "rgba(255, 0, 64, 0.84)", r: 2.6 },
+  LAC: { color: "rgba(0, 191, 255, 0.74)", r: 3.2 },
+  LAR: { color: "rgba(0, 91, 200, 0.93)", r: 2.6 },
+  LV: { color: "rgba(165, 172, 175, 0.86)", r: 2.8 },
+  MIA: { color: "rgba(0, 142, 151, 0.93)", r: 2.8 },
+  MIN: { color: "rgba(115, 0, 255, 0.95)", r: 3.0 },
+  NE: { color: "rgba(255, 56, 95, 0.93)", r: 3.2 },
+  NO: { color: "rgba(160, 148, 101, 0.86)", r: 2.6 },
+  NYG: { color: "rgba(55, 56, 200, 0.95)", r: 3.2 },
+  NYJ: { color: "rgba(64, 160, 120, 0.95)", r: 3.2 },
+  PHI: { color: "rgba(43, 140, 78, 0.95)", r: 2.6 },
+  PIT: { color: "rgba(255, 182, 18, 0.61)", r: 2.4 },
+  SEA: { color: "rgba(105, 190, 40, 0.86)", r: 2.4 },
+  SF: { color: "rgba(179, 153, 93, 0.74)", r: 2.6 },
+  TB: { color: "rgba(247, 122, 97, 0.74)", r: 2.4 },
+  TEN: { color: "rgba(75, 146, 219, 0.95)", r: 3.2 },
+  WAS: { color: "rgba(180, 36, 36, 0.95)", r: 3.2 },
+};
+
 const TEAM_LOGO_ALIASES = {
   SD: "LAC",
   OAK: "LV",
@@ -60,10 +95,16 @@ const SCATTER_TEAM_LOGO_PX_MOBILE = 28;
 const SCATTER_MOBILE_MQ = window.matchMedia("(max-width: 760px)");
 let SCATTER_TEAM_LOGO_PX = SCATTER_MOBILE_MQ.matches ? SCATTER_TEAM_LOGO_PX_MOBILE : SCATTER_TEAM_LOGO_PX_DESKTOP; // Chart.js draws image pointStyles at intrinsic width/height
 const TEAM_LOGOS = new Map(); // TEAM -> HTMLImageElement (sized for scatter points)
+const TEAM_LOGO_POINTS = new Map(); // TEAM -> HTMLCanvasElement (glowed pointStyle)
 
 function canonicalTeamCode(team){
   const t = cleanStr(team).toUpperCase();
   return TEAM_LOGO_ALIASES[t] ?? t;
+}
+
+function getTeamGlowPreset(team){
+  const key = canonicalTeamCode(team);
+  return TEAM_GLOW_PRESETS[key] ?? null;
 }
 
 // Keep the Season vs Weeks scatter point-logo sizing responsive to the viewport.
@@ -86,7 +127,7 @@ function teamLogoSrc(team){
 
 function getTeamLogo(team){
   const code = canonicalTeamCode(team);
-  return TEAM_LOGOS.get(code) ?? null;
+  return TEAM_LOGO_POINTS.get(code) ?? TEAM_LOGOS.get(code) ?? null;
 }
 
 function setScatterTeamLogoPx(px){
@@ -95,6 +136,42 @@ function setScatterTeamLogoPx(px){
   for (const img of TEAM_LOGOS.values()){
     img.width = next;
     img.height = next;
+  }
+  rebuildScatterLogoPoints();
+}
+
+function buildScatterLogoCanvas(code, img){
+  const size = SCATTER_TEAM_LOGO_PX;
+  const preset = getTeamGlowPreset(code);
+  const glowColor = preset?.color ?? teamGlowColor(code, 0.92);
+  const baseRadius = preset?.r ?? 2.6;
+  const scale = size / 19;
+  const glowRadius = Math.max(1.6, baseRadius * scale);
+  const pad = glowColor ? Math.max(1, Math.round(glowRadius * 0.55)) : 0;
+  const drawSize = Math.max(4, size - pad * 2);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return canvas;
+
+  ctx.clearRect(0, 0, size, size);
+  if (glowColor){
+    ctx.shadowColor = glowColor;
+    ctx.shadowBlur = Math.min(glowRadius, pad + 2);
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+  ctx.drawImage(img, pad, pad, drawSize, drawSize);
+  return canvas;
+}
+
+function rebuildScatterLogoPoints(){
+  TEAM_LOGO_POINTS.clear();
+  for (const [code, img] of TEAM_LOGOS.entries()){
+    if (!img) continue;
+    TEAM_LOGO_POINTS.set(code, buildScatterLogoCanvas(code, img));
   }
 }
 
@@ -115,7 +192,10 @@ async function loadTeamLogos(codes){
   }));
   const entries = await Promise.all(loaders);
   for (const [code, img] of entries){
-    if (img) TEAM_LOGOS.set(code, img);
+    if (img){
+      TEAM_LOGOS.set(code, img);
+      TEAM_LOGO_POINTS.set(code, buildScatterLogoCanvas(code, img));
+    }
   }
 }
 const els = {
@@ -310,13 +390,15 @@ function pointGradientColor(baseRgba, value, minV, maxV){
 }
 
 function teamColorText(tm){
-  const key = cleanStr(tm).toUpperCase();
+  const key = canonicalTeamCode(tm);
   const hex = TEAM_COLORS[key];
   if (!hex) return null;
   return hex;
 }
 
 function teamGlowColor(tm, alpha = 0.92){
+  const preset = getTeamGlowPreset(tm);
+  if (preset?.color) return preset.color;
   const hex = teamColorText(tm);
   if (!hex) return null;
   const [r,g,b] = hexToRgbaArr(hex);
@@ -324,11 +406,25 @@ function teamGlowColor(tm, alpha = 0.92){
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+function teamGlowStyle(tm, alpha = 0.92){
+  const preset = getTeamGlowPreset(tm);
+  const glow = teamGlowColor(tm, alpha);
+  const styles = [`color:${glow ?? "rgba(255,255,255,0.12)"}`];
+  if (preset?.r) styles.push(`--glow-r3:${preset.r}px`);
+  return `style="${styles.join(";")};"`;
+}
+
 function applyLogoGlow(imgEl, tm){
   if (!imgEl) return;
   imgEl.classList.add("glow");
+  const preset = getTeamGlowPreset(tm);
   const c = teamGlowColor(tm, 0.92);
   imgEl.style.color = c ?? "rgba(255,255,255,0.12)";
+  if (preset?.r){
+    imgEl.style.setProperty("--glow-r3", `${preset.r}px`);
+  }else{
+    imgEl.style.removeProperty("--glow-r3");
+  }
 }
 
 function syncMiniPosToggle(pos){
@@ -777,8 +873,7 @@ function buildTeamSelect(){
       btn.setAttribute("aria-selected", "false");
       btn.dataset.team = t;
       const src = teamLogoSrc(t);
-      const glow = teamGlowColor(t, 0.92);
-      const glowStyle = glow ? `style="color:${glow};"` : `style="color: rgba(255,255,255,0.12);"`;
+      const glowStyle = teamGlowStyle(t, 0.92);
       btn.innerHTML = `
         <img class="teamLogo teamLogo--opt glow" ${glowStyle} src="${src}" alt="${t}" />
         <span class="teamOption__code">${t}</span>
@@ -873,15 +968,16 @@ function buildMiniLists(){
 function buildQuickCards(){
   const team = STATE.selectedTeam;
   const pos = STATE.pos;
+  const posTag = `<span class="posText" data-pos="${pos}">${pos}</span>`;
 
   const s = calcTrend(team, pos);
 
   const easyLabel = (rk) => {
     const sc = rankScore(rk);
-    if (sc >= 0.78) return "Great matchup";
-    if (sc >= 0.60) return "Good matchup";
+    if (sc >= 0.78) return "Great";
+    if (sc >= 0.60) return "Good";
     if (sc >= 0.40) return "Neutral";
-    if (sc >= 0.22) return "Tough matchup";
+    if (sc >= 0.22) return "Tough";
     return "Avoid";
   };
 
@@ -941,7 +1037,7 @@ function buildQuickCards(){
           </span>
         `;
         const big = hasTrend
-          ? `${dRankTxt}`
+          ? `${dRankTxt} rank <span class="cardVs">vs. ${posTag}</span>`
           : "—";
         const sub = hasTrend
           ? `ΔRank: <strong>${dRankTxt}</strong> • ΔAvg: <strong>${dAvgTxt}</strong>`
@@ -949,7 +1045,7 @@ function buildQuickCards(){
         return `
           <div class="card" style="background:${bg}; border-color:${rgbaOf(trendAccent,0.22)}">
             <div class="card__top">
-              <div class="card__title">Season ↔ Recent Trend</div>
+              <div class="card__title">Season ↔ Recent</div>
             </div>
             <div class="card__big">${big}</div>
             <div class="card__sub">${sub}</div>
@@ -1149,8 +1245,7 @@ function scatterExternalTooltipHandler(context){
     ? `style="color:${teamHex};"`
     : "";
 
-  const glow = teamGlowColor(t, 0.92);
-  const glowStyle = glow ? `style="color:${glow};"` : `style="color: rgba(255,255,255,0.12);"`;
+  const glowStyle = teamGlowStyle(t, 0.92);
   const logo = t ? `<img class="chartTooltip__logo glow" ${glowStyle} src="${teamLogoSrc(t)}" alt="${t}" />` : "";
   tooltipEl.innerHTML = `
     <div class="chartTooltip__row">
@@ -1388,6 +1483,33 @@ function buildScatter(){
   // Keep points from overlapping, but avoid pushing them too far from their true positions.
   const logoMinDist = logoRadius * 1 + 2;
   const logoPad = logoRadius + 0;
+  const isMobile = SCATTER_MOBILE_MQ.matches;
+  const scatterPadding = isMobile
+    ? { left: 6, right: 6, top: 4, bottom: 4 }
+    : { left: 10, right: 10, top: 8, bottom: 6 };
+  const axisTitlePadding = isMobile ? { top: 4, bottom: 2 } : null;
+  const tickPadding = isMobile ? 2 : null;
+
+  const xScale = {
+    title: { display: true, text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
+    min: xMin,
+    max: xMax,
+    grid: { color: "rgba(255,255,255,0.01)" },
+  };
+  const yScale = {
+    title: { display: true, text: `Weeks 9–15 (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
+    min: yMin,
+    max: yMax,
+    grid: { color: "rgba(255,255,255,0.01)" },
+  };
+  if (axisTitlePadding){
+    xScale.title.padding = axisTitlePadding;
+    yScale.title.padding = axisTitlePadding;
+  }
+  if (tickPadding !== null){
+    xScale.ticks = { padding: tickPadding };
+    yScale.ticks = { padding: tickPadding };
+  }
 
 	  charts.scatter = new Chart(ctx, {
 	    type: "scatter",
@@ -1425,20 +1547,10 @@ function buildScatter(){
 	      // reduce ResizeObserver churn in some publishing environments
 	      resizeDelay: 120,
 	      parsing: false,
-        layout: { padding: { left: 10, right: 10, top: 8, bottom: 6 } },
+        layout: { padding: scatterPadding },
       scales: {
-        x: {
-          title: { display: true, text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
-          min: xMin,
-          max: xMax,
-          grid: { color: "rgba(255,255,255,0.01)" },
-        },
-        y: {
-          title: { display: true, text: `Weeks 9–15 (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
-          min: yMin,
-          max: yMax,
-          grid: { color: "rgba(255,255,255,0.01)" },
-        },
+        x: xScale,
+        y: yScale,
       },
 	      plugins: {
 	        noOverlapScatter: { datasetIndex: 0, minDist: logoMinDist, padding: logoPad, iterations: 520, spring: 0.008 },
@@ -1578,6 +1690,38 @@ function buildPlayerWeekScatter(){
   const ctx = canvas.getContext("2d");
   if (charts.playerWeekScatter) charts.playerWeekScatter.destroy();
 
+  const isMobile = SCATTER_MOBILE_MQ.matches;
+  const scatterPadding = isMobile
+    ? { left: 6, right: 8, top: 6, bottom: 4 }
+    : { left: 14, right: 14, top: 8, bottom: 6 };
+  const axisTitlePadding = isMobile ? { top: 4, bottom: 2 } : null;
+  const tickPadding = isMobile ? 2 : null;
+  const xScale = {
+    type: "linear",
+    min: 1,
+    max: CONFIG.maxWeek,
+    ticks: {
+      stepSize: 1,
+      callback: (v) => `W${v}`,
+    },
+    title: { display: true, text: "Week" },
+    grid: { color: "rgba(255,255,255,0.02)" },
+  };
+  const yScale = {
+    min: 0,
+    suggestedMax: 40,
+    title: { display: true, text: "Points" },
+    grid: { color: "rgba(255,255,255,0.03)" },
+  };
+  if (axisTitlePadding){
+    xScale.title.padding = axisTitlePadding;
+    yScale.title.padding = axisTitlePadding;
+  }
+  if (tickPadding !== null){
+    xScale.ticks.padding = tickPadding;
+    yScale.ticks = { padding: tickPadding };
+  }
+
   charts.playerWeekScatter = new Chart(ctx, {
     type: "scatter",
     plugins: [PLAYER_WEEK_AVG_MARKERS_PLUGIN],
@@ -1588,7 +1732,7 @@ function buildPlayerWeekScatter(){
       resizeDelay: 120,
       parsing: false,
       interaction: { mode: "nearest", intersect: true },
-      layout: { padding: { left: 14, right: 14, top: 8, bottom: 6 } },
+      layout: { padding: scatterPadding },
       plugins: {
         playerWeekAvgMarkers: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)" },
         legend: { display: false },
@@ -1603,23 +1747,8 @@ function buildPlayerWeekScatter(){
         }
       },
       scales: {
-        x: {
-          type: "linear",
-          min: 1,
-          max: CONFIG.maxWeek,
-          ticks: {
-            stepSize: 1,
-            callback: (v) => `W${v}`,
-          },
-          title: { display: true, text: "Week" },
-          grid: { color: "rgba(255,255,255,0.02)" },
-        },
-        y: {
-          min: 0,
-          suggestedMax: 40,
-          title: { display: true, text: "Points" },
-          grid: { color: "rgba(255,255,255,0.03)" },
-        }
+        x: xScale,
+        y: yScale,
       }
     }
   });
@@ -1705,8 +1834,7 @@ function buildPlayerTable(team, pos){
         const ptsColor = pointsColor(r.pos, r.pts);
         const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
         const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
-        const tmGlow = teamGlowColor(tmCode, 0.92);
-        const tmGlowStyle = tmGlow ? `style="color:${tmGlow};"` : `style="color: rgba(255,255,255,0.12);"`;
+        const tmGlowStyle = teamGlowStyle(tmCode, 0.92);
         const tmCell = tmCode
           ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" ${tmGlowStyle} src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
           : `<span class="teamText">—</span>`;
@@ -1746,8 +1874,7 @@ function buildPlayersSection(team, pos){
   const t = cleanStr(team).toUpperCase();
   const c = teamColorText(t);
   const style = c ? `style="color:${c};"` : "";
-  const glow = teamGlowColor(t, 0.92);
-  const glowStyle = glow ? `style="color:${glow};"` : `style="color: rgba(255,255,255,0.12);"`;
+  const glowStyle = teamGlowStyle(t, 0.92);
   const teamTag = t
     ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" ${glowStyle} src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${style}>${t}</span></span>`
     : "—";

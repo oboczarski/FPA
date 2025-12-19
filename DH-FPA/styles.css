@@ -327,11 +327,34 @@ body::before{
   display:block;
 }
 .teamLogo.glow{
-  --glow-r3: 1.9px;
+  --glow-r3: 2.6px;
   filter: drop-shadow(0 0 var(--glow-r3) currentColor);
 }
 .teamLogo--opt{ width: 19px; height: 19px; }
 .teamLogo--chip{ width: 22px; height: 22px; }
+
+#teamPicker .teamPicker__btn .teamLogo{
+  transform: scale(1.18);
+  transform-origin: left center;
+}
+#teamPicker .teamPicker__btn .teamPicker__code{
+  display:inline-block;
+  transform: scale(1.12);
+  transform-origin: left center;
+  line-height: 1;
+}
+
+#playerWeekTitleTeam,
+.playersHeaderTitle .teamText{
+  font-size: 16px;
+  line-height: 1.05;
+}
+
+#playerWeekTitleLogo,
+.playersHeaderTitle .teamLogo{
+  width: 22px;
+  height: 22px;
+}
 
 .teamPicker--sm .teamPicker__btn{
   padding: 11px 13px;
@@ -592,7 +615,7 @@ body::before{
   filter: none;
 }
 .chartTooltip__logo.glow{
-  --glow-r3: 3.2px;
+  --glow-r3: 2.8px;
   filter: drop-shadow(0 0 var(--glow-r3) currentColor);
 }
 
@@ -867,16 +890,14 @@ body::before{
 }
 .heatHeaderGrid{
   display:grid;
-  grid-template-columns:
-    minmax(220px, 1fr)
-    minmax(300px, 1fr)
-    auto;
-  gap: 10px 12px;
-  align-items:end;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  grid-template-rows: auto auto;
+  gap: 6px 12px;
+  align-items:start;
 }
 .heatHeaderGrid .heatmapTitle{ grid-column: 1; grid-row: 1; }
-.heatHeaderGrid .heatHeaderField--def{ grid-column: 2; grid-row: 1; }
-.heatHeaderGrid .segmented{ grid-column: 3; grid-row: 1; justify-self: end; }
+.heatHeaderGrid .heatmapSubtitle{ grid-column: 1; grid-row: 2; margin: 0; font-size: 12px; }
+.heatHeaderGrid .segmented{ grid-column: 2; grid-row: 1 / span 2; justify-self: end; align-self: center; }
 .heatHeaderField{
   min-width: 0;
 }
@@ -1002,12 +1023,13 @@ body::before{
   }
   .heatHeaderGrid{
     width:100%;
-    grid-template-columns: 1fr auto;
-    gap: 8px 10px;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 6px;
   }
-  .heatHeaderGrid .heatmapTitle{ grid-column: 1 / -1; grid-row: 1; }
-  .heatHeaderGrid .heatHeaderField--def{ grid-column: 1; grid-row: 2; }
-  .heatHeaderGrid .segmented{ grid-column: 2; grid-row: 2; justify-self: end; }
+  .heatHeaderGrid .heatmapTitle{ grid-column: 1; grid-row: 1; }
+  .heatHeaderGrid .heatmapSubtitle{ grid-column: 1; grid-row: 2; font-size: 11px; }
+  .heatHeaderGrid .segmented{ grid-column: 1; grid-row: 3; justify-self: start; }
 
   .heatHeaderLabel{ font-size: 10px; margin-bottom: 4px; }
 
