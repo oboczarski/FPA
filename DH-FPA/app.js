@@ -251,10 +251,9 @@ function teamColorText(tm){
 function syncHeatPosToggle(pos){
   if (!els.heatPosToggle) return;
   const p = cleanStr(pos).toUpperCase();
-  $$("button.heatPosBtn", els.heatPosToggle).forEach(b => {
-    const on = b.dataset.pos === p;
+  $$("button.pos-btn--heat", els.heatPosToggle).forEach(b => {
+    const on = b.dataset.heatpos === p;
     b.classList.toggle("is-active", on);
-    b.setAttribute("aria-pressed", String(on));
   });
 }
 
@@ -1310,9 +1309,10 @@ function bindEvents(){
     selectTeam(els.teamSelect.value, STATE.pos);
   });
 
+  // Heatmap position buttons
   if (els.heatPosToggle){
-    $$("button.heatPosBtn", els.heatPosToggle).forEach(b => b.addEventListener("click", () => {
-      const p = b.dataset.pos;
+    $$("button.pos-btn--heat", els.heatPosToggle).forEach(b => b.addEventListener("click", () => {
+      const p = b.dataset.heatpos;
       if (!CONFIG.positions.includes(p)) return;
       selectTeam(STATE.selectedTeam, p);
     }));

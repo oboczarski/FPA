@@ -491,51 +491,98 @@ body::before{
   flex-wrap:wrap;
   justify-content:flex-end;
 }
+
+/* Heatmap panel header – compact single-row layout */
 .panelHeader--heat{
-  align-items:flex-start;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 14px;
 }
-.panelHeader__right--heat{
-  flex-direction:column;
-  align-items:flex-end;
-  gap:10px;
+.panelHeader__top{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
-.heatHeaderRow{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-  align-items:center;
+.panelHeader__meta{
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
-.heatHeaderRow--controls{
-  align-items:flex-end;
+.panelHeader__controls{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
 }
-.heatPosToggle{
-  display:flex;
-  gap:6px;
-  flex-wrap:wrap;
+.heatControls__group{
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.heatPosBtn{
-  padding: 7px 10px;
+.heatControls__label{
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Position toggle buttons for heatmap */
+.pos-toggle--heat{
+  display: flex;
+  gap: 4px;
+}
+.pos-btn--heat{
+  padding: 6px 12px;
   border-radius: 10px;
-  border:1px solid var(--border2);
+  border: 1px solid var(--border2);
   background: rgba(255,255,255,0.05);
   color: var(--muted);
-  cursor:pointer;
-  font-weight: 900;
+  cursor: pointer;
+  font-weight: 800;
   font-size: 12px;
-  letter-spacing:0.02em;
-  transition: transform .14s ease, border-color .14s ease, background .14s ease, color .14s ease;
+  letter-spacing: 0.02em;
+  transition: transform .12s ease, border-color .12s ease, background .12s ease, color .12s ease;
 }
-.heatPosBtn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.18); color: var(--text); }
-.heatPosBtn.is-active{
+.pos-btn--heat:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.18);
+  color: var(--text);
+}
+.pos-btn--heat.is-active{
   color: var(--text);
   border-color: rgba(0,191,255,0.55);
   background: linear-gradient(135deg, rgba(0,191,255,0.14), rgba(207,120,255,0.12));
 }
-.heatPosBtn.is-active[data-pos="QB"]{ border-color: rgba(255,58,117,0.65); background: linear-gradient(135deg, rgba(255,58,117,0.22), rgba(0,0,0,0.12)); }
-.heatPosBtn.is-active[data-pos="RB"]{ border-color: rgba(0,235,199,0.65); background: linear-gradient(135deg, rgba(0,235,199,0.20), rgba(0,0,0,0.12)); }
-.heatPosBtn.is-active[data-pos="WR"]{ border-color: rgba(88,167,255,0.65); background: linear-gradient(135deg, rgba(88,167,255,0.22), rgba(0,0,0,0.12)); }
-.heatPosBtn.is-active[data-pos="TE"]{ border-color: rgba(180,105,255,0.65); background: linear-gradient(135deg, rgba(180,105,255,0.22), rgba(0,0,0,0.12)); }
+.pos-btn--heat.is-active[data-heatpos="QB"]{ border-color: rgba(255,58,117,0.65); background: linear-gradient(135deg, rgba(255,58,117,0.22), rgba(0,0,0,0.12)); }
+.pos-btn--heat.is-active[data-heatpos="RB"]{ border-color: rgba(0,235,199,0.65); background: linear-gradient(135deg, rgba(0,235,199,0.20), rgba(0,0,0,0.12)); }
+.pos-btn--heat.is-active[data-heatpos="WR"]{ border-color: rgba(88,167,255,0.65); background: linear-gradient(135deg, rgba(88,167,255,0.22), rgba(0,0,0,0.12)); }
+.pos-btn--heat.is-active[data-heatpos="TE"]{ border-color: rgba(180,105,255,0.65); background: linear-gradient(135deg, rgba(180,105,255,0.22), rgba(0,0,0,0.12)); }
+
+/* Compact select dropdowns */
+.select--compact{
+  min-width: 90px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: rgba(5,5,12,0.35);
+  color: var(--text);
+  outline: none;
+  font-size: 12px;
+}
+.select--compact:focus{ border-color: rgba(0,191,255,0.55); }
+
+/* Compact segmented toggle */
+.segmented--compact{
+  padding: 3px;
+  gap: 4px;
+}
+.segmented--compact .segmented__btn{
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
 .field.small span{ font-size: 11px; }
 
 /* ===== Mobile polish ===== */
