@@ -105,10 +105,11 @@ const els = {
   selTeamLogo: document.getElementById("selTeamLogo"),
   selTeamText: document.getElementById("selTeamText"),
   selPosText: document.getElementById("selPosText"),
-  heatPosToggle: document.getElementById("heatPosToggle"),
-  heatTeamSelect: document.getElementById("heatTeamSelect"),
-  sortSelect: document.getElementById("sortSelect"),
-  dirSelect: document.getElementById("dirSelect"),
+  heatTeamPicker: document.getElementById("heatTeamPicker"),
+  heatTeamPickerBtn: document.getElementById("heatTeamPickerBtn"),
+  heatTeamPickerPanel: document.getElementById("heatTeamPickerPanel"),
+  heatTeamPickerLogo: document.getElementById("heatTeamPickerLogo"),
+  heatTeamPickerCode: document.getElementById("heatTeamPickerCode"),
   heatTable: document.getElementById("heatTable"),
   quickCards: document.getElementById("quickCards"),
   uploader: document.getElementById("uploader"),
@@ -128,8 +129,7 @@ const els = {
   trendUpTitle: document.getElementById("trendUpTitle"),
   trendDown: document.getElementById("trendDown"),
   trendDownTitle: document.getElementById("trendDownTitle"),
-
-  profilePill: document.getElementById("profilePill"),
+  miniPosToggle: document.getElementById("miniPosToggle"),
 
   playersSub: document.getElementById("playersSub"),
   weekRange: document.getElementById("weekRange"),
@@ -138,14 +138,13 @@ const els = {
 };
 
 let STATE = {
-  activeDataset: "season", // "season" | "recent" (controls heatmap + quick cards primary)
+  activeDataset: "season", // "season" | "recent" (controls heatmap only)
   pos: "QB",
   selectedTeam: null, // defense team for profile
-  heatPos: "QB",
   heatTeam: null,
+  miniPos: "QB",
+  heatSort: { col: "TOTAL", cycle: 0 }, // cycle: 0=default, 1=desc, 2=asc
   scatterMode: "avg", // "avg" | "rank"
-  sortKey: "Total_Rk",
-  sortDir: "desc",
   playerSort: { key: "week", dir: "desc" },
   playerWeekScatterPos: "QB", // "ALL" | "QB" | "RB" | "WR" | "TE"
 };
@@ -292,14 +291,22 @@ function teamColorText(tm){
   return hex;
 }
 
-function syncHeatPosToggle(pos){
-  if (!els.heatPosToggle) return;
+function syncMiniPosToggle(pos){
+  if (!els.miniPosToggle) return;
   const p = cleanStr(pos).toUpperCase();
-  $$("button.heatPosBtn", els.heatPosToggle).forEach(b => {
+  $$("button.heatPosBtn", els.miniPosToggle).forEach(b => {
     const on = b.dataset.pos === p;
     b.classList.toggle("is-active", on);
     b.setAttribute("aria-pressed", String(on));
   });
+}
+
+function setMiniPos(pos){
+  const p = cleanStr(pos).toUpperCase();
+  if (!CONFIG.positions.includes(p)) return;
+  STATE.miniPos = p;
+  syncMiniPosToggle(p);
+  buildMiniLists();
 }
 
 function syncPlayerScatterPosToggle(pos){
@@ -325,6 +332,40 @@ function setTeamPickerOpen(open){
   if (!els.teamPicker) return;
   els.teamPicker.classList.toggle("is-open", !!open);
   if (els.teamPickerBtn) els.teamPickerBtn.setAttribute("aria-expanded", String(!!open));
+}
+
+function isHeatTeamPickerOpen(){
+  return !!els.heatTeamPicker?.classList?.contains("is-open");
+}
+
+function setHeatTeamPickerOpen(open){
+  if (!els.heatTeamPicker) return;
+  els.heatTeamPicker.classList.toggle("is-open", !!open);
+  if (els.heatTeamPickerBtn) els.heatTeamPickerBtn.setAttribute("aria-expanded", String(!!open));
+}
+
+function syncHeatTeamPicker(team){
+  const t = cleanStr(team).toUpperCase();
+  if (els.heatTeamPickerCode) els.heatTeamPickerCode.textContent = t || "—";
+  if (els.heatTeamPickerLogo){
+    if (t){
+      els.heatTeamPickerLogo.src = teamLogoSrc(t);
+      els.heatTeamPickerLogo.alt = t;
+      els.heatTeamPickerLogo.style.opacity = "1";
+    }else{
+      els.heatTeamPickerLogo.removeAttribute("src");
+      els.heatTeamPickerLogo.alt = "";
+      els.heatTeamPickerLogo.style.opacity = "0";
+    }
+  }
+
+  if (els.heatTeamPickerPanel){
+    $$("button.teamOption", els.heatTeamPickerPanel).forEach(btn => {
+      const on = btn.dataset.team === t;
+      btn.classList.toggle("is-selected", on);
+      btn.setAttribute("aria-selected", String(on));
+    });
+  }
 }
 
 function syncTeamPicker(team){
@@ -430,34 +471,26 @@ function applyHeatHighlights(){
   const mainTeam = STATE.selectedTeam;
   const mainPos = STATE.pos;
   const heatTeam = STATE.heatTeam;
-  const heatPos = STATE.heatPos;
 
   for (const c of cells){
     const isMain = !!mainTeam && c.dataset.team === mainTeam && (c.dataset.pos === mainPos || c.dataset.pos === "TOTAL");
     c.classList.toggle("is-selected", isMain);
 
-    const isHeat = !!heatTeam && !!heatPos && c.dataset.team === heatTeam && c.dataset.pos === heatPos;
+    // Heatmap focus highlights the row's TOTAL cell only (keeps heatmap controls independent from page controls).
+    const isHeat = !!heatTeam && c.dataset.team === heatTeam && c.dataset.pos === "TOTAL";
     c.classList.toggle("is-heat-focus", isHeat);
   }
-}
-
-function setHeatPos(pos){
-  const p = cleanStr(pos).toUpperCase();
-  if (!CONFIG.positions.includes(p)) return;
-  STATE.heatPos = p;
-  syncHeatPosToggle(p);
-  applyHeatHighlights();
 }
 
 function setHeatTeam(team, { scroll = true } = {}){
   const t = cleanStr(team).toUpperCase();
   if (!t) return;
   STATE.heatTeam = t;
-  if (els.heatTeamSelect) els.heatTeamSelect.value = t;
+  syncHeatTeamPicker(t);
   applyHeatHighlights();
 
   if (scroll){
-    const cell = $(`.cell[data-team="${cssEsc(t)}"][data-pos="${cssEsc(STATE.heatPos)}"]`, els.heatTable);
+    const cell = $(`.cell[data-team="${cssEsc(t)}"][data-pos="TOTAL"]`, els.heatTable);
     cell?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 }
@@ -482,6 +515,7 @@ function rgbaOf(color, alpha){
 }
 
 function setStatus(kind, text){
+  if (!els.loadStatus) return;
   const dot = els.loadStatus.querySelector(".dot");
   dot.classList.remove("is-warn");
   dot.style.background = kind === "ok" ? "rgba(72,245,177,0.85)" : (kind === "err" ? "rgba(255,88,92,0.95)" : "rgba(255,209,102,0.95)");
@@ -685,16 +719,11 @@ function calcTrend(team, pos){
 // UI builders
 // =====================
 function buildTeamSelect(){
-  els.heatTeamSelect.innerHTML = "";
   if (els.teamPickerPanel) els.teamPickerPanel.innerHTML = "";
+  if (els.heatTeamPickerPanel) els.heatTeamPickerPanel.innerHTML = "";
   const teams = [...DATA.byTeamSeason.keys()].sort();
   for (const t of teams){
-    const opt2 = document.createElement("option");
-    opt2.value = t;
-    opt2.textContent = t;
-    els.heatTeamSelect.appendChild(opt2);
-
-    if (els.teamPickerPanel){
+    const addOption = (panel) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "teamOption";
@@ -706,18 +735,21 @@ function buildTeamSelect(){
         <img class="teamLogo teamLogo--opt" src="${src}" alt="${t}" />
         <span class="teamOption__code">${t}</span>
       `;
-      els.teamPickerPanel.appendChild(btn);
-    }
+      panel.appendChild(btn);
+    };
+
+    if (els.teamPickerPanel) addOption(els.teamPickerPanel);
+    if (els.heatTeamPickerPanel) addOption(els.heatTeamPickerPanel);
   }
   STATE.selectedTeam = teams[0] ?? null;
   STATE.heatTeam = teams[0] ?? null;
-  els.heatTeamSelect.value = STATE.heatTeam ?? "";
-  syncHeatPosToggle(STATE.heatPos);
   syncTeamPicker(STATE.selectedTeam);
+  syncHeatTeamPicker(STATE.heatTeam);
+  syncMiniPosToggle(STATE.miniPos);
 }
 
 function buildMiniLists(){
-  const pos = STATE.pos;
+  const pos = STATE.miniPos;
 
   const posTag = `<span class="posText" data-pos="${pos}">${pos}</span>`;
   if (els.topSeasonTitle) els.topSeasonTitle.innerHTML = `Best matchups (through 2025) — ${posTag}`;
@@ -877,9 +909,21 @@ function buildHeatTable(){
   const datasetName = STATE.activeDataset;
   const rows = datasetName === "season" ? DATA.season : DATA.recent;
 
-  // sort
-  const key = STATE.sortKey;
-  const dir = STATE.sortDir;
+  const colToMetric = (col) => {
+    const c = cleanStr(col).toUpperCase();
+    if (c === "QB") return "QB_Rk";
+    if (c === "RB") return "RB_Rk";
+    if (c === "WR") return "WR_Rk";
+    if (c === "TE") return "TE_Rk";
+    if (c === "TOTAL") return "Total_Rk";
+    return "Total_Rk";
+  };
+
+  const defaultCol = "TOTAL";
+  const sortCol = (STATE.heatSort?.cycle ?? 0) === 0 ? defaultCol : (STATE.heatSort?.col ?? defaultCol);
+  const sortCycle = STATE.heatSort?.cycle ?? 0;
+  const sortDir = sortCycle === 2 ? "asc" : "desc";
+  const key = colToMetric(sortCol);
 
   const sorted = [...rows].sort((a,b) => {
     const av = toNum(a[key]);
@@ -887,23 +931,25 @@ function buildHeatTable(){
     if (!Number.isFinite(av) && !Number.isFinite(bv)) return 0;
     if (!Number.isFinite(av)) return 1;
     if (!Number.isFinite(bv)) return -1;
-
-    if (key.endsWith("_Rk") || key === "Total_Rk") {
-      return dir === "desc" ? (bv - av) : (av - bv);
-    }
-    // averages: higher avg = easier, so default "desc" aligns with easiest -> toughest
-    return dir === "desc" ? (bv - av) : (av - bv);
+    return sortDir === "desc" ? (bv - av) : (av - bv);
   });
+
+  const hdr = (col, label) => {
+    const c = cleanStr(col).toUpperCase();
+    const active = sortCycle !== 0 && c === sortCol;
+    const arrow = active ? (sortDir === "desc" ? " ▼" : " ▲") : "";
+    return `<th class="heatTh is-sortable${active ? " is-active" : ""}" data-col="${c}">${label}${arrow}</th>`;
+  };
 
   els.heatTable.innerHTML = `
     <thead>
       <tr>
-        <th style="min-width:74px;">DEF</th>
-        <th>QB</th>
-        <th>RB</th>
-        <th>WR</th>
-        <th>TE</th>
-        <th>Total</th>
+        <th class="heatTh heatTh--def" style="min-width:74px;">DEF</th>
+        ${hdr("QB","QB")}
+        ${hdr("RB","RB")}
+        ${hdr("WR","WR")}
+        ${hdr("TE","TE")}
+        ${hdr("TOTAL","Total")}
       </tr>
     </thead>
     <tbody>
@@ -958,13 +1004,36 @@ function buildHeatTable(){
     </tbody>
   `;
 
+  // header sort toggles (cycle: desc -> asc -> default)
+  $$("thead th.heatTh.is-sortable", els.heatTable).forEach(th => {
+    th.addEventListener("click", () => {
+      const col = cleanStr(th.dataset.col).toUpperCase();
+      const valid = ["QB","RB","WR","TE","TOTAL"].includes(col);
+      if (!valid) return;
+
+      const cur = STATE.heatSort ?? { col: defaultCol, cycle: 0 };
+      const same = cleanStr(cur.col).toUpperCase() === col;
+
+      if (!same){
+        STATE.heatSort = { col, cycle: 1 };
+      }else if (cur.cycle === 0){
+        STATE.heatSort = { col, cycle: 1 };
+      }else if (cur.cycle === 1){
+        STATE.heatSort = { col, cycle: 2 };
+      }else{
+        STATE.heatSort = { col: defaultCol, cycle: 0 };
+      }
+
+      buildHeatTable();
+    });
+  });
+
   // bind clicks
   $$(".cell", els.heatTable).forEach(cell => {
     cell.addEventListener("click", () => {
       const team = cell.dataset.team;
       const rawPos = cell.dataset.pos;
       if (team) setHeatTeam(team, { scroll: false });
-      if (CONFIG.positions.includes(rawPos)) setHeatPos(rawPos);
 
       const pos = rawPos === "TOTAL" ? STATE.pos : rawPos;
       selectTeam(team, pos);
@@ -1273,7 +1342,7 @@ function buildScatter(){
 	          pointStyle: (ctx) => getTeamLogo(ctx.raw?.t) ?? "circle",
 	          pointBackgroundColor: (ctx) => {
 	            const team = ctx.raw?.t;
-	            const rk = getMetric(team, STATE.activeDataset, `${pos}_Rk`);
+	            const rk = getMetric(team, "season", `${pos}_Rk`);
 	            return heatColor(rankScore(rk));
 	          },
 	        },
@@ -1339,7 +1408,7 @@ function renderPlayerWeekAvgPills(team, pos){
     return;
   }
 
-  const datasetName = STATE.activeDataset;
+  const datasetName = "season";
   const teamAvg = getMetric(t, datasetName, `${p}_Avg`);
   const leagueAvg = DATA.leaguePosAvg?.[datasetName]?.[p];
   const posHex = PLAYER_SCATTER_COLORS[p] ?? "#ffffff";
@@ -1438,7 +1507,7 @@ function buildPlayerWeekScatter(){
   let teamAvgColor = "rgba(0,191,255,0.90)";
   if (CONFIG.positions.includes(STATE.playerWeekScatterPos)){
     const p = STATE.playerWeekScatterPos;
-    const dsName = STATE.activeDataset;
+    const dsName = "season";
     teamAvg = getMetric(team, dsName, `${p}_Avg`);
     leagueAvg = DATA.leaguePosAvg?.[dsName]?.[p];
     const [r,g,b] = hexToRgbaArr(PLAYER_SCATTER_COLORS[p] ?? "#ffffff");
@@ -1639,9 +1708,7 @@ function setDataset(name){
   els.btnRecent.setAttribute("aria-selected", String(!isSeason));
 
   buildHeatTable();
-  buildScatter();
-  buildQuickCards();
-  buildPlayerWeekScatter();
+  applyHeatHighlights();
 }
 
 function selectTeam(team, pos = STATE.pos){
@@ -1659,13 +1726,7 @@ function selectTeam(team, pos = STATE.pos){
   syncTeamPicker(team);
   $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
 
-  // pill
-  els.profilePill.querySelector("span:last-child").innerHTML = `Selected: <strong>${team}</strong> • Position: <strong class="posText" data-pos="${STATE.pos}">${STATE.pos}</strong>`;
-  els.profilePill.querySelector(".dot").style.background = "rgba(0,191,255,0.85)";
-  els.profilePill.querySelector(".dot").style.boxShadow = "0 0 0 3px rgba(0,191,255,0.12)";
-
   buildQuickCards();
-  buildMiniLists();
   buildScatter();
   buildPlayerWeekScatter();
   buildPlayersSection(team, STATE.pos);
@@ -1761,27 +1822,42 @@ function bindEvents(){
     });
   }
 
-  if (els.heatPosToggle){
-    $$("button.heatPosBtn", els.heatPosToggle).forEach(b => b.addEventListener("click", () => {
-      const p = b.dataset.pos;
-      if (!CONFIG.positions.includes(p)) return;
-      setHeatPos(p);
-    }));
+  // heatmap defense picker (separate from the main controls)
+  if (els.heatTeamPickerBtn && els.heatTeamPickerPanel){
+    const close = () => setHeatTeamPickerOpen(false);
+
+    els.heatTeamPickerBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      setHeatTeamPickerOpen(!isHeatTeamPickerOpen());
+    });
+
+    els.heatTeamPickerPanel.addEventListener("click", (e) => {
+      const btn = e.target?.closest?.("button.teamOption");
+      const team = btn?.dataset?.team;
+      if (!team) return;
+      close();
+      setHeatTeam(team);
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!isHeatTeamPickerOpen()) return;
+      const inside = els.heatTeamPicker?.contains(e.target);
+      if (!inside) close();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && isHeatTeamPickerOpen()) close();
+    });
   }
 
-  els.heatTeamSelect.addEventListener("change", () => {
-    setHeatTeam(els.heatTeamSelect.value);
-  });
-
-  els.sortSelect.addEventListener("change", () => {
-    STATE.sortKey = els.sortSelect.value;
-    buildHeatTable();
-  });
-
-  els.dirSelect.addEventListener("change", () => {
-    STATE.sortDir = els.dirSelect.value;
-    buildHeatTable();
-  });
+  // mini cards position toggle (controls only the mini cards list)
+  if (els.miniPosToggle){
+    $$("button.heatPosBtn", els.miniPosToggle).forEach(b => b.addEventListener("click", () => {
+      const p = b.dataset.pos;
+      if (!CONFIG.positions.includes(p)) return;
+      setMiniPos(p);
+    }));
+  }
 
   $$(".smallToggle__btn").forEach(b => b.addEventListener("click", () => {
     $$(".smallToggle__btn").forEach(x => x.classList.toggle("is-active", x === b));
