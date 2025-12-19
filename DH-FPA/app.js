@@ -878,10 +878,10 @@ function buildQuickCards(){
 
   const easyLabel = (rk) => {
     const sc = rankScore(rk);
-    if (sc >= 0.78) return "Great matchup";
-    if (sc >= 0.60) return "Good matchup";
+    if (sc >= 0.78) return "Great";
+    if (sc >= 0.60) return "Good ";
     if (sc >= 0.40) return "Neutral";
-    if (sc >= 0.22) return "Tough matchup";
+    if (sc >= 0.22) return "Tough ";
     return "Avoid";
   };
 
