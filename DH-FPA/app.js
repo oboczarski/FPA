@@ -1148,9 +1148,10 @@ function buildScatter(){
 
   if (charts.scatter) charts.scatter.destroy();
 
-  const logoRadius = Math.max(6, Math.round(SCATTER_TEAM_LOGO_PX / 2));
-  const logoMinDist = logoRadius * 2 + 4;
-  const logoPad = logoRadius + 4;
+  const logoRadius = Math.max(6, Math.round(SCATTER_TEAM_LOGO_PX / 3));
+  // Keep points from overlapping, but avoid pushing them too far from their true positions.
+  const logoMinDist = logoRadius * 1 + 2;
+  const logoPad = logoRadius + 0;
 
 	  charts.scatter = new Chart(ctx, {
 	    type: "scatter",

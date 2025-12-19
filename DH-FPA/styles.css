@@ -821,7 +821,8 @@ body::before{
   .pageControls{
     width: 100%;
     display:grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    /* Give the position toggle more room so it never overflows on mobile. */
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
     gap: 8px;
     align-items:end;
   }
@@ -954,7 +955,8 @@ body::before{
   .pageSubtitle{ font-size: 10px; }
 
   .pageControls{
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    /* Extra room to prevent position buttons from clipping on very small screens. */
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
     gap: 6px;
   }
   .pageControl__label{ font-size: 9px; margin-bottom: 4px; }
