@@ -43,12 +43,11 @@
   letter-spacing: 0.05em;
 }
 .teamInline{
-  display:inline-flex;
-  align-items:center;
+  display: inline;
   gap: 8px;
   min-width: 0;
 }
-.teamInline--tight{ gap: 6px; }
+.teamInline--tight{gap: 6px;}
 
 *{ box-sizing:border-box; }
 html, body{ height:100%; }
@@ -950,7 +949,7 @@ body::before{
   .glassChip__label{ font-size: 8px; }
   .glassChip__value{ font-size: 13px; }
 
-  .teamLogo{ width: 16px; height: 16px; }
+  .teamLogo{width: 18px;height: 18px;vertical-align: text-bottom;margin-right: 3px;}
   .teamLogo--chip{ width: 16px; height: 16px; }
 
   .teamPicker__panel{
@@ -1066,7 +1065,7 @@ body::before{
   .chip{padding: 2px 5px;font-size: 11px;margin-top: 4px;}
 
   .playersPanel{ padding: 7px 7px 9px; }
-  .playersHeaderTitle{ font-size: 12px; }
+  .playersHeaderTitle{font-size: 12px;}
   .playersSelect, .playersInput{ padding: 8px 9px; font-size: 12px; }
   .playersTableWrap{ height: 24rem; }
 
