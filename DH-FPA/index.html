@@ -5,76 +5,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>2025 Fantasy Points Against — Matchup Explorer</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Product+Sans:wght@100;200;300;400;500;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans:100,200,300,400,500,600,700" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@200;300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <canvas id="stars" aria-hidden="true"></canvas>
 
-  <header class="topbar">
-    <div class="topbar__left">
-      <div class="badge">FPA</div>
-      <div>
-        <div class="title">2025 Fantasy Points Against</div>
-        <div class="subtitle">Matchup Explorer • Season vs Weeks 9–15 • Player-level drilldowns</div>
-      </div>
-    </div>
+	  <main class="wrap">
+	    <section class="panel hero">
+	      <div class="pageHeader">
+	        <div class="pageHeader__top">
+	          <div class="pageTitleBlock">
+	            <h1 class="pageTitle">Fantasy Points Against</h1>
+	            <div class="pageSubtitle">Player &amp; Positional Matchup Analysis</div>
+	          </div>
+	        </div>
 
-    <div class="topbar__right">
-      <div class="segmented" role="tablist" aria-label="Dataset selector">
-        <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
-        <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
-      </div>
+	        <div class="pageHeader__row">
+	          <div class="pageControls" aria-label="Matchup controls">
+	            <div class="pageControl">
+	              <div class="pageControl__label">Opponent Defense</div>
+	              <div class="teamPicker" id="teamPicker">
+	                <button type="button" class="teamPicker__btn" id="teamPickerBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Opponent defense">
+	                  <span class="teamPicker__left">
+	                    <img id="teamPickerLogo" class="teamLogo" alt="" />
+	                    <span id="teamPickerCode" class="teamPicker__code">—</span>
+	                  </span>
+	                  <span class="teamPicker__chev" aria-hidden="true">▾</span>
+	                </button>
+	                <div class="teamPicker__panel" id="teamPickerPanel" role="listbox" aria-label="Opponent defense options"></div>
+	              </div>
+	            </div>
 
-      <div class="pill" id="loadStatus" title="Data load status">
-        <span class="dot is-warn"></span>
-        <span>Loading CSVs…</span>
-      </div>
-    </div>
-  </header>
+	            <div class="pageControl">
+	              <div class="pageControl__label">Position</div>
+	              <div class="pos-toggle pos-toggle--lg" role="group" aria-label="Position toggle">
+	                <button class="pos-btn is-active" data-pos="QB">QB</button>
+	                <button class="pos-btn" data-pos="RB">RB</button>
+	                <button class="pos-btn" data-pos="WR">WR</button>
+	                <button class="pos-btn" data-pos="TE">TE</button>
+	              </div>
+	            </div>
+	          </div>
 
-  <main class="wrap">
-    <section class="panel hero">
-      <div class="hero__grid">
-        <div class="hero__left">
-          <h2>Quick Matchup Finder</h2>
-          <p class="muted">
-            Pick a position + opponent defense to instantly see how targetable that defense is for that position —
-            comparing full-season trends vs recent (Weeks 9–15).
-          </p>
+		          <div class="pageChips" aria-label="Selected matchup">
+		            <div class="glassChip" id="selTeamChip">
+		              <div class="glassChip__label">Defense</div>
+		              <div class="glassChip__value glassChip__value--row">
+		                <img id="selTeamLogo" class="teamLogo teamLogo--chip" alt="" />
+		                <span id="selTeamText">—</span>
+		              </div>
+		            </div>
+	            <div class="glassChip" id="selPosChip">
+	              <div class="glassChip__label">Position</div>
+	              <div class="glassChip__value"><span id="selPosText" class="posText" data-pos="QB">QB</span></div>
+	            </div>
+	          </div>
+	        </div>
+	      </div>
 
-          <div class="controls">
-            <label class="field">
-              <span>Position</span>
-              <div class="pos-toggle" role="group" aria-label="Position toggle">
-                <button class="pos-btn is-active" data-pos="QB">QB</button>
-                <button class="pos-btn" data-pos="RB">RB</button>
-                <button class="pos-btn" data-pos="WR">WR</button>
-                <button class="pos-btn" data-pos="TE">TE</button>
-              </div>
-            </label>
+	      <div class="hero__grid">
+		        <div class="hero__left">
+		          <div class="cards" id="quickCards">
+		            <!-- populated by JS -->
+		          </div>
 
-            <label class="field">
-              <span>Opponent Defense</span>
-              <select id="teamSelect" class="select"></select>
-            </label>
-          </div>
+		          <div class="playersPanel" id="playersPanel">
+		            <div class="playersHeader">
+		              <div class="playersHeaderTitle" id="playersSub">Select a defense + position to populate.</div>
+		            </div>
 
-          <div class="cards" id="quickCards">
-            <!-- populated by JS -->
-          </div>
-        </div>
+		            <div class="playersFilters">
+		              <label class="playersField">
+		                <select id="weekRange" class="playersSelect" aria-label="Week range">
+		                  <option value="all">2025 Season</option>
+		                  <option value="recent">Weeks 9–15</option>
+		                  <option value="1-8">Weeks 1–8</option>
+		                  <option value="9-12">Weeks 9–12</option>
+		                  <option value="13-15">Weeks 13–15</option>
+		                </select>
+		              </label>
 
-        <div class="hero__right">
-          <h2>Landscape</h2>
-          <p class="muted">
-            Scatter = defenses by FPA (Season vs Recent). Above the diagonal → trending easier.
-          </p>
+		              <label class="playersField">
+		                <input id="playerSearch" class="playersInput" type="text" aria-label="Search player or team" placeholder="Player or team…" />
+		              </label>
+		            </div>
 
-          <div class="chartCard">
-            <div class="chartTitleRow">
-              <div class="chartTitle">
-                <span id="scatterTitle">QB</span> — Season vs Weeks 9–15
-              </div>
+			            <div class="playersTableWrap">
+			              <div class="playersTableScroll">
+			                <table class="list" id="playerTable"></table>
+			              </div>
+			            </div>
+
+	            <div class="muted smallLine playersHint">Sorted by week (desc) by default • click headers to sort</div>
+	          </div>
+	        </div>
+
+	        <div class="hero__right">
+	          <div class="chartCard">
+		            <div class="chartTitleRow">
+		              <div class="chartTitle">
+		                <span id="scatterTitle" class="posText" data-pos="QB">QB</span> — Season vs Weeks 9–15
+	              </div>
               <div class="smallToggle">
                 <button class="smallToggle__btn is-active" data-scatmode="avg">Avg</button>
                 <button class="smallToggle__btn" data-scatmode="rank">Rank</button>
@@ -82,121 +116,135 @@
             </div>
 
             <!-- IMPORTANT: fixed-height parent prevents "expanding forever" resize loops in some hosts -->
-            <div class="canvasBox canvasBox--scatter">
-              <canvas id="scatterChart"></canvas>
-            </div>
+		            <div class="canvasBox canvasBox--scatter">
+		              <canvas id="scatterChart"></canvas>
+		            </div>
 
-            <div class="chartHint">
-              Tip: hover points for details • click a point to open drilldown
-            </div>
-          </div>
-        </div>
+		            <div class="chartDivider"></div>
 
-        <!-- Full-width row to avoid the left-column “dead space” you saw in published views -->
-        <div class="hero__mini">
-          <div class="miniCard">
-            <div class="miniCard__title">Easiest (Season)</div>
-            <div class="miniCard__body" id="topSeason"></div>
-          </div>
-          <div class="miniCard">
-            <div class="miniCard__title">Easiest (Weeks 9–15)</div>
-            <div class="miniCard__body" id="topRecent"></div>
-          </div>
-          <div class="miniCard">
-            <div class="miniCard__title">Biggest Trend: Easier</div>
-            <div class="miniCard__body" id="trendUp"></div>
-          </div>
-          <div class="miniCard">
-            <div class="miniCard__title">Biggest Trend: Tougher</div>
-            <div class="miniCard__body" id="trendDown"></div>
-          </div>
-        </div>
-      </div>
-    </section>
+		            <div class="chartTitleRow chartTitleRow--wrap">
+		              <div class="chartTitle">
+		                <span class="teamInline">
+		                  <img id="playerWeekTitleLogo" class="teamLogo teamLogo--opt" alt="" />
+		                  <span id="playerWeekTitleTeam" class="teamText">—</span>
+		                </span>
+		                <span class="muted">vs</span>
+		                <span id="playerWeekTitlePos" class="posText" data-pos="QB">QB</span>
+		                <span class="muted">• player week scatter (PPR)</span>
+		              </div>
+		              <div class="avgPills" id="playerWeekAvgPills" aria-label="Player week scatter averages"></div>
+		              <div class="pos2-toggle" id="playerScatterPosToggle" role="group" aria-label="Player week scatter position filters">
+		                <button class="pos2-btn" data-pos="ALL">All</button>
+		                <button class="pos2-btn is-active" data-pos="QB">QB</button>
+		                <button class="pos2-btn" data-pos="RB">RB</button>
+		                <button class="pos2-btn" data-pos="WR">WR</button>
+		                <button class="pos2-btn" data-pos="TE">TE</button>
+		              </div>
+	            </div>
 
-    <section class="grid2">
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <h2>Heatmap Table</h2>
-            <div class="muted">Click any cell to drill into weekly players + weekly totals.</div>
-          </div>
+		            <div class="canvasBox canvasBox--playerWeekScatter">
+		              <canvas id="playerWeekScatterChart"></canvas>
+		            </div>
+		          </div>
+		        </div>
 
-          <div class="panelHeader__right">
-            <label class="field small">
-              <span>Sort by</span>
-              <select id="sortSelect" class="select">
-                <option value="Total_Rk">Total (rank)</option>
-                <option value="QB_Rk">QB (rank)</option>
-                <option value="RB_Rk">RB (rank)</option>
-                <option value="WR_Rk">WR (rank)</option>
-                <option value="TE_Rk">TE (rank)</option>
-                <option value="Total Avg">Total (avg)</option>
-                <option value="QB_Avg">QB (avg)</option>
-                <option value="RB_Avg">RB (avg)</option>
-                <option value="WR_Avg">WR (avg)</option>
-                <option value="TE_Avg">TE (avg)</option>
-              </select>
-            </label>
+		      </div>
+		    </section>
 
-            <label class="field small">
-              <span>Direction</span>
-              <select id="dirSelect" class="select">
-                <option value="desc">Easiest → Toughest</option>
-                <option value="asc">Toughest → Easiest</option>
-              </select>
-            </label>
-          </div>
-        </div>
+		    <section class="grid2">
+				      <section class="panel">
+				        <div class="panelHeader panelHeader--heat">
+				          <div class="heatHeaderGrid">
+				            <h2 class="heatmapTitle">Matchup Heatmap</h2>
 
-        <div class="tableWrap">
+				            <div class="segmented" role="tablist" aria-label="Dataset selector">
+				              <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
+				              <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
+				            </div>
+
+				            <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
+
+				            <div class="pill" id="loadStatus" title="Data load status">
+				              <span class="dot is-warn"></span>
+				              <span>Loading CSVs…</span>
+				            </div>
+
+				            <div class="heatHeaderField heatHeaderField--pos">
+				              <div class="heatHeaderLabel">Position</div>
+				              <div id="heatPosToggle" class="heatPosToggle" role="group" aria-label="Heatmap position">
+				                <button type="button" class="heatPosBtn is-active" data-pos="QB" aria-pressed="true">QB</button>
+				                <button type="button" class="heatPosBtn" data-pos="RB" aria-pressed="false">RB</button>
+				                <button type="button" class="heatPosBtn" data-pos="WR" aria-pressed="false">WR</button>
+				                <button type="button" class="heatPosBtn" data-pos="TE" aria-pressed="false">TE</button>
+				              </div>
+				            </div>
+
+				            <label class="heatHeaderField heatHeaderField--def">
+				              <span class="heatHeaderLabel">Defense</span>
+				              <select id="heatTeamSelect" class="heatSelect" aria-label="Heatmap defense"></select>
+				            </label>
+
+				            <label class="heatHeaderField heatHeaderField--sort">
+				              <span class="heatHeaderLabel">Sort by</span>
+				              <select id="sortSelect" class="heatSelect" aria-label="Heatmap sort by">
+				                <option value="Total_Rk">Total (rank)</option>
+				                <option value="QB_Rk">QB (rank)</option>
+				                <option value="RB_Rk">RB (rank)</option>
+				                <option value="WR_Rk">WR (rank)</option>
+				                <option value="TE_Rk">TE (rank)</option>
+				                <option value="Total Avg">Total (avg)</option>
+				                <option value="QB_Avg">QB (avg)</option>
+				                <option value="RB_Avg">RB (avg)</option>
+				                <option value="WR_Avg">WR (avg)</option>
+				                <option value="TE_Avg">TE (avg)</option>
+				              </select>
+				            </label>
+
+				            <label class="heatHeaderField heatHeaderField--dir">
+				              <span class="heatHeaderLabel">Direction</span>
+				              <select id="dirSelect" class="heatSelect" aria-label="Heatmap sort direction">
+				                <option value="desc">Easiest → Toughest</option>
+				                <option value="asc">Toughest → Easiest</option>
+				              </select>
+				            </label>
+				          </div>
+				        </div>
+	
+	        <div class="tableWrap">
           <table class="heat" id="heatTable">
             <!-- populated by JS -->
           </table>
         </div>
-        <div class="footnote">
-          Ranks: 1 = toughest (fewest points allowed) • 32 = easiest (most allowed)
-        </div>
-      </section>
+	        <div class="footnote">
+	          Ranks: 1 = toughest (fewest points allowed) • 32 = easiest (most allowed)
+	        </div>
+	      </section>
 
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <h2>Defense Profile</h2>
-            <div class="muted">Select a team from the table or scatter to compare season vs recent.</div>
-          </div>
-          <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
-        </div>
-
-        <div class="profileGrid">
-          <div class="profileCard">
-            <div class="profileCard__title">Season vs Weeks 9–15 (Ranks)</div>
-            <div class="canvasBox canvasBox--radar">
-              <canvas id="radarChart"></canvas>
-            </div>
-            <div class="chartHint">Higher rank = easier matchup</div>
-          </div>
-
-          <div class="profileCard">
-            <div class="profileCard__title">Weekly Totals vs Selected Position</div>
-            <div class="muted smallLine" id="weeklySub">Select a position + team to populate.</div>
-            <div class="canvasBox canvasBox--weekly">
-              <canvas id="weeklyChart"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="profileFooter">
-          <div class="muted smallLine">
-            Drilldowns use <strong>WKLY-DEF_vs_POS_by_Player.csv</strong> to show which players drove each week’s FPA.
-          </div>
-        </div>
-      </section>
-    </section>
+	      <div class="miniCol">
+	        <div class="miniStack">
+	          <div class="miniCard">
+	            <div class="miniCard__title" id="topSeasonTitle">Best matchups (through 2025) — QB</div>
+	            <div class="miniCard__body" id="topSeason"></div>
+	          </div>
+	          <div class="miniCard">
+	            <div class="miniCard__title" id="topRecentTitle">Best matchups (last 7 games) — QB</div>
+	            <div class="miniCard__body" id="topRecent"></div>
+	          </div>
+	          <div class="miniCard">
+	            <div class="miniCard__title" id="trendUpTitle">Trending up (Easier)</div>
+	            <div class="miniCard__body" id="trendUp"></div>
+	          </div>
+	          <div class="miniCard">
+	            <div class="miniCard__title" id="trendDownTitle">Trending down (Tougher)</div>
+	            <div class="miniCard__body" id="trendDown"></div>
+	          </div>
+	        </div>
+	      </div>
+	    </section>
 
     <section class="panel uploader" id="uploader">
-      <h2>CSV Loader (only if auto-load fails)</h2>
-      <p class="muted">
+      <h2 class="uploaderTitle">CSV Loader (only if auto-load fails)</h2>
+      <p class="uploaderSubtitle">
         If you opened this page directly as a file (<code>file://</code>), browsers often block CSV fetches.
         Easiest fix: run a tiny local server (example: <code>python -m http.server</code>) or upload these files below.
       </p>
@@ -208,68 +256,11 @@
         </div>
       </div>
     </section>
-  </main>
+	  </main>
 
-  <!-- Drilldown modal -->
-  <div class="modal" id="modal" aria-hidden="true">
-    <div class="modal__backdrop" data-close="1"></div>
-    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal__head">
-        <div>
-          <div class="modal__kicker">Drilldown</div>
-          <div id="modalTitle" class="modal__title">—</div>
-        </div>
-        <button class="iconBtn" data-close="1" aria-label="Close">✕</button>
-      </div>
-
-      <div class="modal__body">
-        <div class="modalCards" id="modalCards"></div>
-
-        <div class="modalSplit">
-          <div class="modalSection">
-            <div class="modalSection__title">Weekly Totals</div>
-            <div class="canvasBox canvasBox--modalWeekly">
-              <canvas id="modalWeeklyChart"></canvas>
-            </div>
-            <div class="chartHint">Bars = total FPA allowed to that position each week</div>
-          </div>
-
-          <div class="modalSection">
-            <div class="modalSection__title">Players (click headers to sort)</div>
-            <div class="modalFilters">
-              <label class="field small">
-                <span>Weeks</span>
-                <select id="weekRange" class="select">
-                  <option value="all">All (1–15)</option>
-                  <option value="recent">Weeks 9–15</option>
-                  <option value="1-8">Weeks 1–8</option>
-                  <option value="9-12">Weeks 9–12</option>
-                  <option value="13-15">Weeks 13–15</option>
-                </select>
-              </label>
-
-              <label class="field small">
-                <span>Search</span>
-                <input id="playerSearch" class="input" type="text" placeholder="Player or team…" />
-              </label>
-            </div>
-
-            <div class="tableWrap modalTableWrap">
-              <table class="list" id="playerTable"></table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal__foot">
-        <button class="btn" data-close="1">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Libraries (CDN). If you prefer offline, download these and point to local files. -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+	  <!-- Libraries (CDN). If you prefer offline, download these and point to local files. -->
+	  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+	  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
