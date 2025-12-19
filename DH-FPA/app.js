@@ -792,14 +792,15 @@ function buildQuickCards(){
   const card = (title, avg, rk, gm, extra) => {
     const accent = heatColor(rankScore(rk));
     const bg = `radial-gradient(260px 90px at 18% 10%, ${rgbaOf(accent,0.22)}, transparent 60%), rgba(255,255,255,0.045)`;
+    const rkTxt = ordinal(rk);
     return `
     <div class="card" style="background:${bg}; border-color:${rgbaOf(accent,0.22)}">
       <div class="card__top">
         <div class="card__title">${title}</div>
         ${chipFor(rk)}
       </div>
-      <div class="card__big">${fmt(avg,2)} <span class="muted" style="font-size:12px;font-weight:700;">FPA</span></div>
-      <div class="card__sub">Rank: <strong>${fmt(rk,0)}</strong> / 32 • Games: <strong>${fmt(gm,0)}</strong> ${extra ?? ""}</div>
+      <div class="card__big">${rkTxt} <span class="muted" style="font-size:12px;font-weight:700;">rank</span></div>
+      <div class="card__sub"><strong>${fmt(avg,2)}</strong> FPA • Games: <strong>${fmt(gm,0)}</strong> ${extra ?? ""}</div>
     </div>
   `;
   };
