@@ -37,15 +37,15 @@ const PLAYER_POINTS_COLORS = {
 
 // Team colors (use provided/official hex values; do not auto-brighten).
 const TEAM_COLORS = {
-  'SF': '#B3995D', 'CHI': '#071d46', 'CIN': '#FB4F14', 'BUF': '#C60C30',
-  'DEN': '#FB4F14', 'CLE': '#311D00', 'TB': '#DC4405', 'ARI': '#97233F',
-  'LAC': '#0080C6', 'SD': '#0080C6', 'KC': '#E31837', 'IND': '#002C5F',
-  'WAS': '#5A1414', 'DAL': '#869397', 'MIA': '#008E97', 'PHI': '#2B8C4E',
-  'ATL': '#A71930', 'NYG': '#0D2266', 'JAX': '#006778', 'NYJ': '#125740',
-  'DET': '#0076B6', 'GB': '#203731', 'CAR': '#0085CA', 'NE': '#002244',
-  'LV': '#A5ACAF', 'OAK': '#A5ACAF', 'LAR': '#003594', 'STL': '#003594',
-  'BAL': '#241773', 'NO': '#D3BC8D', 'SEA': '#69BE28', 'PIT': '#FFB612',
-  'HOU': '#00143f', 'TEN': '#4B92DB', 'MIN': '#4F2683'
+  'SF': '#B3995D', 'CHI': '#b1c7efff', 'CIN': '#FB4F14', 'BUF': '#C60C30',
+  'DEN': '#FB4F14', 'CLE': '#ff3c00', 'TB': '#ca3d00ff', 'ARI': '#97233F',
+  'LAC': '#0080C6', 'SD': '#0080C6', 'KC': '#E31837', 'IND': '#033f84ff',
+  'WAS': '#821f1fff', 'DAL': '#869397', 'MIA': '#008E97', 'PHI': '#2B8C4E',
+  'ATL': '#A71930', 'NYG': '#0c2780ff', 'JAX': '#006778', 'NYJ': '#125740',
+  'DET': '#0076B6', 'GB': '#ffb612', 'CAR': '#0085CA', 'NE': '#003b76ff',
+  'LV': '#A5ACAF', 'OAK': '#A5ACAF', 'LAR': '#003aa5ff', 'STL': '#003594',
+  'BAL': '#491ca9ff', 'NO': '#D3BC8D', 'SEA': '#69BE28', 'PIT': '#FFB612',
+  'HOU': '#a71930', 'TEN': '#4B92DB', 'MIN': '#4F2683'
 };
 
 const TEAM_LOGO_ALIASES = {

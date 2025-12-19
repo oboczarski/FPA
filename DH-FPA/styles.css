@@ -44,7 +44,7 @@
 .teamText{
   font-weight: 950;
   letter-spacing: 0.05em;
-  line-height: 1.05;
+  line-height: 1;
 }
 .teamInline{
   display:inline-flex;
@@ -327,7 +327,7 @@ body::before{
   display:block;
 }
 .teamLogo.glow{
-  --glow-r3: 3.2px;
+  --glow-r3: 1.9px;
   filter: drop-shadow(0 0 var(--glow-r3) currentColor);
 }
 .teamLogo--opt{ width: 19px; height: 19px; }
