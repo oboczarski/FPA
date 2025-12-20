@@ -706,7 +706,7 @@ body::before{
 }
 .playersPanel .playerName{
   color: rgba(255,255,255,0.92);
-  text-shadow: 0 0 12px var(--player-glow, transparent);
+  text-shadow: 0 0 6px var(--player-tint, transparent);
 }
 .playersFilters{
   display:flex;
@@ -750,7 +750,6 @@ body::before{
 
 /* Desktop-only: keep Player Week header compact (no avg pills in header). */
 @media (min-width: 761px){
-  #playerWeekAvgPills{ display:none; }
   .chartTitleRow--playerWeek{
     flex-wrap: nowrap;
     align-items: center;
@@ -765,6 +764,7 @@ body::before{
     flex: 0 0 auto;
   }
 }
+.chartTitleRow--playerWeek #playerWeekAvgPills{ display:none; }
 .chartTitle{
   font-size: 14px;
   color: var(--muted);
@@ -1161,10 +1161,8 @@ body::before{
   .playersHeader{ padding: 1px 2px 5px; }
   .playersHeaderTitle{ font-size: 13px; }
   .playersPanel .playerName{
-    text-shadow:
-      0 0 14px var(--player-glow, transparent),
-      0 0 28px var(--player-glow, transparent);
-    filter: drop-shadow(0 0 10px var(--player-glow, transparent));
+    color: var(--player-ink, rgba(255,255,255,0.92));
+    text-shadow: 0 0 3px var(--player-tint, transparent);
   }
   .playersFilters{ gap: 6px; margin: 6px 2px 8px; flex-wrap: nowrap; }
   .playersFilters .playersField{ flex: 1 1 0; min-width: 0; }
@@ -1255,6 +1253,21 @@ body::before{
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .chartTitleRow--playerWeek{
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+  .chartTitleRow--playerWeek .chartTitle{
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chartTitleRow--playerWeek .pos2-toggle{
+    flex-wrap: nowrap;
   }
   .pos2-toggle{
     justify-content:flex-start;

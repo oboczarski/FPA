@@ -512,6 +512,43 @@ function rgbaOf(color, alpha){
   return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
 }
 
+function rgbOf(color){
+  const s = String(color).trim();
+  let m = s.match(/rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (m) return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]) };
+
+  m = s.match(/^#([0-9a-f]{6})$/i);
+  if (m){
+    const hex = m[1];
+    return {
+      r: parseInt(hex.slice(0, 2), 16),
+      g: parseInt(hex.slice(2, 4), 16),
+      b: parseInt(hex.slice(4, 6), 16),
+    };
+  }
+
+  m = s.match(/^#([0-9a-f]{3})$/i);
+  if (m){
+    const hex = m[1];
+    return {
+      r: parseInt(hex[0] + hex[0], 16),
+      g: parseInt(hex[1] + hex[1], 16),
+      b: parseInt(hex[2] + hex[2], 16),
+    };
+  }
+
+  return null;
+}
+
+function mixRgb(a, b, t){
+  const tt = clamp(Number(t), 0, 1);
+  return {
+    r: Math.round(a.r * (1 - tt) + b.r * tt),
+    g: Math.round(a.g * (1 - tt) + b.g * tt),
+    b: Math.round(a.b * (1 - tt) + b.b * tt),
+  };
+}
+
 function setStatus(kind, text){
   if (!els.loadStatus) return;
   const dot = els.loadStatus.querySelector(".dot");
@@ -1212,8 +1249,8 @@ const NO_OVERLAP_SCATTER_PLUGIN = {
 const PLAYER_WEEK_AVG_MARKERS_PLUGIN = {
   id: "playerWeekAvgMarkers",
   afterDraw(chart, _, opts){
-    // Mobile-only: desktop uses in-chart avg pills instead.
-    if (!SCATTER_MOBILE_MQ.matches) return;
+    // Deprecated: replaced by in-chart avg pills.
+    return;
     const area = chart.chartArea;
     const yScale = chart.scales?.y;
     if (!area || !yScale) return;
@@ -1268,14 +1305,14 @@ const PLAYER_WEEK_AVG_MARKERS_PLUGIN = {
   }
 };
 
-// Desktop-only: render compact "avg pills" inside the Player Week Scatter plot area.
+// Render compact "avg pills" inside the Player Week Scatter plot area.
 const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
   id: "playerWeekAvgPills",
   afterDraw(chart, _, opts){
-    if (SCATTER_MOBILE_MQ.matches) return;
     const area = chart.chartArea;
     const yScale = chart.scales?.y;
-    if (!area || !yScale) return;
+    const xScale = chart.scales?.x;
+    if (!area || !yScale || !xScale) return;
 
     const teamAvg = opts?.teamAvg;
     const leagueAvg = opts?.leagueAvg;
@@ -1283,18 +1320,19 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     const leagueColor = opts?.leagueColor ?? "rgba(255,255,255,0.75)";
 
     const entries = [
-      { key: "team", label: "Team", value: teamAvg, color: teamColor },
-      { key: "league", label: "League", value: leagueAvg, color: leagueColor },
+      { key: "tm", label: "TM • AVG", value: teamAvg, color: teamColor },
+      { key: "lg", label: "LG • AVG", value: leagueAvg, color: leagueColor },
     ].filter(e => Number.isFinite(e.value));
     if (!entries.length) return;
 
     const ctx = chart.ctx;
+    const isMobile = SCATTER_MOBILE_MQ.matches;
     const fontFamily = Chart.defaults?.font?.family || getComputedStyle(document.body).fontFamily || "sans-serif";
-    const fontSize = 10;
-    const pillH = 16;
-    const padX = 7;
-    const gap = 6;
-    const swatchR = 3.5;
+    const fontSize = isMobile ? 9 : 10;
+    const pillH = isMobile ? 15 : 16;
+    const padX = isMobile ? 6 : 7;
+    const gap = isMobile ? 5 : 6;
+    const swatchR = isMobile ? 3.2 : 3.5;
     const r = 999;
 
     const roundRect = (x, y, w, h, rad) => {
@@ -1320,47 +1358,87 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     ctx.font = `${fontSize}px ${fontFamily}`;
     ctx.textBaseline = "middle";
 
-    for (const e of entries){
-      const y0 = yScale.getPixelForValue(e.value);
-      if (!withinY(y0)) continue;
+    const anchorX = clamp(xScale.getPixelForValue(1), area.left + 6, area.right - 6);
+    const padEdge = 6;
+    const shiftY = pillH + 6;
 
-      const text = `${e.label}: ${fmt(e.value,2)}`;
+    const mk = (e) => {
+      const yDot = yScale.getPixelForValue(e.value);
+      if (!withinY(yDot)) return null;
+      const text = `${e.label} ${fmt(e.value,2)}`;
       const textW = ctx.measureText(text).width;
       const w = Math.min(textW + padX * 2 + swatchR * 2 + gap, Math.max(60, area.right - area.left - 10));
+      const x = clamp(anchorX + 10, area.left + padEdge, area.right - w - padEdge);
+      const y = clamp(yDot - (pillH / 2), area.top + 4, area.bottom - pillH - 4);
+      return { ...e, text, w, x, y, yDot };
+    };
 
-      const x = e.key === "team"
-        ? (area.left + 8)
-        : (area.right - w - 8);
+    const a0 = mk(entries[0]);
+    const b0 = mk(entries[1]);
+    const boxesOverlap = (a, b) => {
+      if (!a || !b) return false;
+      const ax2 = a.x + a.w;
+      const ay2 = a.y + pillH;
+      const bx2 = b.x + b.w;
+      const by2 = b.y + pillH;
+      return a.x < bx2 && ax2 > b.x && a.y < by2 && ay2 > b.y;
+    };
 
-      const y = clamp(y0 - (pillH / 2), area.top + 4, area.bottom - pillH - 4);
+    let a = a0;
+    let b = b0;
+    if (boxesOverlap(a, b)){
+      const tryB = (dy) => ({ ...b, y: clamp(b.y + dy, area.top + 4, area.bottom - pillH - 4) });
+      const bDown = tryB(shiftY);
+      const bUp = tryB(-shiftY);
+      if (!boxesOverlap(a, bDown)) b = bDown;
+      else if (!boxesOverlap(a, bUp)) b = bUp;
+      else{
+        // last resort: push B slightly to the right but keep it near week 1
+        const bRight = { ...b, x: clamp(b.x + 14, area.left + padEdge, area.right - b.w - padEdge) };
+        b = bRight;
+      }
+    }
 
+    const draw = (e) => {
+      if (!e) return;
+
+      // anchor dot at (week 1, avg)
+      ctx.shadowColor = rgbaOf(e.color, 0.55);
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.arc(anchorX, e.yDot, isMobile ? 3 : 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // pill label near the dot (kept inside the plot area)
       const fill = rgbaOf(e.color, 0.14);
       const stroke = rgbaOf(e.color, 0.28);
-
       ctx.shadowColor = rgbaOf(e.color, 0.35);
       ctx.shadowBlur = 10;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
       ctx.fillStyle = fill;
-      roundRect(x, y, w, pillH, r);
+      roundRect(e.x, e.y, e.w, pillH, r);
       ctx.fill();
 
       ctx.shadowBlur = 0;
       ctx.strokeStyle = stroke;
       ctx.lineWidth = 1;
-      roundRect(x, y, w, pillH, r);
+      roundRect(e.x, e.y, e.w, pillH, r);
       ctx.stroke();
 
-      const cy = y + pillH / 2;
-      const cx = x + padX + swatchR;
+      const cy = e.y + pillH / 2;
+      const cx = e.x + padX + swatchR;
       ctx.fillStyle = e.color;
       ctx.beginPath();
       ctx.arc(cx, cy, swatchR, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = "rgba(255,255,255,0.86)";
-      ctx.fillText(text, cx + swatchR + gap, cy);
-    }
+      ctx.fillText(e.text, cx + swatchR + gap, cy);
+    };
+
+    draw(a);
+    draw(b);
 
     ctx.restore();
   }
@@ -1836,26 +1914,35 @@ function buildPlayerTable(team, pos){
 	    </thead>
 	    <tbody>
 		      ${rows.map(r => {
-		        const tm = r.playerTeam || "—";
-		        const tmCode = cleanStr(tm).toUpperCase();
-		        const tmColor = teamColorText(tmCode);
-		        const glowSpec = getTeamLogoGlowSpec(tmCode);
-		        const nameGlow = glowSpec?.glow ? rgbaOf(glowSpec.glow, 0.22) : null;
-		        const ptsColor = pointsColor(r.pos, r.pts);
-		        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
-		        const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
-		        const tmCell = tmCode
-		          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
-		          : `<span class="teamText">—</span>`;
-		        const playerCell = `<span class="playerName"${nameGlow ? ` style="--player-glow:${nameGlow};"` : ""}>${r.player}</span>`;
+			        const tm = r.playerTeam || "—";
+			        const tmCode = cleanStr(tm).toUpperCase();
+			        const tmColor = teamColorText(tmCode);
+			        const glowSpec = getTeamLogoGlowSpec(tmCode);
+			        const nameTint = glowSpec?.glow ? rgbaOf(glowSpec.glow, 0.30) : null;
+			        const glowRgb = glowSpec?.glow ? rgbOf(glowSpec.glow) : null;
+			        const inkMix = SCATTER_MOBILE_MQ.matches ? 0.26 : 0.18;
+			        const nameInk = glowRgb
+			          ? (() => {
+			              const mixed = mixRgb({ r: 255, g: 255, b: 255 }, glowRgb, inkMix);
+			              return `rgba(${mixed.r}, ${mixed.g}, ${mixed.b}, 0.92)`;
+			            })()
+			          : null;
+			        const ptsColor = pointsColor(r.pos, r.pts);
+			        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
+			        const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
+			        const tmCell = tmCode
+			          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
+			          : `<span class="teamText">—</span>`;
+			        const nameStyle = [nameTint ? `--player-tint:${nameTint};` : "", nameInk ? `--player-ink:${nameInk};` : ""].filter(Boolean).join("");
+			        const playerCell = `<span class="playerName"${nameStyle ? ` style="${nameStyle}"` : ""}>${r.player}</span>`;
 	        return `
 	          <tr>
 	            <td>W${r.week}</td>
 	            <td>${playerCell}</td>
-		            <td>${tmCell}</td>
-		            <td style="${ptsStyle}">${fmt(r.pts,2)}</td>
-		          </tr>
-		        `;
+			            <td>${tmCell}</td>
+			            <td style="${ptsStyle}">${fmt(r.pts,2)}</td>
+	          </tr>
+			        `;
 		      }).join("")}
 	    </tbody>
 	  `;
