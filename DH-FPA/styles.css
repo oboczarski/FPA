@@ -519,7 +519,7 @@ body::before{
   height: 42px;
   border-radius: 12px;
   border:1px solid var(--border2);
-  background: rgba(5,5,12,0.35);
+  background: rgb(5 5 12 / 11%);
   color: var(--text);
   outline:none;
 }
@@ -855,8 +855,6 @@ body::before{
   letter-spacing: 0.01em;
   color: rgba(255,255,255,0.86);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .playersModalSub .teamText,
 .playersModalSub .posText{
@@ -869,13 +867,14 @@ body::before{
 
 .modalRankCard{
   display:flex;
+  margin-right: 13px;
   flex-direction: column;
   justify-content: center;
-  gap: 3px;
-  height: 36px;
+  gap: 4px;
+  height: 45px;
   min-width: 0;
   max-width: 240px;
-  padding: 6px 10px;
+  padding: 6px 17px;
   overflow: hidden;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.14);
@@ -886,7 +885,7 @@ body::before{
   backdrop-filter: blur(14px);
 }
 .modalRankCard__label{
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -1036,7 +1035,7 @@ body::before{
   .playersExpandBtn{width: 33px;height: 29px;border-radius: 11px;}
   .playersExpandBtn i{ font-size: 12px; }
   .playersModalControls{ padding: 8px 10px 0px; }
-  .playersModalBody{ padding: 8px 10px 10px; }
+  .playersModalBody{padding: 3px 10px 8px;}
   .playersModal .pos-toggle--modal{ justify-content: flex-start; }
 }
 
