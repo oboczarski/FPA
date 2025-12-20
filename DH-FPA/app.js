@@ -489,17 +489,8 @@ function syncPlayerWeekScatterTitle(team){
 }
 
 function applyHeatHighlights(){
-  if (!els.heatTable) return;
-  const cells = $$(".cell", els.heatTable);
-  if (!cells.length) return;
-
-  const mainTeam = STATE.selectedTeam;
-  const mainPos = STATE.pos;
-
-  for (const c of cells){
-    const isMain = !!mainTeam && c.dataset.team === mainTeam && (c.dataset.pos === mainPos || c.dataset.pos === "TOTAL");
-    c.classList.toggle("is-selected", isMain);
-  }
+  // Heatmap is intentionally non-interactive (cells are not selectable/focusable).
+  return;
 }
 
 function pointsColor(pos, pts){
@@ -1045,16 +1036,6 @@ function buildHeatTable(){
       }
 
       buildHeatTable();
-    });
-  });
-
-  // bind clicks
-  $$(".cell", els.heatTable).forEach(cell => {
-    cell.addEventListener("click", () => {
-      const team = cell.dataset.team;
-      if (!team) return;
-      // Heatmap taps should not change the main page position selection.
-      selectTeam(team);
     });
   });
 
