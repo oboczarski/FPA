@@ -792,7 +792,7 @@ body::before{
 .playersTableWrap{
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(0,0,0,0.16);
+  background: rgb(120 122 132 / 2%);
   overflow: hidden;
   height: 32rem;
 }
@@ -1416,6 +1416,7 @@ body::before{
   letter-spacing:0.02em;
   transition: transform .14s ease, border-color .14s ease, background .14s ease, color .14s ease;
 }
+
 @media (min-width: 981px){
   .heatHeaderRow{
     width: auto;
@@ -1470,10 +1471,10 @@ body::before{
     position:absolute;
     left: 2px;
     right: 2px;
-    bottom: 0;
+    bottom: -1px;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(155,155,255,0.54), transparent);
-    opacity: 0.9;
+    background: linear-gradient(90deg, #ff191900, #8350ff80, rgba(155, 155, 255, 0.64), #8350ff80, #9c29da00);
+    opacity: 1;
   }
 
   .pageTitle{ font-size: 18px; }
@@ -1720,14 +1721,14 @@ body::before{
 
 .tableWrap{
   overflow:auto;
-  padding: 6px 10px 8px;
+  padding: 12px 7px 12px;
   border: 1px solid rgba(255,255,255,0.10);
   border-radius: 14px;
   background:
     radial-gradient(980px 240px at 15% 0%, rgba(0,191,255,0.12), transparent 60%),
     radial-gradient(980px 240px at 85% 0%, rgba(207,120,255,0.10), transparent 60%),
     rgba(0,0,0,0.18);
-  backdrop-filter: blur(0px);
+  backdrop-filter: blur(16px);
   box-shadow: 0 18px 60px rgba(0,0,0,0.55);
 }
 .footnote{
@@ -1746,7 +1747,8 @@ table{
   position:sticky;
   top:0;
   z-index:2;
-  background: rgb(52 52 81 / 50%);
+  background: rgba(8,8,18,0.82);
+  backdrop-filter: blur(15px);
   border-bottom:1px solid rgba(255,255,255,0.12);
   padding: 10px 10px;
   font-size: 14px;
@@ -1774,8 +1776,8 @@ table{
 }
 .heat tbody td{
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  padding: 0px;
-  font-size: 15px;
+  padding: 4px;
+  font-size: 13px;
 }
 .heat tbody tr:hover td{
   background: rgba(255,255,255,0.03);
@@ -1795,14 +1797,14 @@ table{
   -webkit-tap-highlight-color: transparent;
 }
 .heat .tmCell .teamLogo{
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
 .cell{
   position: relative;
   border-radius: 14px;
   border:1px solid rgba(255,255,255,0.08);
-  padding: 2px 0px !important;
+  padding: 4px 11px !important;
   background: rgba(0,0,0,0.18);
   cursor: default;
   display:flex;
@@ -1832,13 +1834,13 @@ table{
   z-index: 1;
   align-items: baseline;
   justify-content:center;
-  gap: 10px;
+  gap: 6px;
   line-height: 1.1;
   white-space: nowrap;
 }
 .cell__rk{
   font-weight: 950;
-  font-size: 18px;
+  font-size: 14px;
   letter-spacing: 0.01em;
 }
 .heat .cell__rk .ord__suf{
@@ -1846,7 +1848,7 @@ table{
   font-size: calc(1em - 1px);
 }
 .cell__avg{
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   font-weight: 800;
 }
@@ -1855,7 +1857,7 @@ table{
 @media (max-width: 680px){
   .tableWrap{ padding: 8px 6px 8px; overflow-x: hidden; }
   .heat{ table-layout: fixed; }
-  .heat thead th{ padding: 7px 4px; font-size: 13px; }
+  .heat thead th{ padding: 7px 4px; font-size: 11px; }
   .heat tbody td{ padding: 2px; font-size: 11px; }
   .tmCell{ font-size: 11px; }
   .cell{ padding: 4px 5px !important; border-radius: 11px; }
@@ -1971,9 +1973,9 @@ table{
   position:sticky;
   top:0;
   z-index:2;
-  background: rgb(8,8,18);
+  background: rgb(27 31 46);
   border-bottom:1px solid rgba(255,255,255,0.12);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.40);
+  box-shadow: 0 -3px 24px rgb(27, 27, 43);
   padding: 9px 10px;
   font-size: 12px;
   color: var(--muted);
