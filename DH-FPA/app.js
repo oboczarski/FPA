@@ -2137,7 +2137,7 @@ function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearch
   });
 }
 
-function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable, lowPointsMode = "none" } = {}){
+function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable, lowPointsMode = "none", showSuffix = true } = {}){
   if (!team || !pos){
     if (subEl) subEl.textContent = "Select a defense + position to populate.";
     if (tableEl) tableEl.innerHTML = "";
@@ -2149,7 +2149,8 @@ function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = 
 	  const teamTag = t
 	    ? `<span class="teamInline teamInline--tight">${teamLogoStackMarkup(t, { sizeClass: "teamLogo--opt" })}<span class="teamText" ${style}>${t}</span></span>`
 	    : "—";
-  if (subEl) subEl.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
+  const suffix = showSuffix ? " • players by week" : "";
+  if (subEl) subEl.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span>${suffix}`;
   buildPlayerTable(team, pos, { weekRangeEl, playerSearchEl, tableEl, lowPointsMode });
 }
 
@@ -2160,7 +2161,7 @@ function buildPlayersEverywhere(team, pos){
     if (els.modalWeekRange && els.weekRange) els.modalWeekRange.value = els.weekRange.value;
     if (els.modalPlayerSearch && els.playerSearch) els.modalPlayerSearch.value = els.playerSearch.value;
     const lowPointsMode = STATE.modalShowAllPlayers ? "exclude_zero" : "exclude_lt4";
-    buildPlayersSection(team, pos, { subEl: els.playersModalSub, weekRangeEl: els.modalWeekRange, playerSearchEl: els.modalPlayerSearch, tableEl: els.modalPlayerTable, lowPointsMode });
+    buildPlayersSection(team, pos, { subEl: els.playersModalSub, weekRangeEl: els.modalWeekRange, playerSearchEl: els.modalPlayerSearch, tableEl: els.modalPlayerTable, lowPointsMode, showSuffix: false });
     syncModalLowPtsToggle();
     renderModalRankCard(team, pos);
   }

@@ -241,15 +241,22 @@
 		    <div class="modalBackdrop" data-close="true" aria-hidden="true"></div>
 		    <div class="modalCard playersModal" role="dialog" aria-modal="true" aria-labelledby="playersModalTitle">
 		      <div class="modalHeader playersModalHeader">
-		        <div class="playersModalHeader__text">
-		          <div class="playersModalTitle" id="playersModalTitle">Players by week</div>
-		          <div class="playersModalSub" id="playersModalSub">Select a defense + position to populate.</div>
+		        <div class="playersModalHeader__top">
+		          <div class="playersModalHeader__text">
+		            <div class="playersModalTitle" id="playersModalTitle">Players by week</div>
+		            <div class="playersModalSub" id="playersModalSub">Select a defense + position to populate.</div>
+		          </div>
+		          <div class="playersModalHeader__actions">
+		            <div class="modalRankCard" id="modalRankCard" aria-label="Selected matchup rank"></div>
+		            <button type="button" class="modalCloseBtn" id="playersModalClose" aria-label="Close">
+		              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+		            </button>
+		          </div>
 		        </div>
-		        <div class="playersModalHeader__actions">
-		          <div class="modalRankCard" id="modalRankCard" aria-label="Selected matchup rank"></div>
-		          <button type="button" class="modalCloseBtn" id="playersModalClose" aria-label="Close">
-		            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-		          </button>
+
+		        <div class="playersModalHeader__footer" aria-label="Players modal filters">
+		          <div class="playersModalFooter__text">Excludes players with less than four points — Toggle to show all</div>
+		          <button type="button" class="circleToggle" id="modalLowPtsToggle" aria-pressed="false" aria-label="Toggle low-point players"></button>
 		        </div>
 		      </div>
 
@@ -299,11 +306,6 @@
 		          <div class="playersTableScroll">
 		            <table class="list" id="modalPlayerTable"></table>
 		          </div>
-		        </div>
-
-		        <div class="playersModalFooter" aria-label="Players modal filters">
-		          <div class="playersModalFooter__text">Excludes players with less than four points — Toggle to show all</div>
-		          <button type="button" class="circleToggle" id="modalLowPtsToggle" aria-pressed="false" aria-label="Toggle low-point players"></button>
 		        </div>
 		      </div>
 		    </div>
