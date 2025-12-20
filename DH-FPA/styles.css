@@ -1010,15 +1010,41 @@ body::before{
     overflow: hidden;
   }
   .modalCard.playersModal{ overflow: visible; }
+  .modalHeader{
+    position: relative;
+    justify-content: center;
+  }
+  .playersModalHeader__text{
+    align-items: center;
+    text-align: center;
+  }
+  .modalRankWrap{
+    margin-left: 0;
+  }
+  .modalCloseBtn{
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
   .playersModalControls__row{
     display:flex;
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     flex-wrap: wrap;
+    gap: 12px;
+    width: min(720px, 100%);
+    margin: 0 auto;
   }
   .playersModal .teamPicker{ flex: 1 1 240px; }
   .playersModal .pos-toggle--modal{ flex: 1 1 320px; justify-content:flex-end; }
+  .playersModalFooter{
+    justify-content: center;
+    width: min(720px, 100%);
+    margin: 0 auto;
+  }
   .modalRankCard--desktop{
     display:grid;
     padding: 6px 12px;
