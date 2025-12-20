@@ -1577,6 +1577,10 @@ body::before{
   .list thead th{ padding: 7px 8px; font-size: 11px; }
   .list tbody td{ padding: 7px 8px; font-size: 12px; }
 
+  /* Modal table: slightly tighter rows so more players are visible (mobile only). */
+  .playersTableWrap--modal .list thead th{ padding: 6px 8px; font-size: 10px; }
+  .playersTableWrap--modal .list tbody td{ padding: 6px 8px; font-size: 11px; }
+
   /* chart controls */
   .chartCard{ padding: 0px 6px 0px; }
   .chartTitle{ font-size: 12px; }
@@ -1602,9 +1606,9 @@ body::before{
     --r2: 11px;
   }
 
-  .pageTitle{ font-size: 17px; }
+  .pageTitle{font-size: 15px;}
   .pageSubtitle{ font-size: 10px; }
-  .pageTitleLine{ gap: 6px; }
+  .pageTitleLine{gap: 4px;}
   .pageTitleBullet{ font-size: 10px; }
 
   .pageControls{
