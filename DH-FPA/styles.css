@@ -146,7 +146,7 @@ body::before{
     radial-gradient(700px 240px at 55% 120%, rgba(207,120,255,0.08), transparent 60%);
   opacity: 0.9;
 }
-.panel > *{ position: relative; z-index: 1; }
+.panel > *{position: relative;z-index: 1;}
 
 /* glass sheen */
 .card, .miniCard, .chartCard, .profileCard, .playersPanel{
@@ -776,7 +776,7 @@ body::before{
 }
 .chartDivider{
   height: 1px;
-  margin: 12px 0 10px;
+  margin: 4px 0 4px;
   background: rgba(255,255,255,0.08);
 }
 
