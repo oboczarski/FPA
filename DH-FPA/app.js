@@ -1317,8 +1317,9 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     const fontFamily = Chart.defaults?.font?.family || getComputedStyle(document.body).fontFamily || "sans-serif";
     const fontSize = isMobile ? 9 : 10;
     const pillH = isMobile ? 14 : 16;
-    const padX = isMobile ? 6 : 7;
-    const gapX = isMobile ? 0 : 1;
+    const padX = isMobile ? 4 : 5;
+    const gapX = 0;
+    const textGap = isMobile ? 3 : 4;
     const logoS = isMobile ? 20 : 24;
     const groupH = Math.max(logoS, pillH);
     const r = 999;
@@ -1345,7 +1346,9 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
 
     ctx.save();
     ctx.translate(0.5, 0.5);
-    ctx.font = `${fontSize}px ${fontFamily}`;
+    const avgFont = `${fontSize}px ${fontFamily}`;
+    const valueFont = `950 ${fontSize}px ${fontFamily}`;
+    ctx.font = valueFont;
     ctx.textBaseline = "middle";
 
     const anchorX = clamp(xScale.getPixelForValue(1), area.left, area.right);
@@ -1355,16 +1358,24 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     const pillX = logoX + logoS + gapX - 1;
     const maxPillW = Math.max(40, area.right - pillX - 2);
 
+    const measurePillTextW = (valueText) => {
+      ctx.font = avgFont;
+      const wA = ctx.measureText("AVG").width;
+      ctx.font = valueFont;
+      const wV = ctx.measureText(valueText).width;
+      return wA + textGap + wV;
+    };
+
     const mk = (e) => {
       const yDot = yScale.getPixelForValue(e.value);
       if (!withinY(yDot)) return null;
 
-      const text = `AVG ${fmt(e.value, valueDigits)}`;
-      const textW = ctx.measureText(text).width;
+      const valueText = fmt(e.value, valueDigits);
+      const textW = measurePillTextW(valueText);
       const pillW = Math.min(textW + padX * 2, maxPillW);
 
       const y = clamp(yDot, area.top + groupH / 2, area.bottom - groupH / 2);
-      return { ...e, text, pillW, yDot, y };
+      return { ...e, valueText, pillW, yDot, y };
     };
 
     // entries are sorted high->low; enforce "higher always higher" while avoiding overlap
@@ -1414,8 +1425,13 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
           ctx.shadowBlur = isMobile ? 16 : 12;
           ctx.drawImage(logo, logoX, yC - logoS / 2, logoS, logoS);
         }else{
-          ctx.shadowColor = rgbaOf(e.color, 0.55);
-          ctx.shadowBlur = isMobile ? 12 : 10;
+          const spec = getTeamLogoGlowSpec(e.logo);
+          const glowBase = spec?.glow ?? rgbaOf(e.color, 0.55);
+          const baseBlur = Number(spec?.blur) || 3.2;
+          const blurScale = (logoS / 17) * (isMobile ? 2.8 : 2.4);
+
+          ctx.shadowColor = glowBase;
+          ctx.shadowBlur = baseBlur * blurScale;
           ctx.drawImage(logo, logoX, yC - logoS / 2, logoS, logoS);
         }
         ctx.shadowBlur = 0;
@@ -1438,7 +1454,12 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
       ctx.stroke();
 
       ctx.fillStyle = "rgba(255,255,255,0.86)";
-      ctx.fillText(e.text, pillX + padX, yC);
+      let x = pillX + padX;
+      ctx.font = avgFont;
+      ctx.fillText("AVG", x, yC);
+      x += ctx.measureText("AVG").width + textGap;
+      ctx.font = valueFont;
+      ctx.fillText(e.valueText ?? "—", x, yC);
     };
 
     // Draw the lower one first so the higher-value (upper) indicator stays visually on top if close.
