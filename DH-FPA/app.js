@@ -1894,6 +1894,8 @@ function buildPlayerWeekScatter(){
   }
 
   const datasets = [];
+  const dotR = isMobile ? 7.5 : 9.0; // desktop-only: make dots bigger (mobile unchanged)
+  const dotHoverR = isMobile ? 6.5 : 8.0;
 
   for (const pos of activePos){
     const rows = byPos.get(pos) ?? [];
@@ -1923,8 +1925,9 @@ function buildPlayerWeekScatter(){
       _maxPts: maxPts,
       _base: base,
       clip: false,
-      pointRadius: 7.5,
-      pointHoverRadius: 6.5,
+      order: 1,
+      pointRadius: dotR,
+      pointHoverRadius: dotHoverR,
       pointBorderWidth: 1,
       pointBackgroundColor: (ctx) => {
         const d = ctx.dataset;
@@ -1939,6 +1942,55 @@ function buildPlayerWeekScatter(){
       },
     });
   }
+
+  // Trend line across all visible points (all active positions for this team).
+  const trendDataset = (() => {
+    const pts = datasets
+      .flatMap(d => (Array.isArray(d.data) ? d.data : []))
+      .filter(p => Number.isFinite(p?.x) && Number.isFinite(p?.y));
+    if (pts.length < 2) return null;
+
+    const n = pts.length;
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumXX = 0;
+    for (const p of pts){
+      sumX += p.x;
+      sumY += p.y;
+      sumXY += p.x * p.y;
+      sumXX += p.x * p.x;
+    }
+
+    const denom = (n * sumXX) - (sumX * sumX);
+    if (!Number.isFinite(denom) || Math.abs(denom) < 1e-9) return null;
+
+    const slope = ((n * sumXY) - (sumX * sumY)) / denom;
+    const intercept = (sumY - slope * sumX) / n;
+    if (!Number.isFinite(slope) || !Number.isFinite(intercept)) return null;
+
+    const x1 = 1;
+    const x2 = CONFIG.maxWeek;
+    const y1 = slope * x1 + intercept;
+    const y2 = slope * x2 + intercept;
+    if (!Number.isFinite(y1) || !Number.isFinite(y2)) return null;
+
+    return {
+      type: "line",
+      label: "Trend",
+      data: [{ x: x1, y: y1 }, { x: x2, y: y2 }],
+      borderColor: "rgba(255,255,255,0.22)",
+      borderWidth: 2,
+      borderDash: [6, 5],
+      pointRadius: 0,
+      pointHitRadius: 0,
+      tension: 0,
+      clip: false,
+      order: 0,
+    };
+  })();
+
+  const datasetsWithTrend = trendDataset ? [trendDataset, ...datasets] : datasets;
 
   // Average markers (only when a single position is selected)
   let teamAvg = NaN;
@@ -1959,7 +2011,7 @@ function buildPlayerWeekScatter(){
 	  charts.playerWeekScatter = new Chart(ctx, {
 	    type: "scatter",
 	    plugins: [PLAYER_WEEK_AVG_PILLS_PLUGIN],
-	    data: { datasets },
+	    data: { datasets: datasetsWithTrend },
 			    options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -1971,6 +2023,10 @@ function buildPlayerWeekScatter(){
 			        playerWeekAvgPills: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)", team },
 			        legend: { display: false },
 			        tooltip: {
+	          filter: (item) => {
+	            const r = item?.raw;
+	            return !!(r && typeof r === "object" && "player" in r);
+	          },
 	          callbacks: {
 	            label: (item) => {
               const r = item.raw ?? {};
@@ -2149,8 +2205,13 @@ function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = 
 	  const teamTag = t
 	    ? `<span class="teamInline teamInline--tight">${teamLogoStackMarkup(t, { sizeClass: "teamLogo--opt" })}<span class="teamText" ${style}>${t}</span></span>`
 	    : "—";
-  const suffix = showSuffix ? " • players by week" : "";
-  if (subEl) subEl.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span>${suffix}`;
+  const parts = [
+    teamTag,
+    `<span class="playersSubSep">vs</span>`,
+    `<span class="posText" data-pos="${pos}">${pos}</span>`,
+    showSuffix ? `<span class="playersSubSuffix">• players by week</span>` : null,
+  ].filter(Boolean);
+  if (subEl) subEl.innerHTML = parts.join("");
   buildPlayerTable(team, pos, { weekRangeEl, playerSearchEl, tableEl, lowPointsMode });
 }
 

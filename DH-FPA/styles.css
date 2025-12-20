@@ -203,14 +203,27 @@ body::before{
   gap:12px;
   flex-wrap:wrap;
 }
+.pageTitleLine{
+  display:flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
 .pageTitle{
   margin:0;
   font-size: 22px;
   font-weight: 950;
   letter-spacing: -0.02em;
 }
+.pageTitleBullet{
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+}
 .pageSubtitle{
-  margin-top: 3px;
+  margin: 0;
   color: var(--muted);
   font-size: 13px;
   font-weight: 750;
@@ -727,6 +740,15 @@ body::before{
   letter-spacing: 0.01em;
   color: rgba(255,255,255,0.86);
 }
+.playersHeaderTitle .playersSubSep,
+.playersModalSub .playersSubSep{
+  display:inline-block;
+  margin: 0 0.4em;
+}
+.playersHeaderTitle .playersSubSuffix{
+  display:inline-block;
+  margin-left: 0.4em;
+}
 .playersExpandBtn{
   flex: 0 0 auto;
   width: 39px;
@@ -976,16 +998,15 @@ body::before{
   height: auto;
 }
 
-.playersModalHeader__footer{
-  margin-top: 0;
+.playersModalFooter{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap: 10px;
-  padding: 4px 4px 0px;
+  padding: 6px 4px 2px;
 }
 .playersModalFooter__text{
-  font-size: 9px;
+  font-size: 11px;
   color: rgba(255,255,255,0.66);
   font-weight: 750;
   letter-spacing: 0.01em;
@@ -1083,6 +1104,54 @@ body::before{
   .chartTitleRow--playerWeek .pos2-toggle{
     flex: 0 0 auto;
   }
+
+  /* Desktop-only: significantly larger titles (no mobile impact). */
+  .chartTitleRow--playerWeek .chartTitle{
+    font-size: 15px;
+    line-height: 1.12;
+  }
+  .chartTitleRow--playerWeek .chartTitle > span{ vertical-align: middle; }
+  #playerWeekTitleTeam,
+  #playerWeekTitlePos{
+    font-size: 20px;
+    line-height: 1.0;
+  }
+  #playerWeekTitleLogo,
+  #playerWeekTitleLogoGlow{
+    width: 26px;
+    height: 26px;
+  }
+
+  .chartTitleRow--scatterTop .chartTitle{
+    font-size: 15px;
+    line-height: 1.12;
+  }
+  #scatterTitle{
+    font-size: 20px;
+    line-height: 1.0;
+    vertical-align: middle;
+  }
+  .scatterTitleRest{ vertical-align: middle; }
+
+  /* Players panel header title: match the same proportional emphasis. */
+  #playersSub{
+    font-size: 15px;
+    line-height: 1.12;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    column-gap: 0px;
+    row-gap: 2px;
+  }
+  #playersSub .teamText,
+  #playersSub .posText{
+    font-size: 20px;
+    line-height: 1.0;
+  }
+  #playersSub .teamLogo{
+    width: 26px;
+    height: 26px;
+  }
 }
 .chartTitleRow--playerWeek #playerWeekAvgPills{ display:none; }
 .chartTitle{
@@ -1090,6 +1159,7 @@ body::before{
   color: var(--muted);
   font-weight: 700;
 }
+.scatterTitleRest{ display:inline-block; }
 .avgPills{
   display:flex;
   gap:8px;
@@ -1392,6 +1462,8 @@ body::before{
 
   .pageTitle{ font-size: 18px; }
   .pageSubtitle{ font-size: 11px; margin-top: 2px; }
+  .pageTitleLine{ gap: 8px; }
+  .pageTitleBullet{ font-size: 11px; }
 
   .pageControls{
     width: 100%;
@@ -1530,6 +1602,8 @@ body::before{
 
   .pageTitle{ font-size: 17px; }
   .pageSubtitle{ font-size: 10px; }
+  .pageTitleLine{ gap: 6px; }
+  .pageTitleBullet{ font-size: 10px; }
 
   .pageControls{
     /* Extra room to prevent position buttons from clipping on very small screens. */
@@ -1558,7 +1632,8 @@ body::before{
 
   .playersPanel{padding: 7px 7px 2px;}
   .playersHeaderTitle{ font-size: 12px; }
-  .playersSelect, .playersInput{ height: 36px; padding: 0 9px; font-size: 12px; }
+  /* Slightly larger for readability (mobile priority) */
+  .playersSelect, .playersInput{ height: 38px; padding: 0 10px; font-size: 13px; }
   .playersTableWrap{height: 20rem;}
 
   .chartTitle{ font-size: 12px; }
