@@ -36,30 +36,31 @@ const PLAYER_POINTS_COLORS = {
 };
 
 // Team colors (use provided/official hex values; do not auto-brighten).
+// Team colors (use provided/official hex values; do not auto-brighten).
 const TEAM_COLORS = {
-  'SF': '#B3995D', 'CHI': '#b1c7efff', 'CIN': '#FB4F14', 'BUF': '#C60C30',
-  'DEN': '#FB4F14', 'CLE': '#ff3c00', 'TB': '#ca3d00ff', 'ARI': '#97233F',
-  'LAC': '#0080C6', 'SD': '#0080C6', 'KC': '#E31837', 'IND': '#033f84ff',
-  'WAS': '#821f1fff', 'DAL': '#869397', 'MIA': '#008E97', 'PHI': '#2B8C4E',
-  'ATL': '#A71930', 'NYG': '#0c2780ff', 'JAX': '#006778', 'NYJ': '#125740',
-  'DET': '#0076B6', 'GB': '#ffb612', 'CAR': '#0085CA', 'NE': '#003b76ff',
-  'LV': '#A5ACAF', 'OAK': '#A5ACAF', 'LAR': '#003aa5ff', 'STL': '#003594',
-  'BAL': '#491ca9ff', 'NO': '#D3BC8D', 'SEA': '#69BE28', 'PIT': '#FFB612',
-  'HOU': '#a71930', 'TEN': '#4B92DB', 'MIN': '#4F2683'
+  'ARI': '#97233F', 'ATL': '#A71930', 'BAL': '#491ca9ff', 'BUF': '#C60C30',
+  'CAR': '#0085CA', 'CHI': '#b1c7efff', 'CIN': '#FB4F14', 'CLE': '#ff3c00',
+  'DAL': '#869397', 'DEN': '#FB4F14', 'DET': '#0076B6', 'GB': '#ffb612',
+  'HOU': '#a71930', 'IND': '#033f84ff', 'JAX': '#006778', 'KC': '#E31837',
+  'LAC': '#0080C6', 'LAR': '#003aa5ff', 'LV': '#A5ACAF', 'MIA': '#008E97',
+  'MIN': '#4F2683', 'NE': '#003b76ff', 'NO': '#D3BC8D', 'NYG': '#0c2780ff',
+  'NYJ': '#125740', 'OAK': '#A5ACAF', 'PHI': '#2B8C4E', 'PIT': '#FFB612',
+  'SD': '#0080C6', 'SEA': '#69BE28', 'SF': '#B3995D', 'STL': '#003594',
+  'TB': '#ca3d00ff', 'TEN': '#4B92DB', 'WAS': '#821f1fff'
 };
 
 // Player-name tint colors (Players by week table only).
 // Safe to tweak per-team without affecting other UI.
 const TEAM_NAME_COLORS = {
-  'SF': '#B3995D', 'CHI': '#071D46', 'CIN': '#FB4F14', 'BUF': '#C60C30',
-  'DEN': '#FB4F14', 'CLE': '#311D00', 'TB': '#DC4405', 'ARI': '#97233F',
-  'LAC': '#0080C6', 'SD': '#0080C6', 'KC': '#E31837', 'IND': '#002C5F',
-  'WAS': '#5A1414', 'DAL': '#869397', 'MIA': '#008E97', 'PHI': '#2B8C4E',
-  'ATL': '#A71930', 'NYG': '#0D2266', 'JAX': '#006778', 'NYJ': '#125740',
-  'DET': '#0076B6', 'GB': '#203731', 'CAR': '#0085CA', 'NE': '#002244',
-  'LV': '#A5ACAF', 'OAK': '#A5ACAF', 'LAR': '#003594', 'STL': '#003594',
-  'BAL': '#241773', 'NO': '#D3BC8D', 'SEA': '#69BE28', 'PIT': '#FFB612',
-  'HOU': '#00143F', 'TEN': '#4B92DB', 'MIN': '#4F2683'
+  'ARI': '#97233F', 'ATL': '#A71930', 'BAL': '#491ca9ff', 'BUF': '#C60C30',
+  'CAR': '#0085CA', 'CHI': '#b1c7efff', 'CIN': '#FB4F14', 'CLE': '#ff3c00',
+  'DAL': '#869397', 'DEN': '#FB4F14', 'DET': '#0076B6', 'GB': '#ffb612',
+  'HOU': '#a71930', 'IND': '#033f84ff', 'JAX': '#006778', 'KC': '#E31837',
+  'LAC': '#0080C6', 'LAR': '#003aa5ff', 'LV': '#A5ACAF', 'MIA': '#008E97',
+  'MIN': '#4F2683', 'NE': '#003b76ff', 'NO': '#D3BC8D', 'NYG': '#0c2780ff',
+  'NYJ': '#125740', 'OAK': '#A5ACAF', 'PHI': '#2B8C4E', 'PIT': '#FFB612',
+  'SD': '#0080C6', 'SEA': '#69BE28', 'SF': '#B3995D', 'STL': '#003594',
+  'TB': '#ca3d00ff', 'TEN': '#4B92DB', 'WAS': '#821f1fff'
 };
 
 // Per-team logo glow specs (color + radius) to match the CSS glow tuning.
@@ -98,6 +99,10 @@ const TEAM_LOGO_GLOW = {
   TEN: { glow: "rgba(75, 146, 219, 0.95)", blur: 3.2 },
   WAS: { glow: "rgba(180, 36, 36, 0.95)", blur: 3.2 },
 };
+
+// NFL shield (league-average marker) glow color.
+// The official NFL blue is ~#013369 (dark blue).
+const NFL_LOGO_GLOW = "rgba(1, 51, 105, 0.95)";
 
 const TEAM_LOGO_ALIASES = {
   SD: "LAC",
@@ -1300,7 +1305,7 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
 
     const entries = [
       { key: "tm", label: "AVG", value: teamAvg, color: teamColor, logo: teamCode },
-      { key: "lg", label: "AVG", value: leagueAvg, color: leagueColor, logo: "NFL" },
+      { key: "lg", label: "AVG", value: leagueAvg, color: leagueColor, glow: NFL_LOGO_GLOW, logo: "NFL" },
     ].filter(e => Number.isFinite(e.value));
 
     // Higher value should always appear higher on the chart.
@@ -1313,7 +1318,7 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     const fontSize = isMobile ? 9 : 10;
     const pillH = isMobile ? 14 : 16;
     const padX = isMobile ? 6 : 7;
-    const gapX = isMobile ? 5 : 6;
+    const gapX = isMobile ? 0 : 1;
     const logoS = isMobile ? 20 : 24;
     const groupH = Math.max(logoS, pillH);
     const r = 999;
@@ -1345,7 +1350,9 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
 
     const anchorX = clamp(xScale.getPixelForValue(1), area.left, area.right);
     const logoX = anchorX; // logo touches the Week 1 line
-    const pillX = logoX + logoS + gapX;
+    // Keep the label "attached" to the logo like a datapoint callout.
+    // A tiny overlap looks more intentional than a visible gap.
+    const pillX = logoX + logoS + gapX - 1;
     const maxPillW = Math.max(40, area.right - pillX - 2);
 
     const mk = (e) => {
@@ -1393,9 +1400,24 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
 
       const logo = e.logo ? getTeamLogo(e.logo) : null;
       if (logo){
-        ctx.shadowColor = rgbaOf(e.color, 0.55);
-        ctx.shadowBlur = isMobile ? 12 : 10;
-        ctx.drawImage(logo, logoX, yC - logoS / 2, logoS, logoS);
+        const isNFL = canonicalTeamCode(e.logo) === "NFL";
+
+        // Only the NFL shield needs the extra-strong glow.
+        if (isNFL){
+          const glowBase = e.glow ?? NFL_LOGO_GLOW;
+
+          ctx.shadowColor = rgbaOf(glowBase, isMobile ? 0.88 : 0.78);
+          ctx.shadowBlur = isMobile ? 28 : 22;
+          ctx.drawImage(logo, logoX, yC - logoS / 2, logoS, logoS);
+
+          ctx.shadowColor = rgbaOf(glowBase, isMobile ? 0.99 : 0.93);
+          ctx.shadowBlur = isMobile ? 16 : 12;
+          ctx.drawImage(logo, logoX, yC - logoS / 2, logoS, logoS);
+        }else{
+          ctx.shadowColor = rgbaOf(e.color, 0.55);
+          ctx.shadowBlur = isMobile ? 12 : 10;
+          ctx.drawImage(logo, logoX, yC - logoS / 2, logoS, logoS);
+        }
         ctx.shadowBlur = 0;
       }
 
