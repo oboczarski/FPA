@@ -1328,12 +1328,13 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     const ctx = chart.ctx;
     const isMobile = SCATTER_MOBILE_MQ.matches;
     const fontFamily = Chart.defaults?.font?.family || getComputedStyle(document.body).fontFamily || "sans-serif";
-    const fontSize = isMobile ? 9 : 10;
-    const pillH = isMobile ? 15 : 16;
-    const padX = isMobile ? 6 : 7;
-    const gap = isMobile ? 5 : 6;
-    const swatchR = isMobile ? 3.2 : 3.5;
+    const fontSize = isMobile ? 8.5 : 10;
+    const pillH = isMobile ? 14 : 16;
+    const padX = isMobile ? 5 : 7;
+    const gap = isMobile ? 4 : 6;
+    const swatchR = isMobile ? 2.9 : 3.5;
     const r = 999;
+    const valueDigits = isMobile ? 1 : 2;
 
     const roundRect = (x, y, w, h, rad) => {
       const rr = Math.min(rad, h / 2, w / 2);
@@ -1358,17 +1359,17 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     ctx.font = `${fontSize}px ${fontFamily}`;
     ctx.textBaseline = "middle";
 
-    const anchorX = clamp(xScale.getPixelForValue(1), area.left + 6, area.right - 6);
-    const padEdge = 6;
+    const anchorX = xScale.getPixelForValue(1);
+    const padEdge = 0;
     const shiftY = pillH + 6;
 
     const mk = (e) => {
       const yDot = yScale.getPixelForValue(e.value);
       if (!withinY(yDot)) return null;
-      const text = `${e.label} ${fmt(e.value,2)}`;
+      const text = `${e.label} ${fmt(e.value, valueDigits)}`;
       const textW = ctx.measureText(text).width;
       const w = Math.min(textW + padX * 2 + swatchR * 2 + gap, Math.max(60, area.right - area.left - 10));
-      const x = clamp(anchorX + 10, area.left + padEdge, area.right - w - padEdge);
+      const x = clamp(anchorX, area.left + padEdge, area.right - w - padEdge);
       const y = clamp(yDot - (pillH / 2), area.top + 4, area.bottom - pillH - 4);
       return { ...e, text, w, x, y, yDot };
     };
@@ -1387,29 +1388,27 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     let a = a0;
     let b = b0;
     if (boxesOverlap(a, b)){
-      const tryB = (dy) => ({ ...b, y: clamp(b.y + dy, area.top + 4, area.bottom - pillH - 4) });
-      const bDown = tryB(shiftY);
-      const bUp = tryB(-shiftY);
-      if (!boxesOverlap(a, bDown)) b = bDown;
-      else if (!boxesOverlap(a, bUp)) b = bUp;
-      else{
-        // last resort: push B slightly to the right but keep it near week 1
-        const bRight = { ...b, x: clamp(b.x + 14, area.left + padEdge, area.right - b.w - padEdge) };
-        b = bRight;
+      const tryMove = (box, dy) => (box ? { ...box, y: clamp(box.y + dy, area.top + 4, area.bottom - pillH - 4) } : null);
+      const candidates = [
+        { a, b: tryMove(b, shiftY) },
+        { a, b: tryMove(b, -shiftY) },
+        { a: tryMove(a, -shiftY / 2), b: tryMove(b, shiftY / 2) },
+        { a: tryMove(a, shiftY / 2), b: tryMove(b, -shiftY / 2) },
+        { a, b: tryMove(b, shiftY * 2) },
+        { a, b: tryMove(b, -shiftY * 2) },
+      ];
+
+      for (const cand of candidates){
+        if (!boxesOverlap(cand.a, cand.b)){
+          a = cand.a;
+          b = cand.b;
+          break;
+        }
       }
     }
 
     const draw = (e) => {
       if (!e) return;
-
-      // anchor dot at (week 1, avg)
-      ctx.shadowColor = rgbaOf(e.color, 0.55);
-      ctx.shadowBlur = 10;
-      ctx.fillStyle = e.color;
-      ctx.beginPath();
-      ctx.arc(anchorX, e.yDot, isMobile ? 3 : 3.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
 
       // pill label near the dot (kept inside the plot area)
       const fill = rgbaOf(e.color, 0.14);
@@ -1781,22 +1780,21 @@ function buildPlayerWeekScatter(){
   const ctx = canvas.getContext("2d");
   if (charts.playerWeekScatter) charts.playerWeekScatter.destroy();
 
-  charts.playerWeekScatter = new Chart(ctx, {
-    type: "scatter",
-    plugins: [PLAYER_WEEK_AVG_MARKERS_PLUGIN, PLAYER_WEEK_AVG_PILLS_PLUGIN],
-    data: { datasets },
-		    options: {
+	  charts.playerWeekScatter = new Chart(ctx, {
+	    type: "scatter",
+	    plugins: [PLAYER_WEEK_AVG_PILLS_PLUGIN],
+	    data: { datasets },
+			    options: {
       responsive: true,
       maintainAspectRatio: false,
       resizeDelay: 120,
       parsing: false,
 	      interaction: { mode: "nearest", intersect: true },
 	      layout: { padding: isMobile ? { left: 8, right: 10, top: 7, bottom: 3 } : { left: 14, right: 14, top: 8, bottom: 6 } },
-		      plugins: {
-	        playerWeekAvgMarkers: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)" },
-	        playerWeekAvgPills: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)" },
-	        legend: { display: false },
-	        tooltip: {
+			      plugins: {
+		        playerWeekAvgPills: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)" },
+		        legend: { display: false },
+		        tooltip: {
 	          callbacks: {
 	            label: (item) => {
               const r = item.raw ?? {};
