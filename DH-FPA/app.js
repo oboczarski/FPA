@@ -1404,10 +1404,10 @@ function buildScatter(){
   const logoMinDist = logoRadius * 1 + 2;
   const logoPad = logoRadius + 0;
 
-	  charts.scatter = new Chart(ctx, {
-		    type: "scatter",
-		    plugins: [NO_OVERLAP_SCATTER_PLUGIN, SCATTER_LOGO_GLOW_PLUGIN],
-		    data: {
+		  charts.scatter = new Chart(ctx, {
+			    type: "scatter",
+			    plugins: [NO_OVERLAP_SCATTER_PLUGIN, SCATTER_LOGO_GLOW_PLUGIN],
+			    data: {
 	      datasets: [
 	        {
 	          label: "Defenses",
@@ -1441,30 +1441,48 @@ function buildScatter(){
 		      resizeDelay: 120,
 		      parsing: false,
 	        layout: { padding: isMobile ? { left: 6, right: 8, top: 6, bottom: 2 } : { left: 10, right: 10, top: 8, bottom: 6 } },
-	      scales: {
-	        x: {
-	          title: {
-	            display: true,
-	            text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})`,
-	            padding: isMobile ? { top: 4, bottom: 0 } : { top: 8, bottom: 0 },
-	          },
-	          ticks: { padding: isMobile ? 2 : 6 },
-	          min: xMin,
-	          max: xMax,
-	          grid: { color: "rgba(255,255,255,0.01)" },
-	        },
-	        y: {
-	          title: {
-	            display: true,
-	            text: `Weeks 9–15 (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})`,
-	            padding: isMobile ? { top: 0, bottom: 0 } : { top: 0, bottom: 0 },
-	          },
-	          ticks: { padding: isMobile ? 2 : 6 },
-	          min: yMin,
-	          max: yMax,
-	          grid: { color: "rgba(255,255,255,0.01)" },
-	        },
-	      },
+		      scales: {
+		        x: {
+		          title: {
+		            display: true,
+		            text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})`,
+		            padding: isMobile ? { top: 4, bottom: 0 } : { top: 8, bottom: 0 },
+		          },
+		          ticks: {
+		            padding: isMobile ? 2 : 6,
+		            maxTicksLimit: isMobile ? 6 : 10,
+		            count: (isMobile && isAvg) ? 6 : undefined,
+		            callback: (v) => {
+		              const n = Number(v);
+		              if (!Number.isFinite(n)) return v;
+		              return isAvg ? fmt(n, 1) : fmt(n, 0);
+		            },
+		          },
+		          min: xMin,
+		          max: xMax,
+		          grid: { color: "rgba(255,255,255,0.01)" },
+		        },
+		        y: {
+		          title: {
+		            display: true,
+		            text: `Weeks 9–15 (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})`,
+		            padding: isMobile ? { top: 0, bottom: 0 } : { top: 0, bottom: 0 },
+		          },
+		          ticks: {
+		            padding: isMobile ? 2 : 6,
+		            maxTicksLimit: isMobile ? 6 : 10,
+		            count: (isMobile && isAvg) ? 6 : undefined,
+		            callback: (v) => {
+		              const n = Number(v);
+		              if (!Number.isFinite(n)) return v;
+		              return isAvg ? fmt(n, 1) : fmt(n, 0);
+		            },
+		          },
+		          min: yMin,
+		          max: yMax,
+		          grid: { color: "rgba(255,255,255,0.01)" },
+		        },
+		      },
 	      plugins: {
 	        noOverlapScatter: { datasetIndex: 0, minDist: logoMinDist, padding: logoPad, iterations: 520, spring: 0.008 },
 	        legend: { display: false },
@@ -1628,15 +1646,28 @@ function buildPlayerWeekScatter(){
           }
         }
       },
-	      scales: {
-	        x: {
-	          type: "linear",
-	          min: 1,
-	          max: CONFIG.maxWeek,
-	          title: { display: true, text: "Week", padding: isMobile ? { top: 4, bottom: 0 } : { top: 8, bottom: 0 } },
-	          ticks: { padding: isMobile ? 2 : 6, stepSize: 1, callback: (v) => `W${v}` },
-	          grid: { color: "rgba(255,255,255,0.02)" },
-	        },
+		      scales: {
+		        x: {
+		          type: "linear",
+		          min: 1,
+		          max: CONFIG.maxWeek,
+		          title: { display: true, text: "Week", padding: isMobile ? { top: 4, bottom: 0 } : { top: 8, bottom: 0 } },
+		          ticks: {
+		            padding: isMobile ? 2 : 6,
+		            stepSize: 1,
+		            autoSkip: false,
+		            maxRotation: 0,
+		            minRotation: 0,
+		            font: isMobile ? { size: 10 } : undefined,
+		            callback: (v) => {
+		              const n = Number(v);
+		              if (!Number.isFinite(n)) return `W${v}`;
+		              if (isMobile && (n % 2 === 0) && n !== 1 && n !== CONFIG.maxWeek) return "";
+		              return `W${n}`;
+		            }
+		          },
+		          grid: { color: "rgba(255,255,255,0.02)" },
+		        },
 	        y: {
 	          min: 0,
 	          suggestedMax: 40,
@@ -1722,25 +1753,28 @@ function buildPlayerTable(team, pos){
 	      </tr>
 	    </thead>
 	    <tbody>
-	      ${rows.map(r => {
-	        const tm = r.playerTeam || "—";
-	        const tmCode = cleanStr(tm).toUpperCase();
-	        const tmColor = teamColorText(tmCode);
-	        const ptsColor = pointsColor(r.pos, r.pts);
-	        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
-	        const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
-	        const tmCell = tmCode
-	          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
-	          : `<span class="teamText">—</span>`;
-        return `
-          <tr>
-            <td>W${r.week}</td>
-            <td>${r.player}</td>
-	            <td>${tmCell}</td>
-	            <td style="${ptsStyle}">${fmt(r.pts,2)}</td>
-	          </tr>
-	        `;
-	      }).join("")}
+		      ${rows.map(r => {
+		        const tm = r.playerTeam || "—";
+		        const tmCode = cleanStr(tm).toUpperCase();
+		        const tmColor = teamColorText(tmCode);
+		        const glowSpec = getTeamLogoGlowSpec(tmCode);
+		        const nameGlow = glowSpec?.glow ? rgbaOf(glowSpec.glow, 0.22) : null;
+		        const ptsColor = pointsColor(r.pos, r.pts);
+		        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
+		        const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
+		        const tmCell = tmCode
+		          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
+		          : `<span class="teamText">—</span>`;
+		        const playerCell = `<span class="playerName"${nameGlow ? ` style="--player-glow:${nameGlow};"` : ""}>${r.player}</span>`;
+	        return `
+	          <tr>
+	            <td>W${r.week}</td>
+	            <td>${playerCell}</td>
+		            <td>${tmCell}</td>
+		            <td style="${ptsStyle}">${fmt(r.pts,2)}</td>
+		          </tr>
+		        `;
+		      }).join("")}
 	    </tbody>
 	  `;
 
