@@ -1473,7 +1473,7 @@ body::before{
     right: 2px;
     bottom: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
+    background: linear-gradient(90deg, transparent, rgba(155,155,255,0.54), transparent);
     opacity: 0.9;
   }
 
