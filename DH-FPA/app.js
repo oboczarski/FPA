@@ -48,6 +48,20 @@ const TEAM_COLORS = {
   'HOU': '#a71930', 'TEN': '#4B92DB', 'MIN': '#4F2683'
 };
 
+// Player-name tint colors (Players by week table only).
+// Safe to tweak per-team without affecting other UI.
+const TEAM_NAME_COLORS = {
+  'SF': '#B3995D', 'CHI': '#071D46', 'CIN': '#FB4F14', 'BUF': '#C60C30',
+  'DEN': '#FB4F14', 'CLE': '#311D00', 'TB': '#DC4405', 'ARI': '#97233F',
+  'LAC': '#0080C6', 'SD': '#0080C6', 'KC': '#E31837', 'IND': '#002C5F',
+  'WAS': '#5A1414', 'DAL': '#869397', 'MIA': '#008E97', 'PHI': '#2B8C4E',
+  'ATL': '#A71930', 'NYG': '#0D2266', 'JAX': '#006778', 'NYJ': '#125740',
+  'DET': '#0076B6', 'GB': '#203731', 'CAR': '#0085CA', 'NE': '#002244',
+  'LV': '#A5ACAF', 'OAK': '#A5ACAF', 'LAR': '#003594', 'STL': '#003594',
+  'BAL': '#241773', 'NO': '#D3BC8D', 'SEA': '#69BE28', 'PIT': '#FFB612',
+  'HOU': '#00143F', 'TEN': '#4B92DB', 'MIN': '#4F2683'
+};
+
 // Per-team logo glow specs (color + radius) to match the CSS glow tuning.
 // blur values are tuned for ~17px logos and scaled for the Season vs Weeks scatter.
 const TEAM_LOGO_GLOW = {
@@ -510,43 +524,6 @@ function rgbaOf(color, alpha){
   const m = s.match(/rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?\)/i);
   if (!m) return `rgba(255,255,255,${alpha})`;
   return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
-}
-
-function rgbOf(color){
-  const s = String(color).trim();
-  let m = s.match(/rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
-  if (m) return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]) };
-
-  m = s.match(/^#([0-9a-f]{6})$/i);
-  if (m){
-    const hex = m[1];
-    return {
-      r: parseInt(hex.slice(0, 2), 16),
-      g: parseInt(hex.slice(2, 4), 16),
-      b: parseInt(hex.slice(4, 6), 16),
-    };
-  }
-
-  m = s.match(/^#([0-9a-f]{3})$/i);
-  if (m){
-    const hex = m[1];
-    return {
-      r: parseInt(hex[0] + hex[0], 16),
-      g: parseInt(hex[1] + hex[1], 16),
-      b: parseInt(hex[2] + hex[2], 16),
-    };
-  }
-
-  return null;
-}
-
-function mixRgb(a, b, t){
-  const tt = clamp(Number(t), 0, 1);
-  return {
-    r: Math.round(a.r * (1 - tt) + b.r * tt),
-    g: Math.round(a.g * (1 - tt) + b.g * tt),
-    b: Math.round(a.b * (1 - tt) + b.b * tt),
-  };
 }
 
 function setStatus(kind, text){
@@ -1325,18 +1302,23 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
       { key: "tm", label: "AVG", value: teamAvg, color: teamColor, logo: teamCode },
       { key: "lg", label: "AVG", value: leagueAvg, color: leagueColor, logo: "NFL" },
     ].filter(e => Number.isFinite(e.value));
+
+    // Higher value should always appear higher on the chart.
+    entries.sort((a, b) => b.value - a.value);
     if (!entries.length) return;
 
     const ctx = chart.ctx;
     const isMobile = SCATTER_MOBILE_MQ.matches;
     const fontFamily = Chart.defaults?.font?.family || getComputedStyle(document.body).fontFamily || "sans-serif";
-    const fontSize = isMobile ? 8.5 : 10;
+    const fontSize = isMobile ? 9 : 10;
     const pillH = isMobile ? 14 : 16;
-    const padX = isMobile ? 4 : 7;
-    const gap = isMobile ? 4 : 6;
-    const logoS = isMobile ? 10 : 12;
+    const padX = isMobile ? 6 : 7;
+    const gapX = isMobile ? 5 : 6;
+    const logoS = isMobile ? 20 : 24;
+    const groupH = Math.max(logoS, pillH);
     const r = 999;
-    const valueDigits = isMobile ? 1 : 2;
+    const valueDigits = 1;
+    const ySep = isMobile ? 4 : 5;
 
     const roundRect = (x, y, w, h, rad) => {
       const rr = Math.min(rad, h / 2, w / 2);
@@ -1361,90 +1343,85 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     ctx.font = `${fontSize}px ${fontFamily}`;
     ctx.textBaseline = "middle";
 
-    const anchorX = xScale.getPixelForValue(1);
-    const padEdge = 0;
-    const shiftY = pillH + 6;
+    const anchorX = clamp(xScale.getPixelForValue(1), area.left, area.right);
+    const logoX = anchorX; // logo touches the Week 1 line
+    const pillX = logoX + logoS + gapX;
+    const maxPillW = Math.max(40, area.right - pillX - 2);
 
     const mk = (e) => {
       const yDot = yScale.getPixelForValue(e.value);
       if (!withinY(yDot)) return null;
-      const hasLogo = Boolean(e.logo && getTeamLogo(e.logo));
-      const text = `${e.label} ${fmt(e.value, valueDigits)}`;
+
+      const text = `AVG ${fmt(e.value, valueDigits)}`;
       const textW = ctx.measureText(text).width;
-      const w = Math.min(textW + padX * 2 + (hasLogo ? (logoS + gap) : 0), Math.max(54, area.right - area.left - 10));
-      const x = clamp(anchorX, area.left + padEdge, area.right - w - padEdge);
-      const y = clamp(yDot - (pillH / 2), area.top + 4, area.bottom - pillH - 4);
-      return { ...e, text, w, x, y, yDot };
+      const pillW = Math.min(textW + padX * 2, maxPillW);
+
+      const y = clamp(yDot, area.top + groupH / 2, area.bottom - groupH / 2);
+      return { ...e, text, pillW, yDot, y };
     };
 
-    const a0 = mk(entries[0]);
-    const b0 = mk(entries[1]);
-    const boxesOverlap = (a, b) => {
-      if (!a || !b) return false;
-      const ax2 = a.x + a.w;
-      const ay2 = a.y + pillH;
-      const bx2 = b.x + b.w;
-      const by2 = b.y + pillH;
-      return a.x < bx2 && ax2 > b.x && a.y < by2 && ay2 > b.y;
-    };
+    // entries are sorted high->low; enforce "higher always higher" while avoiding overlap
+    let hi = mk(entries[0]);
+    let lo = mk(entries[1]);
 
-    let a = a0;
-    let b = b0;
-    if (boxesOverlap(a, b)){
-      const tryMove = (box, dy) => (box ? { ...box, y: clamp(box.y + dy, area.top + 4, area.bottom - pillH - 4) } : null);
-      const candidates = [
-        { a, b: tryMove(b, shiftY) },
-        { a, b: tryMove(b, -shiftY) },
-        { a: tryMove(a, -shiftY / 2), b: tryMove(b, shiftY / 2) },
-        { a: tryMove(a, shiftY / 2), b: tryMove(b, -shiftY / 2) },
-        { a, b: tryMove(b, shiftY * 2) },
-        { a, b: tryMove(b, -shiftY * 2) },
-      ];
+    if (hi && lo){
+      const topMin = area.top + groupH / 2;
+      const botMax = area.bottom - groupH / 2;
 
-      for (const cand of candidates){
-        if (!boxesOverlap(cand.a, cand.b)){
-          a = cand.a;
-          b = cand.b;
-          break;
+      const overlap = (hi.y + groupH / 2 + ySep) - (lo.y - groupH / 2);
+      if (overlap > 0){
+        lo.y = Math.min(botMax, lo.y + overlap);
+        const overlap2 = (hi.y + groupH / 2 + ySep) - (lo.y - groupH / 2);
+        if (overlap2 > 0){
+          hi.y = Math.max(topMin, hi.y - overlap2);
+          // re-check: if still overlapping due to bounds, keep lo pinned below hi as best we can
+          lo.y = Math.min(botMax, Math.max(lo.y, hi.y + groupH + ySep));
         }
+      }
+
+      // Guarantee correct ordering even after clamps.
+      if (hi.y > lo.y){
+        const mid = (hi.y + lo.y) / 2;
+        hi.y = clamp(mid - (groupH / 2 + ySep / 2), topMin, botMax);
+        lo.y = clamp(mid + (groupH / 2 + ySep / 2), topMin, botMax);
       }
     }
 
-    const draw = (e) => {
+    const drawOne = (e) => {
       if (!e) return;
+      const yC = e.y;
 
-      // pill label near the dot (kept inside the plot area)
+      const logo = e.logo ? getTeamLogo(e.logo) : null;
+      if (logo){
+        ctx.shadowColor = rgbaOf(e.color, 0.55);
+        ctx.shadowBlur = isMobile ? 12 : 10;
+        ctx.drawImage(logo, logoX, yC - logoS / 2, logoS, logoS);
+        ctx.shadowBlur = 0;
+      }
+
       const fill = rgbaOf(e.color, 0.14);
       const stroke = rgbaOf(e.color, 0.28);
+      const pillY = yC - pillH / 2;
+
       ctx.shadowColor = rgbaOf(e.color, 0.35);
       ctx.shadowBlur = 10;
       ctx.fillStyle = fill;
-      roundRect(e.x, e.y, e.w, pillH, r);
+      roundRect(pillX, pillY, e.pillW, pillH, r);
       ctx.fill();
 
       ctx.shadowBlur = 0;
       ctx.strokeStyle = stroke;
       ctx.lineWidth = 1;
-      roundRect(e.x, e.y, e.w, pillH, r);
+      roundRect(pillX, pillY, e.pillW, pillH, r);
       ctx.stroke();
 
-      const cy = e.y + pillH / 2;
-      let textX = e.x + padX;
-      const logo = e.logo ? getTeamLogo(e.logo) : null;
-      if (logo){
-        ctx.shadowColor = rgbaOf(e.color, 0.35);
-        ctx.shadowBlur = 6;
-        ctx.drawImage(logo, e.x + padX, cy - logoS / 2, logoS, logoS);
-        ctx.shadowBlur = 0;
-        textX += logoS + gap;
-      }
-
       ctx.fillStyle = "rgba(255,255,255,0.86)";
-      ctx.fillText(e.text, textX, cy);
+      ctx.fillText(e.text, pillX + padX, yC);
     };
 
-    draw(a);
-    draw(b);
+    // Draw the lower one first so the higher-value (upper) indicator stays visually on top if close.
+    drawOne(lo);
+    drawOne(hi);
 
     ctx.restore();
   }
@@ -1918,27 +1895,19 @@ function buildPlayerTable(team, pos){
 	      </tr>
 	    </thead>
 	    <tbody>
-		      ${rows.map(r => {
+			      ${rows.map(r => {
 			        const tm = r.playerTeam || "—";
 			        const tmCode = cleanStr(tm).toUpperCase();
+			        const tmCanon = canonicalTeamCode(tmCode);
 			        const tmColor = teamColorText(tmCode);
-			        const glowSpec = getTeamLogoGlowSpec(tmCode);
-			        const glowRgb = glowSpec?.glow ? rgbOf(glowSpec.glow) : null;
-			        const inkMix = SCATTER_MOBILE_MQ.matches ? 0.26 : 0.18;
-			        const nameInk = glowRgb
-			          ? (() => {
-			              const mixed = mixRgb({ r: 255, g: 255, b: 255 }, glowRgb, inkMix);
-			              return `rgba(${mixed.r}, ${mixed.g}, ${mixed.b}, 0.92)`;
-			            })()
-			          : null;
+			        const nameColor = TEAM_NAME_COLORS[tmCanon] ?? TEAM_NAME_COLORS[tmCode] ?? null;
 			        const ptsColor = pointsColor(r.pos, r.pts);
 			        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
 			        const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
 			        const tmCell = tmCode
 			          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
 			          : `<span class="teamText">—</span>`;
-			        const nameStyle = [nameInk ? `--player-ink:${nameInk};` : ""].filter(Boolean).join("");
-			        const playerCell = `<span class="playerName"${nameStyle ? ` style="${nameStyle}"` : ""}>${r.player}</span>`;
+			        const playerCell = `<span class="playerName"${nameColor ? ` style="color:${nameColor};"` : ""}>${r.player}</span>`;
 	        return `
 	          <tr>
 	            <td>W${r.week}</td>
