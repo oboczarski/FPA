@@ -52,15 +52,18 @@ const TEAM_COLORS = {
 // Player-name tint colors (Players by week table only).
 // Safe to tweak per-team without affecting other UI.
 const TEAM_NAME_COLORS = {
-  'ARI': '#97233F', 'ATL': '#A71930', 'BAL': '#491ca9ff', 'BUF': '#C60C30',
-  'CAR': '#0085CA', 'CHI': '#b1c7efff', 'CIN': '#FB4F14', 'CLE': '#ff3c00',
-  'DAL': '#869397', 'DEN': '#FB4F14', 'DET': '#0076B6', 'GB': '#ffb612',
-  'HOU': '#a71930', 'IND': '#033f84ff', 'JAX': '#006778', 'KC': '#E31837',
-  'LAC': '#0080C6', 'LAR': '#003aa5ff', 'LV': '#A5ACAF', 'MIA': '#008E97',
-  'MIN': '#4F2683', 'NE': '#003b76ff', 'NO': '#D3BC8D', 'NYG': '#0c2780ff',
-  'NYJ': '#125740', 'OAK': '#A5ACAF', 'PHI': '#2B8C4E', 'PIT': '#FFB612',
-  'SD': '#0080C6', 'SEA': '#69BE28', 'SF': '#B3995D', 'STL': '#003594',
-  'TB': '#ca3d00ff', 'TEN': '#4B92DB', 'WAS': '#821f1fff'
+  'ARI': '#fdd1dcff', 'ATL': '#f7d7dcff', 'BAL': '#cfc0f0ff',
+  'BUF': '#ffddddff','CAR': '#d6ecf6ff', 'CHI': '#ecf3ffff', 
+  'CIN': '#fbdacfff', 'CLE': '#f8d8ceff', 'DAL': '#b8d3dbff',
+  'DEN': '#fee6deff', 'DET': '#bce2f5ff', 'GB': '#f3fdd9b3',
+  'HOU': '#f8bcc6ff', 'IND': '#e2efffff', 'JAX': '#d8f7fdff', 
+  'KC': '#ffcdd5ff', 'LAC': '#e3f5ffff', 'LAR': '#c2d5f8ff', 
+  'LV': '#A5ACAF', 'MIA': '#cdf6f9ff', 'MIN': '#dcc6f8ff', 
+  'NE': '#e9f4ffff', 'NO': '#eedfc0ff', 'NYG': '#d8e1fdff',
+  'NYJ': '#ceffefff', 'OAK': '#A5ACAF', 'PHI': '#d9ffe7ff',
+  'PIT': '#fae8bcff', 'SD': '#0080C6', 'SEA': '#d8fabbd2', 
+  'SF': '#e6d4abff', 'STL': '#d4e3ffff', 'TB': '#f7d0d0ff', 
+  'TEN': '#bedfffff', 'WAS': '#deababff'
 };
 
 // Per-team logo glow specs (color + radius) to match the CSS glow tuning.
@@ -95,7 +98,7 @@ const TEAM_LOGO_GLOW = {
   PIT: { glow: "rgba(255, 182, 18, 0.61)", blur: 2.4 },
   SEA: { glow: "rgba(105, 190, 40, 0.86)", blur: 2.4 },
   SF:  { glow: "rgba(179, 153, 93, 0.74)", blur: 2.6 },
-  TB:  { glow: "rgba(247, 122, 97, 0.74)", blur: 2.4 },
+  TB:  { glow: "rgba(247, 122, 97, 0.74)", blur: 0 },
   TEN: { glow: "rgba(75, 146, 219, 0.95)", blur: 3.2 },
   WAS: { glow: "rgba(180, 36, 36, 0.95)", blur: 3.2 },
 };
@@ -351,29 +354,38 @@ function heatColor(score){
   return lerpRGB(cTough, cEasy, clamp(score,0,1));
 }
 
-// Heatmap-only gradient + "liquid glass" aesthetic.
+// Heatmap-only gradient tuned for dark mode.
 // score: 0=toughest, 1=easiest.
 function heatmapColor(score){
   const t = clamp(score, 0, 1);
-  const tough = [255, 58, 117];  // neon pink
-  const mid   = [88, 167, 255];  // electric blue
-  const easy  = [0, 255, 193];   // neon aqua
-  if (t <= 0.5) return lerpRGB(tough, mid, t / 0.5);
-  return lerpRGB(mid, easy, (t - 0.5) / 0.5);
+  const stops = [
+    { t: 0.00, c: [55, 7, 23] },     // deep wine
+    { t: 0.42, c: [201, 0, 50] },    // ruby red
+    { t: 0.78, c: [255, 126, 0] },   // neon orange
+    { t: 1.00, c: [255, 220, 118] }, // warm gold
+  ];
+
+  for (let i = 0; i < stops.length - 1; i++){
+    const a = stops[i];
+    const b = stops[i + 1];
+    if (t <= b.t){
+      const u = (t - a.t) / (b.t - a.t || 1);
+      return lerpRGB(a.c, b.c, clamp(u, 0, 1));
+    }
+  }
+  const last = stops[stops.length - 1]?.c ?? [255,255,255];
+  return lerpRGB(last, last, 0);
 }
 
-function heatmapGlassBg(color, score){
+function heatmapBg(color, score){
   const s = clamp(score, 0, 1);
-  const hi = 0.52;
-  const lo = 0.16;
-  const aMain = lerp(lo, hi, s);
-  const aEdge = lerp(0.10, 0.24, s);
-  const aSheen = lerp(0.08, 0.14, s);
+  const aMain = lerp(0.16, 0.62, s);
+  const aEdge = lerp(0.08, 0.26, s);
   return [
-    `radial-gradient(220px 90px at 18% 18%, ${rgbaOf(color, aMain)}, transparent 62%)`,
-    `radial-gradient(200px 110px at 86% 112%, ${rgbaOf(color, aEdge)}, transparent 68%)`,
-    `linear-gradient(135deg, rgba(255,255,255,${aSheen.toFixed(3)}), rgba(0,0,0,0.18))`,
-    `rgba(0,0,0,0.20)`
+    `radial-gradient(180px 110px at 18% 22%, ${rgbaOf(color, aMain)}, transparent 64%)`,
+    `radial-gradient(180px 120px at 86% 112%, ${rgbaOf(color, aEdge)}, transparent 70%)`,
+    `linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.36))`,
+    `rgba(0,0,0,0.22)`
   ].join(", ");
 }
 
@@ -1076,7 +1088,7 @@ function buildHeatTable(){
           const rk  = toNum(r[`${pos}_Rk`]);
           const sc = rankScore(rk);
           const c = heatmapColor(sc);
-          const bg = heatmapGlassBg(c, sc);
+          const bg = heatmapBg(c, sc);
 
           const has = Number.isFinite(avg) && Number.isFinite(rk);
           const label = has
@@ -1095,7 +1107,7 @@ function buildHeatTable(){
         const totRk  = toNum(r["Total_Rk"]);
         const totSc = rankScore(totRk);
         const totC  = heatmapColor(totSc);
-        const totBg = heatmapGlassBg(totC, totSc);
+        const totBg = heatmapBg(totC, totSc);
 
         const totHas = Number.isFinite(totAvg) && Number.isFinite(totRk);
         const totLabel = totHas
