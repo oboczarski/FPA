@@ -977,7 +977,7 @@ body::before{
   padding: 8px 14px 14px;
   display:flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0px;
   min-height: 0;
   flex: 1 1 auto;
   overflow: hidden;
@@ -1001,21 +1001,22 @@ body::before{
 .playersModalFooter{
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  gap: 10px;
-  padding: 6px 4px 2px;
+  justify-content: space-evenly;
+  gap: 0px;
+  padding: 0px 4px 2px;
 }
 .playersModalFooter__text{
-  font-size: 11px;
+  font-size: 9px;
   color: rgba(255,255,255,0.66);
-  font-weight: 750;
+  font-weight: 350;
   letter-spacing: 0.01em;
   line-height: 1.15;
+  font-style: italic;
 }
 .circleToggle{
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
+  width: 17px;
+  height: 17px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.22);
   background: rgba(255,255,255,0.06);
@@ -1023,6 +1024,7 @@ body::before{
   position: relative;
   box-shadow: inset 0 0 0 2px rgba(0,0,0,0.12);
   transition: transform .14s ease, border-color .14s ease, background .14s ease;
+  margin-bottom: 2px;
 }
 .circleToggle:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.08); }
 .circleToggle:active{ transform: translateY(0px); }
@@ -1568,7 +1570,7 @@ body::before{
 	    color: rgba(255,255,255,0.92);
 	    text-shadow: none;
 	  }
-  .playersFilters{ gap: 6px; margin: 6px 2px 8px; flex-wrap: nowrap; }
+  .playersFilters{gap: 6px;margin: 6px 2px 4px;flex-wrap: nowrap;}
   .playersFilters .playersField{ flex: 1 1 0; min-width: 0; }
   .playersSelect, .playersInput{ height: 38px; padding: 0 10px; border-radius: 11px; font-size: 12px; }
   .playersTableWrap{ border-radius: 12px; height: 26rem; }

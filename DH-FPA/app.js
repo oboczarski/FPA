@@ -1896,6 +1896,12 @@ function buildPlayerWeekScatter(){
   const datasets = [];
   const dotR = isMobile ? 7.5 : 9.0; // desktop-only: make dots bigger (mobile unchanged)
   const dotHoverR = isMobile ? 6.5 : 8.0;
+  const trendLineColor = (() => {
+    const p = cleanStr(STATE.playerWeekScatterPos).toUpperCase();
+    const hex = CONFIG.positions.includes(p) ? (PLAYER_SCATTER_COLORS[p] ?? "#ffffff") : "#ffffff";
+    const [r,g,b] = hexToRgbaArr(hex);
+    return `rgba(${r}, ${g}, ${b}, 0.18)`;
+  })();
 
   for (const pos of activePos){
     const rows = byPos.get(pos) ?? [];
@@ -1944,11 +1950,11 @@ function buildPlayerWeekScatter(){
   }
 
   // Trend line across all visible points (all active positions for this team).
-  const trendDataset = (() => {
-    const pts = datasets
-      .flatMap(d => (Array.isArray(d.data) ? d.data : []))
-      .filter(p => Number.isFinite(p?.x) && Number.isFinite(p?.y));
-    if (pts.length < 2) return null;
+	  const trendDataset = (() => {
+	    const pts = datasets
+	      .flatMap(d => (Array.isArray(d.data) ? d.data : []))
+	      .filter(p => Number.isFinite(p?.x) && Number.isFinite(p?.y));
+	    if (pts.length < 2) return null;
 
     const n = pts.length;
     let sumX = 0;
@@ -1975,16 +1981,16 @@ function buildPlayerWeekScatter(){
     const y2 = slope * x2 + intercept;
     if (!Number.isFinite(y1) || !Number.isFinite(y2)) return null;
 
-    return {
-      type: "line",
-      label: "Trend",
-      data: [{ x: x1, y: y1 }, { x: x2, y: y2 }],
-      borderColor: "rgba(255,255,255,0.22)",
-      borderWidth: 2,
-      borderDash: [6, 5],
-      pointRadius: 0,
-      pointHitRadius: 0,
-      tension: 0,
+	    return {
+	      type: "line",
+	      label: "Trend",
+	      data: [{ x: x1, y: y1 }, { x: x2, y: y2 }],
+	      borderColor: trendLineColor,
+	      borderWidth: 2,
+	      borderDash: [6, 5],
+	      pointRadius: 0,
+	      pointHitRadius: 0,
+	      tension: 0,
       clip: false,
       order: 0,
     };
