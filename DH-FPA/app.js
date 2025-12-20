@@ -1916,6 +1916,30 @@ function buildPlayerWeekScatter(){
     byPos.get(r.pos)?.push(r);
   }
 
+  const calcLinearTrend = (points) => {
+    const xs = points.map(p => p.x);
+    const ys = points.map(p => p.y);
+    const n = xs.length;
+    if (n < 2) return null;
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumX2 = 0;
+    for (let i = 0; i < n; i++){
+      const x = xs[i];
+      const y = ys[i];
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumX2 += x * x;
+    }
+    const denom = (n * sumX2 - sumX * sumX);
+    if (!Number.isFinite(denom) || denom === 0) return null;
+    const m = (n * sumXY - sumX * sumY) / denom;
+    const b = (sumY - m * sumX) / n;
+    return { m, b };
+  };
+
   const datasets = [];
 
   for (const pos of activePos){
@@ -1936,6 +1960,7 @@ function buildPlayerWeekScatter(){
     }
 
     const base = PLAYER_SCATTER_RGBA[pos] ?? [255,255,255,0.85];
+    const trendSwatch = `rgba(${base[0]}, ${base[1]}, ${base[2]}, 0.88)`;
 
     datasets.push({
       label: pos,
@@ -1946,6 +1971,7 @@ function buildPlayerWeekScatter(){
       _maxPts: maxPts,
       _base: base,
       clip: false,
+      order: 1,
       pointRadius: 7.5,
       pointHoverRadius: 6.5,
       pointBorderWidth: 1,
@@ -1961,6 +1987,43 @@ function buildPlayerWeekScatter(){
         return rgbaOf(c, 0.95);
       },
     });
+
+    const weekAgg = new Map();
+    for (const r of rows){
+      if (!Number.isFinite(r.week) || !Number.isFinite(r.pts)) continue;
+      const entry = weekAgg.get(r.week) ?? { sum: 0, count: 0 };
+      entry.sum += r.pts;
+      entry.count += 1;
+      weekAgg.set(r.week, entry);
+    }
+    const avgPoints = [...weekAgg.entries()]
+      .map(([week, v]) => ({ x: week, y: v.sum / v.count }))
+      .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y))
+      .sort((a,b) => a.x - b.x);
+
+    const trend = calcLinearTrend(avgPoints);
+    if (trend){
+      const minX = avgPoints[0].x;
+      const maxX = avgPoints[avgPoints.length - 1].x;
+      const y1 = trend.m * minX + trend.b;
+      const y2 = trend.m * maxX + trend.b;
+      datasets.push({
+        label: `${pos} trend`,
+        data: [{ x: minX, y: y1 }, { x: maxX, y: y2 }],
+        type: "line",
+        trend: true,
+        borderColor: rgbaOf(trendSwatch, 0.35),
+        borderWidth: 1,
+        borderDash: [4, 6],
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        pointHitRadius: 0,
+        fill: false,
+        tension: 0,
+        clip: false,
+        order: 0,
+      });
+    }
   }
 
   // Average markers (only when a single position is selected)
@@ -1994,6 +2057,7 @@ function buildPlayerWeekScatter(){
 			        playerWeekAvgPills: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)", team },
 			        legend: { display: false },
 			        tooltip: {
+                filter: (item) => !item.dataset?.trend,
 	          callbacks: {
 	            label: (item) => {
               const r = item.raw ?? {};
