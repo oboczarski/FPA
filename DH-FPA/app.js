@@ -216,6 +216,20 @@ const els = {
   weekRange: document.getElementById("weekRange"),
   playerSearch: document.getElementById("playerSearch"),
   playerTable: document.getElementById("playerTable"),
+
+  playersExpandBtn: document.getElementById("playersExpandBtn"),
+  playersModal: document.getElementById("playersModal"),
+  playersModalClose: document.getElementById("playersModalClose"),
+  playersModalSub: document.getElementById("playersModalSub"),
+
+  modalTeamPicker: document.getElementById("modalTeamPicker"),
+  modalTeamPickerBtn: document.getElementById("modalTeamPickerBtn"),
+  modalTeamPickerPanel: document.getElementById("modalTeamPickerPanel"),
+  modalTeamPickerLogo: document.getElementById("modalTeamPickerLogo"),
+  modalTeamPickerCode: document.getElementById("modalTeamPickerCode"),
+  modalWeekRange: document.getElementById("modalWeekRange"),
+  modalPlayerSearch: document.getElementById("modalPlayerSearch"),
+  modalPlayerTable: document.getElementById("modalPlayerTable"),
 };
 
 let STATE = {
@@ -337,6 +351,32 @@ function heatColor(score){
   return lerpRGB(cTough, cEasy, clamp(score,0,1));
 }
 
+// Heatmap-only gradient + "liquid glass" aesthetic.
+// score: 0=toughest, 1=easiest.
+function heatmapColor(score){
+  const t = clamp(score, 0, 1);
+  const tough = [255, 58, 117];  // neon pink
+  const mid   = [88, 167, 255];  // electric blue
+  const easy  = [0, 255, 193];   // neon aqua
+  if (t <= 0.5) return lerpRGB(tough, mid, t / 0.5);
+  return lerpRGB(mid, easy, (t - 0.5) / 0.5);
+}
+
+function heatmapGlassBg(color, score){
+  const s = clamp(score, 0, 1);
+  const hi = 0.52;
+  const lo = 0.16;
+  const aMain = lerp(lo, hi, s);
+  const aEdge = lerp(0.10, 0.24, s);
+  const aSheen = lerp(0.08, 0.14, s);
+  return [
+    `radial-gradient(220px 90px at 18% 18%, ${rgbaOf(color, aMain)}, transparent 62%)`,
+    `radial-gradient(200px 110px at 86% 112%, ${rgbaOf(color, aEdge)}, transparent 68%)`,
+    `linear-gradient(135deg, rgba(255,255,255,${aSheen.toFixed(3)}), rgba(0,0,0,0.18))`,
+    `rgba(0,0,0,0.20)`
+  ].join(", ");
+}
+
 function pointGradientColor(baseRgba, value, minV, maxV){
   const [r0,g0,b0,a0] = baseRgba ?? [255,255,255,1];
   const denom = (Number.isFinite(maxV) && Number.isFinite(minV)) ? (maxV - minV) : 0;
@@ -414,6 +454,30 @@ function setTeamPickerOpen(open){
   if (els.teamPickerBtn) els.teamPickerBtn.setAttribute("aria-expanded", String(!!open));
 }
 
+function isModalTeamPickerOpen(){
+  return !!els.modalTeamPicker?.classList?.contains("is-open");
+}
+
+function setModalTeamPickerOpen(open){
+  if (!els.modalTeamPicker) return;
+  els.modalTeamPicker.classList.toggle("is-open", !!open);
+  if (els.modalTeamPickerBtn) els.modalTeamPickerBtn.setAttribute("aria-expanded", String(!!open));
+}
+
+function isPlayersModalOpen(){
+  return !!els.playersModal?.classList?.contains("is-open");
+}
+
+function setPlayersModalOpen(open){
+  if (!els.playersModal) return;
+  const next = !!open;
+  els.playersModal.classList.toggle("is-open", next);
+  els.playersModal.setAttribute("aria-hidden", String(!next));
+  document.documentElement.style.overflow = next ? "hidden" : "";
+  document.body.style.overflow = next ? "hidden" : "";
+  if (!next) setModalTeamPickerOpen(false);
+}
+
 function syncTeamPicker(team){
   const t = cleanStr(team).toUpperCase();
 
@@ -432,6 +496,26 @@ function syncTeamPicker(team){
 
   if (els.teamPickerPanel){
     $$("button.teamOption", els.teamPickerPanel).forEach(btn => {
+      const on = btn.dataset.team === t;
+      btn.classList.toggle("is-selected", on);
+      btn.setAttribute("aria-selected", String(on));
+    });
+  }
+
+  if (els.modalTeamPickerCode) els.modalTeamPickerCode.textContent = t || "—";
+  if (els.modalTeamPickerLogo){
+    if (t){
+      els.modalTeamPickerLogo.src = teamLogoSrc(t);
+      els.modalTeamPickerLogo.alt = t;
+      els.modalTeamPickerLogo.style.opacity = "1";
+    }else{
+      els.modalTeamPickerLogo.removeAttribute("src");
+      els.modalTeamPickerLogo.alt = "";
+      els.modalTeamPickerLogo.style.opacity = "0";
+    }
+  }
+  if (els.modalTeamPickerPanel){
+    $$("button.teamOption", els.modalTeamPickerPanel).forEach(btn => {
       const on = btn.dataset.team === t;
       btn.classList.toggle("is-selected", on);
       btn.setAttribute("aria-selected", String(on));
@@ -737,6 +821,7 @@ function calcTrend(team, pos){
 // =====================
 function buildTeamSelect(){
   if (els.teamPickerPanel) els.teamPickerPanel.innerHTML = "";
+  if (els.modalTeamPickerPanel) els.modalTeamPickerPanel.innerHTML = "";
   const teams = [...DATA.byTeamSeason.keys()].sort();
   for (const t of teams){
     const addOption = (panel) => {
@@ -755,6 +840,7 @@ function buildTeamSelect(){
     };
 
     if (els.teamPickerPanel) addOption(els.teamPickerPanel);
+    if (els.modalTeamPickerPanel) addOption(els.modalTeamPickerPanel);
   }
   STATE.selectedTeam = teams[0] ?? null;
   syncTeamPicker(STATE.selectedTeam);
@@ -989,8 +1075,8 @@ function buildHeatTable(){
           const avg = toNum(r[`${pos}_Avg`]);
           const rk  = toNum(r[`${pos}_Rk`]);
           const sc = rankScore(rk);
-          const c = heatColor(sc);
-          const bg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(c,0.30)}, transparent 70%)`;
+          const c = heatmapColor(sc);
+          const bg = heatmapGlassBg(c, sc);
 
           const has = Number.isFinite(avg) && Number.isFinite(rk);
           const label = has
@@ -999,7 +1085,7 @@ function buildHeatTable(){
 
           return `
             <td>
-              <div class="cell" data-team="${t}" data-pos="${pos}" style="background:${bg}; border-color: ${rgbaOf(c,0.22)};">
+              <div class="cell" data-team="${t}" data-pos="${pos}" style="background:${bg}; border-color: ${rgbaOf(c,0.30)};">
                 <div class="cell__text">${label}</div>
               </div>
             </td>
@@ -1008,8 +1094,8 @@ function buildHeatTable(){
         const totAvg = toNum(r["Total Avg"]);
         const totRk  = toNum(r["Total_Rk"]);
         const totSc = rankScore(totRk);
-        const totC  = heatColor(totSc);
-        const totBg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(totC,0.30)}, transparent 70%)`;
+        const totC  = heatmapColor(totSc);
+        const totBg = heatmapGlassBg(totC, totSc);
 
         const totHas = Number.isFinite(totAvg) && Number.isFinite(totRk);
         const totLabel = totHas
@@ -1024,7 +1110,7 @@ function buildHeatTable(){
             ${makeCell("WR")}
             ${makeCell("TE")}
             <td>
-              <div class="cell" data-team="${t}" data-pos="TOTAL" style="background:${totBg}; border-color: ${rgbaOf(totC,0.22)};">
+              <div class="cell" data-team="${t}" data-pos="TOTAL" style="background:${totBg}; border-color: ${rgbaOf(totC,0.30)};">
                 <div class="cell__text">${totLabel}</div>
               </div>
             </td>
@@ -1909,9 +1995,11 @@ function sortPlayers(rows){
   });
 }
 
-function buildPlayerTable(team, pos){
-  const search = cleanStr(els.playerSearch.value).toLowerCase();
-  const mode = els.weekRange.value;
+function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable } = {}){
+  if (!weekRangeEl || !playerSearchEl || !tableEl) return;
+
+  const search = cleanStr(playerSearchEl.value).toLowerCase();
+  const mode = weekRangeEl.value;
 
   let rows = filterWeeks(getPlayerRows(team, pos), mode);
 
@@ -1931,7 +2019,7 @@ function buildPlayerTable(team, pos){
     {k:"pts", label:"PPR"},
   ];
 
-	  els.playerTable.innerHTML = `
+	  tableEl.innerHTML = `
 	    <thead>
 	      <tr>
 	        ${headers.map(h => `<th data-k="${h.k}">${h.label}${STATE.playerSort.key === h.k ? (STATE.playerSort.dir === "asc" ? " ▲" : " ▼") : ""}</th>`).join("")}
@@ -1964,7 +2052,7 @@ function buildPlayerTable(team, pos){
 	  `;
 
   // bind sort headers
-  $$("thead th", els.playerTable).forEach(th => {
+  $$("thead th", tableEl).forEach(th => {
     th.addEventListener("click", () => {
       const k = th.dataset.k;
       if (STATE.playerSort.key === k){
@@ -1973,15 +2061,15 @@ function buildPlayerTable(team, pos){
         STATE.playerSort.key = k;
         STATE.playerSort.dir = (k === "pts" || k === "week") ? "desc" : "asc";
       }
-      buildPlayerTable(team, pos);
+      buildPlayersEverywhere(team, pos);
     });
   });
 }
 
-function buildPlayersSection(team, pos){
+function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable } = {}){
   if (!team || !pos){
-    if (els.playersSub) els.playersSub.textContent = "Select a defense + position to populate.";
-    if (els.playerTable) els.playerTable.innerHTML = "";
+    if (subEl) subEl.textContent = "Select a defense + position to populate.";
+    if (tableEl) tableEl.innerHTML = "";
     return;
   }
 	  const t = cleanStr(team).toUpperCase();
@@ -1990,8 +2078,18 @@ function buildPlayersSection(team, pos){
 	  const teamTag = t
 	    ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${style}>${t}</span></span>`
 	    : "—";
-  if (els.playersSub) els.playersSub.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
-  buildPlayerTable(team, pos);
+  if (subEl) subEl.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
+  buildPlayerTable(team, pos, { weekRangeEl, playerSearchEl, tableEl });
+}
+
+function buildPlayersEverywhere(team, pos){
+  buildPlayersSection(team, pos, { subEl: els.playersSub, weekRangeEl: els.weekRange, playerSearchEl: els.playerSearch, tableEl: els.playerTable });
+
+  if (isPlayersModalOpen()){
+    if (els.modalWeekRange && els.weekRange) els.modalWeekRange.value = els.weekRange.value;
+    if (els.modalPlayerSearch && els.playerSearch) els.modalPlayerSearch.value = els.playerSearch.value;
+    buildPlayersSection(team, pos, { subEl: els.playersModalSub, weekRangeEl: els.modalWeekRange, playerSearchEl: els.modalPlayerSearch, tableEl: els.modalPlayerTable });
+  }
 }
 
 // =====================
@@ -2029,7 +2127,7 @@ function selectTeam(team, pos = STATE.pos){
   buildQuickCards();
   buildScatter();
   buildPlayerWeekScatter();
-  buildPlayersSection(team, STATE.pos);
+  buildPlayersEverywhere(team, STATE.pos);
 
   applyHeatHighlights();
   syncSelectionChips(team, STATE.pos);
@@ -2151,8 +2249,73 @@ function bindEvents(){
   }
 
   // players filters
-  els.weekRange.addEventListener("change", () => buildPlayersSection(STATE.selectedTeam, STATE.pos));
-  els.playerSearch.addEventListener("input", () => buildPlayersSection(STATE.selectedTeam, STATE.pos));
+  els.weekRange.addEventListener("change", () => buildPlayersEverywhere(STATE.selectedTeam, STATE.pos));
+  els.playerSearch.addEventListener("input", () => buildPlayersEverywhere(STATE.selectedTeam, STATE.pos));
+
+  // players modal (expand)
+  if (els.playersExpandBtn && els.playersModal){
+    const open = () => {
+      if (els.modalWeekRange && els.weekRange) els.modalWeekRange.value = els.weekRange.value;
+      if (els.modalPlayerSearch && els.playerSearch) els.modalPlayerSearch.value = els.playerSearch.value;
+      setPlayersModalOpen(true);
+      buildPlayersEverywhere(STATE.selectedTeam, STATE.pos);
+    };
+    const close = () => setPlayersModalOpen(false);
+
+    els.playersExpandBtn.addEventListener("click", open);
+    if (els.playersModalClose) els.playersModalClose.addEventListener("click", close);
+    els.playersModal.addEventListener("click", (e) => {
+      const target = e.target;
+      if (target?.closest?.("[data-close]")) close();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (!isPlayersModalOpen()) return;
+      if (isModalTeamPickerOpen()){
+        setModalTeamPickerOpen(false);
+        return;
+      }
+      close();
+    });
+  }
+
+  if (els.modalWeekRange){
+    els.modalWeekRange.addEventListener("change", () => {
+      if (els.weekRange) els.weekRange.value = els.modalWeekRange.value;
+      buildPlayersEverywhere(STATE.selectedTeam, STATE.pos);
+    });
+  }
+  if (els.modalPlayerSearch){
+    els.modalPlayerSearch.addEventListener("input", () => {
+      if (els.playerSearch) els.playerSearch.value = els.modalPlayerSearch.value;
+      buildPlayersEverywhere(STATE.selectedTeam, STATE.pos);
+    });
+  }
+
+  // modal opponent defense picker (custom dropdown)
+  if (els.modalTeamPickerBtn && els.modalTeamPickerPanel){
+    const close = () => setModalTeamPickerOpen(false);
+
+    els.modalTeamPickerBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      setModalTeamPickerOpen(!isModalTeamPickerOpen());
+    });
+
+    els.modalTeamPickerPanel.addEventListener("click", (e) => {
+      const btn = e.target?.closest?.("button.teamOption");
+      const team = btn?.dataset?.team;
+      if (!team) return;
+      close();
+      selectTeam(team, STATE.pos);
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!isModalTeamPickerOpen()) return;
+      const inside = els.modalTeamPicker?.contains(e.target);
+      if (!inside) close();
+    });
+  }
 
   // file upload
   els.fileInput.addEventListener("change", (e) => {

@@ -76,6 +76,9 @@
 		          <div class="playersPanel" id="playersPanel">
 		            <div class="playersHeader">
 		              <div class="playersHeaderTitle" id="playersSub">Select a defense + position to populate.</div>
+		              <button type="button" class="playersExpandBtn" id="playersExpandBtn" aria-label="Expand players by week">
+		                <i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i>
+		              </button>
 		            </div>
 
 		            <div class="playersFilters">
@@ -154,14 +157,16 @@
 			    <section class="grid2">
 				      <section class="panel">
 				        <div class="panelHeader panelHeader--heat">
-					          <div class="heatHeaderGrid">
-					            <h2 class="heatmapTitle">Matchup Heatmap</h2>
+					          <div class="heatHeaderRow">
+					            <div class="heatHeaderTitleLine">
+					              <h2 class="heatmapTitle">Matchup Heatmap</h2>
+					              <div class="heatHeaderHint">Tap a position header to sort</div>
+					            </div>
 
 					            <div class="segmented" role="tablist" aria-label="Dataset selector">
 					              <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
 					              <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
 					            </div>
-					            <div class="heatHeaderHint">Tap a position header to sort</div>
 					          </div>
 					        </div>
 	
@@ -221,6 +226,68 @@
       </div>
     </section>
 	  </main>
+
+	  <!-- Players panel expand modal -->
+	  <div class="modalOverlay" id="playersModal" aria-hidden="true">
+	    <div class="modalBackdrop" data-close="true" aria-hidden="true"></div>
+	    <div class="modalCard playersModal" role="dialog" aria-modal="true" aria-labelledby="playersModalTitle">
+	      <div class="modalHeader playersModalHeader">
+	        <div class="playersModalHeader__text">
+	          <div class="playersModalTitle" id="playersModalTitle">Players by week</div>
+	          <div class="playersModalSub muted" id="playersModalSub">Select a defense + position to populate.</div>
+	        </div>
+	        <button type="button" class="modalCloseBtn" id="playersModalClose" aria-label="Close">
+	          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+	        </button>
+	      </div>
+
+	      <div class="playersModalControls" aria-label="Players modal controls">
+	        <div class="playersModalControls__row">
+	          <div class="teamPicker teamPicker--sm" id="modalTeamPicker">
+	            <button type="button" class="teamPicker__btn" id="modalTeamPickerBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Opponent defense">
+	              <span class="teamPicker__left">
+	                <img id="modalTeamPickerLogo" class="teamLogo glow" alt="" />
+	                <span id="modalTeamPickerCode" class="teamPicker__code">—</span>
+	              </span>
+	              <span class="teamPicker__chev" aria-hidden="true">▾</span>
+	            </button>
+	            <div class="teamPicker__panel" id="modalTeamPickerPanel" role="listbox" aria-label="Opponent defense options"></div>
+	          </div>
+
+	          <div class="pos-toggle pos-toggle--lg pos-toggle--modal" id="modalPosToggle" role="group" aria-label="Position toggle">
+	            <button class="pos-btn" data-pos="QB">QB</button>
+	            <button class="pos-btn" data-pos="RB">RB</button>
+	            <button class="pos-btn" data-pos="WR">WR</button>
+	            <button class="pos-btn" data-pos="TE">TE</button>
+	          </div>
+	        </div>
+	      </div>
+
+	      <div class="playersModalBody">
+	        <div class="playersFilters playersFilters--modal">
+	          <label class="playersField">
+	            <select id="modalWeekRange" class="playersSelect" aria-label="Week range">
+	              <option value="all">2025 Season</option>
+	              <option value="recent">Weeks 9–15</option>
+	              <option value="1-8">Weeks 1–8</option>
+	              <option value="9-12">Weeks 9–12</option>
+	              <option value="13-15">Weeks 13–15</option>
+	            </select>
+	          </label>
+
+	          <label class="playersField">
+	            <input id="modalPlayerSearch" class="playersInput" type="text" aria-label="Search player or team" placeholder="Player or team…" />
+	          </label>
+	        </div>
+
+	        <div class="playersTableWrap playersTableWrap--modal">
+	          <div class="playersTableScroll">
+	            <table class="list" id="modalPlayerTable"></table>
+	          </div>
+	        </div>
+	      </div>
+	    </div>
+	  </div>
 
 	  <!-- Libraries (CDN). If you prefer offline, download these and point to local files. -->
 	  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
