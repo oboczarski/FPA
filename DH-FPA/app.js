@@ -51,15 +51,18 @@ const TEAM_COLORS = {
 // Player-name tint colors (Players by week table only).
 // Safe to tweak per-team without affecting other UI.
 const TEAM_NAME_COLORS = {
-  'ARI': '#97233F', 'ATL': '#A71930', 'BAL': '#491ca9ff', 'BUF': '#C60C30',
-  'CAR': '#0085CA', 'CHI': '#b1c7efff', 'CIN': '#FB4F14', 'CLE': '#ff3c00',
-  'DAL': '#869397', 'DEN': '#FB4F14', 'DET': '#0076B6', 'GB': '#ffb612',
-  'HOU': '#a71930', 'IND': '#033f84ff', 'JAX': '#006778', 'KC': '#E31837',
-  'LAC': '#0080C6', 'LAR': '#003aa5ff', 'LV': '#A5ACAF', 'MIA': '#008E97',
-  'MIN': '#4F2683', 'NE': '#003b76ff', 'NO': '#D3BC8D', 'NYG': '#0c2780ff',
-  'NYJ': '#125740', 'OAK': '#A5ACAF', 'PHI': '#2B8C4E', 'PIT': '#FFB612',
-  'SD': '#0080C6', 'SEA': '#69BE28', 'SF': '#B3995D', 'STL': '#003594',
-  'TB': '#ca3d00ff', 'TEN': '#4B92DB', 'WAS': '#821f1fff'
+  'ARI': '#fdd1dcff', 'ATL': '#f7d7dcff', 'BAL': '#cfc0f0ff',
+  'BUF': '#ffddddff','CAR': '#d6ecf6ff', 'CHI': '#ecf3ffff', 
+  'CIN': '#fbdacfff', 'CLE': '#f8d8ceff', 'DAL': '#b8d3dbff',
+  'DEN': '#fee6deff', 'DET': '#bce2f5ff', 'GB': '#f3fdd9b3',
+  'HOU': '#f8bcc6ff', 'IND': '#e2efffff', 'JAX': '#d8f7fdff', 
+  'KC': '#ffcdd5ff', 'LAC': '#e3f5ffff', 'LAR': '#c2d5f8ff', 
+  'LV': '#A5ACAF', 'MIA': '#cdf6f9ff', 'MIN': '#dcc6f8ff', 
+  'NE': '#e9f4ffff', 'NO': '#eedfc0ff', 'NYG': '#d8e1fdff',
+  'NYJ': '#ceffefff', 'OAK': '#A5ACAF', 'PHI': '#d9ffe7ff',
+  'PIT': '#fae8bcff', 'SD': '#0080C6', 'SEA': '#d8fabbd2', 
+  'SF': '#e6d4abff', 'STL': '#d4e3ffff', 'TB': '#f7d0d0ff', 
+  'TEN': '#bedfffff', 'WAS': '#deababff'
 };
 // Per-team logo glow specs (color + radius) to match the CSS glow tuning.
 // blur values are tuned for ~17px logos and scaled for the Season vs Weeks scatter.
