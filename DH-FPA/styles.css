@@ -890,9 +890,9 @@ body::before{
     padding: 14px;
   }
   .modalCard{
-    width: min(1060px, calc(100vw - 36px));
+    width: min(860px, calc(100vw - 36px));
     height: min(96vh, 1100px);
-    max-height: min(96vh, 1100px);
+    max-height: min(96vh, 1200px);
     overflow: hidden;
   }
   .modalCard.playersModal{ overflow: hidden; }
