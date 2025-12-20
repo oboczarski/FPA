@@ -146,8 +146,8 @@ function buildScatterLogoCanvas(code, img){
   const glowColor = preset?.color ?? teamGlowColor(code, 0.92);
   const baseRadius = preset?.r ?? 2.6;
   const scale = size / 19;
-  const glowRadius = Math.max(1.6, baseRadius * scale);
-  const pad = glowColor ? Math.max(1, Math.round(glowRadius * 0.55)) : 0;
+  const glowRadius = Math.max(1.4, baseRadius * scale);
+  const pad = glowColor ? Math.max(0, Math.round(glowRadius * 0.25)) : 0;
   const drawSize = Math.max(4, size - pad * 2);
 
   const canvas = document.createElement("canvas");
@@ -156,12 +156,19 @@ function buildScatterLogoCanvas(code, img){
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
 
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.clearRect(0, 0, size, size);
   if (glowColor){
     ctx.shadowColor = glowColor;
-    ctx.shadowBlur = Math.min(glowRadius, pad + 2);
+    ctx.shadowBlur = Math.min(glowRadius, pad + 1.5);
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
+  }
+  ctx.drawImage(img, pad, pad, drawSize, drawSize);
+  if (glowColor){
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
   }
   ctx.drawImage(img, pad, pad, drawSize, drawSize);
   return canvas;
@@ -656,6 +663,30 @@ function rgbaOf(color, alpha){
   return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
 }
 
+function withAlpha(color, alpha){
+  const s = String(color ?? "").trim();
+  if (!s) return null;
+  if (s.startsWith("#")){
+    const [r,g,b] = hexToRgbaArr(s);
+    if (![r,g,b].every(Number.isFinite)) return null;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  if (/^rgba?\(/i.test(s)) return rgbaOf(s, alpha);
+  return s;
+}
+
+function teamTextTintColor(tm, alpha = 0.92){
+  const preset = getTeamGlowPreset(tm);
+  if (preset?.color){
+    return withAlpha(preset.color, alpha) ?? preset.color;
+  }
+  const hex = teamColorText(tm);
+  if (!hex) return null;
+  const [r,g,b] = hexToRgbaArr(hex);
+  if (![r,g,b].every(Number.isFinite)) return null;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function setStatus(kind, text){
   if (!els.loadStatus) return;
   const dot = els.loadStatus.querySelector(".dot");
@@ -1000,7 +1031,7 @@ function buildQuickCards(){
         <div class="card__title">${title}</div>
       </div>
       <div class="card__big">${rkHtml} <span class="cardVs">vs. <span class="posText" data-pos="${pos}">${pos}</span></span></div>
-      <div class="card__sub"><strong>${fmt(avg,2)}</strong> FPA • Games: <strong>${fmt(gm,0)}</strong> ${extra ?? ""}</div>
+    <div class="card__sub"><strong>${fmt(avg,1)}</strong> FPA • Games: <strong>${fmt(gm,0)}</strong> ${extra ?? ""}</div>
       <div class="card__chipRow">${chipFor(rk)}</div>
     </div>
   `;
@@ -1040,7 +1071,7 @@ function buildQuickCards(){
           ? `${dRankTxt} rank <span class="cardVs">vs. ${posTag}</span>`
           : "—";
         const sub = hasTrend
-          ? `ΔRank: <strong>${dRankTxt}</strong> • ΔAvg: <strong>${dAvgTxt}</strong>`
+          ? `ΔAvg: <strong>${dAvgTxt}</strong>`
           : "Trend not available";
         return `
           <div class="card" style="background:${bg}; border-color:${rgbaOf(trendAccent,0.22)}">
@@ -1584,21 +1615,45 @@ function renderPlayerWeekAvgPills(team, pos){
   const datasetName = "season";
   const teamAvg = getMetric(t, datasetName, `${p}_Avg`);
   const leagueAvg = DATA.leaguePosAvg?.[datasetName]?.[p];
-  const posHex = PLAYER_SCATTER_COLORS[p] ?? "#ffffff";
-  const [pr, pg, pb] = hexToRgbaArr(posHex);
-  const posSwatch = `rgba(${pr}, ${pg}, ${pb}, 0.92)`;
 
-  const pill = (label, value, swatch) => `
-    <div class="avgPill" title="${label}">
-      <span class="avgPill__swatch" style="background:${swatch}; box-shadow:0 0 0 3px ${rgbaOf(swatch,0.10)};"></span>
-      <span>${label}: <strong>${fmt(value,2)}</strong></span>
-    </div>
-  `;
+  const items = [];
+  if (Number.isFinite(teamAvg)){
+    items.push({ kind: "team", label: "Team avg", value: teamAvg });
+  }
+  if (Number.isFinite(leagueAvg)){
+    items.push({ kind: "league", label: "League avg", value: leagueAvg });
+  }
 
-  const parts = [];
-  if (Number.isFinite(teamAvg)) parts.push(pill("Team avg", teamAvg, posSwatch));
-  if (Number.isFinite(leagueAvg)) parts.push(pill("League avg", leagueAvg, "rgba(255,255,255,0.55)"));
-  els.playerWeekAvgPills.innerHTML = parts.join("");
+  // Always keep the larger value visually first (important on mobile wrap).
+  items.sort((a,b) => (b.value - a.value));
+
+  const badge = (it) => {
+    const value = fmt(it.value, 1);
+    if (it.kind === "team"){
+      const glowStyle = teamGlowStyle(t, 0.92);
+      return `
+        <div class="avgBadge" title="${it.label}">
+          <img class="avgBadge__logo teamLogo glow" ${glowStyle} src="${teamLogoSrc(t)}" alt="${t}" />
+          <div class="avgPill avgPill--avg">
+            <span class="avgPill__label">AVG</span>
+            <span class="avgPill__value">${value}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="avgBadge" title="${it.label}">
+        <div class="avgBadge__logo avgBadge__logo--league" aria-hidden="true">NFL</div>
+        <div class="avgPill avgPill--avg">
+          <span class="avgPill__label">AVG</span>
+          <span class="avgPill__value">${value}</span>
+        </div>
+      </div>
+    `;
+  };
+
+  els.playerWeekAvgPills.innerHTML = items.map(badge).join("");
 }
 
 function buildPlayerWeekScatter(){
@@ -1830,7 +1885,7 @@ function buildPlayerTable(team, pos){
 	      ${rows.map(r => {
 	        const tm = r.playerTeam || "—";
 	        const tmCode = cleanStr(tm).toUpperCase();
-        const tmColor = teamColorText(tmCode);
+        const tmColor = teamTextTintColor(tmCode, 0.92);
         const ptsColor = pointsColor(r.pos, r.pts);
         const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
         const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
@@ -1838,10 +1893,11 @@ function buildPlayerTable(team, pos){
         const tmCell = tmCode
           ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" ${tmGlowStyle} src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
           : `<span class="teamText">—</span>`;
+        const playerStyle = tmColor ? `style="color:${tmColor};"` : ``;
         return `
           <tr>
             <td>W${r.week}</td>
-            <td>${r.player}</td>
+            <td><span class="playerName" ${playerStyle}>${r.player}</span></td>
 	            <td>${tmCell}</td>
 	            <td style="${ptsStyle}">${fmt(r.pts,2)}</td>
 	          </tr>

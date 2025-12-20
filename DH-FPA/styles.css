@@ -691,30 +691,59 @@ body::before{
 }
 .avgPills{
   display:flex;
-  gap:8px;
+  gap:10px;
   flex-wrap:wrap;
   justify-content:flex-end;
+  align-items:center;
+}
+.avgBadge{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+}
+.avgBadge__logo{
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  flex: 0 0 auto;
+}
+.avgBadge__logo--league{
+  display:grid;
+  place-items:center;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.86);
+  border: 1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.18));
+  text-shadow: 0 0 14px rgba(0,191,255,0.10);
 }
 .avgPill{
   display:inline-flex;
-  gap: 5px;
+  gap: 7px;
   align-items:center;
-  padding: 6px 6px;
-  border-radius: 10px;
+  padding: 6px 10px;
+  border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(0,0,0,0.20);
-  font-size: 9px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: 900;
   color: rgba(255,255,255,0.82);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   white-space:nowrap;
 }
-.avgPill__swatch{
-  width: 8px;
-  height: 8px;
-  border-radius: 99px;
-  background: rgba(255,255,255,0.65);
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.08);
+.avgPill__label{
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.10em;
+  color: rgba(255,255,255,0.62);
+}
+.avgPill__value{
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.92);
 }
 .chartHint{
   margin-top: 8px;
@@ -1061,14 +1090,18 @@ body::before{
   .playersFilters{ gap: 6px; margin: 6px 2px 8px; flex-wrap: nowrap; }
   .playersFilters .playersField{ flex: 1 1 0; min-width: 0; }
   .playersSelect, .playersInput{ padding: 9px 10px; border-radius: 11px; font-size: 12px; }
-  .playersTableWrap{ border-radius: 12px; height: 26rem; }
+  .playersTableWrap{ border-radius: 12px; height: min(26rem, 60vh); }
+  .playersTableScroll{ height: 100%; max-height: none; }
   .list thead th{ padding: 7px 8px; font-size: 11px; }
   .list tbody td{ padding: 7px 8px; font-size: 12px; }
 
   /* chart controls */
   .chartCard{ padding: 0px 6px 0px; }
   .chartTitle{ font-size: 12px; }
-  .avgPill{ padding: 5px 6px; font-size: 8px; }
+  .avgBadge__logo{ width: 28px; height: 28px; border-radius: 6px; }
+  .avgPill{ padding: 5px 8px; font-size: 9px; }
+  .avgPill__label{ font-size: 8px; }
+  .avgPill__value{ font-size: 10px; }
   .pos2-btn{ padding: 5px 12px; font-size: 10px; }
 
   /* chart heights (mobile only) */
@@ -1076,6 +1109,11 @@ body::before{
   .canvasBox--playerWeekScatter{ height: 320px; }
 
   /* mini cards */
+  .miniStack{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
   .miniCard{ padding: 4px 7px; }
   .miniCard__title{ font-size: 11px; }
   .rankRow{ padding: 5px 7px; border-radius: 11px; }
@@ -1121,10 +1159,14 @@ body::before{
   .playersPanel{ padding: 7px 7px 9px; }
   .playersHeaderTitle{ font-size: 12px; }
   .playersSelect, .playersInput{ padding: 8px 9px; font-size: 12px; }
-  .playersTableWrap{ height: 24rem; }
+  .playersTableWrap{ height: min(24rem, 58vh); }
+  .playersTableScroll{ height: 100%; max-height: none; }
 
   .chartTitle{ font-size: 12px; }
-  .avgPill{ font-size: 8px; }
+  .avgBadge__logo{ width: 26px; height: 26px; border-radius: 6px; }
+  .avgPill{ padding: 5px 8px; font-size: 9px; }
+  .avgPill__label{ font-size: 8px; }
+  .avgPill__value{ font-size: 10px; }
   .pos2-btn{ padding: 5px 11px; font-size: 10px; }
 
   .canvasBox--scatter{ height: 300px; }
@@ -1384,6 +1426,10 @@ table{
   font-size: 13px;
 }
 .list tbody tr:hover td{ background: rgba(255,255,255,0.03); }
+.playerName{
+  font-weight: 850;
+  text-shadow: 0 0 14px rgba(0,0,0,0.28);
+}
 
 code{
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
