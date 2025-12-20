@@ -32,7 +32,7 @@ const PLAYER_POINTS_THRESHOLDS = {
 const PLAYER_POINTS_COLORS = {
   high: "#00ffbfea",
   solid: "#00c3ffe0",
-  low: "#c26cfce8",
+  low: "#fc6caae8",
 };
 
 // Team colors (use provided/official hex values; do not auto-brighten).
