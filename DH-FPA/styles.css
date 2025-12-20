@@ -1461,6 +1461,21 @@ body::before{
     gap: 8px;
     align-items:stretch;
   }
+  .pageHeader__top{
+    position: relative;
+    padding-bottom: 8px;
+    margin-bottom: 2px;
+  }
+  .pageHeader__top::after{
+    content:"";
+    position:absolute;
+    left: 2px;
+    right: 2px;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
+    opacity: 0.9;
+  }
 
   .pageTitle{ font-size: 18px; }
   .pageSubtitle{ font-size: 11px; margin-top: 2px; }
@@ -1579,7 +1594,7 @@ body::before{
 
   /* Modal table: slightly tighter rows so more players are visible (mobile only). */
   .playersTableWrap--modal .list thead th{ padding: 6px 8px; font-size: 10px; }
-  .playersTableWrap--modal .list tbody td{ padding: 6px 8px; font-size: 11px; }
+  .playersTableWrap--modal .list tbody td{ padding: 4px 8px; font-size: 11px; }
 
   /* chart controls */
   .chartCard{ padding: 0px 6px 0px; }
