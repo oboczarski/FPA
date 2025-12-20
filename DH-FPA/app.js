@@ -289,7 +289,7 @@ function weekRangeLabel(mode){
   if (m === "1-8") return "Weeks 1–8";
   if (m === "9-12") return "Weeks 9–12";
   if (m === "13-15") return "Weeks 13–15";
-  return "Season";
+  return "2025 Season";
 }
 
 function weekRangeBounds(mode){
@@ -877,6 +877,7 @@ function buildModalRankCard(team, pos){
   const mode = getActiveWeekRange();
   const { rank, avg, label } = calcRangeRank(team, pos, mode);
   const rkHtml = Number.isFinite(rank) ? ordinalMarkup(rank) : "—";
+  const avgText = Number.isFinite(avg) ? ` <span class="modalRankCard__avg">(${fmt(avg,1)})</span>` : "";
   const accent = Number.isFinite(rank) ? heatColor(rankScore(rank)) : "rgba(255,255,255,0.18)";
   const bg = `radial-gradient(140px 40px at 12% 10%, ${rgbaOf(accent,0.22)}, transparent 60%), rgba(255,255,255,0.04)`;
   const border = rgbaOf(accent,0.28);
@@ -889,7 +890,7 @@ function buildModalRankCard(team, pos){
     el.innerHTML = `
       <span class="modalRankCard__label">${label}</span>
       <span class="modalRankCard__value">
-        <span class="modalRankCard__rank">${rkHtml}</span>
+      <span class="modalRankCard__rank">${rkHtml}${avgText}</span>
         ${vs}
       </span>
     `;
@@ -1599,7 +1600,7 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
           const spec = getTeamLogoGlowSpec(e.logo);
           const glowBase = spec?.glow ?? rgbaOf(e.color, 0.55);
           const baseBlur = Number(spec?.blur) || 3.2;
-          const blurScale = (logoS / 17) * (isMobile ? 2.8 : 2.4);
+          const blurScale = (logoS / 17) * (isMobile ? 3.2 : 2.6);
 
           ctx.shadowColor = glowBase;
           ctx.shadowBlur = baseBlur * blurScale;
@@ -1663,7 +1664,7 @@ const SCATTER_LOGO_GLOW_PLUGIN = {
     const isMobile = SCATTER_MOBILE_MQ.matches;
     const basePx = 17; // glow tuning reference from the CSS sample
     const scale = clamp(SCATTER_TEAM_LOGO_PX / basePx, 0.9, 3.0);
-    const boost = isMobile ? 2.05 : 1.35; // mobile needs a stronger glow to read at smaller sizes
+    const boost = isMobile ? 2.25 : 1.5; // mobile needs a stronger glow to read at smaller sizes
 
     ctx.save();
     ctx.beginPath();
@@ -2158,7 +2159,7 @@ function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearch
   });
 }
 
-function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable, minPoints = null, excludeZeroPoints = false } = {}){
+function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable, minPoints = null, excludeZeroPoints = false, subSuffix = " • players by week" } = {}){
   if (!team || !pos){
     if (subEl) subEl.textContent = "Select a defense + position to populate.";
     if (tableEl) tableEl.innerHTML = "";
@@ -2170,7 +2171,7 @@ function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = 
 	  const teamTag = t
 	    ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${style}>${t}</span></span>`
 	    : "—";
-  if (subEl) subEl.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
+  if (subEl) subEl.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span>${subSuffix ?? ""}`;
   buildPlayerTable(team, pos, { weekRangeEl, playerSearchEl, tableEl, minPoints, excludeZeroPoints });
 }
 
@@ -2188,6 +2189,7 @@ function buildPlayersEverywhere(team, pos){
       tableEl: els.modalPlayerTable,
       minPoints: modalMinPoints,
       excludeZeroPoints: true,
+      subSuffix: "",
     });
   }
 

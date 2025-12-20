@@ -810,16 +810,16 @@ body::before{
   flex-direction: column;
   overflow: hidden;
 }
-.modalCard.playersModal{ overflow: hidden; }
+.modalCard.playersModal{ overflow: visible; }
 .playersModal .teamPicker__panel{
-  width: 100%;
+  width: min(560px, calc(100vw - 32px));
   max-width: none;
   max-height: 52vh;
   overflow: auto;
   z-index: 1305;
 }
 .modalHeader{
-  padding: 12px 14px 5px;
+  padding: 12px 14px 8px;
   display:flex;
   align-items:flex-start;
   justify-content:space-between;
@@ -830,7 +830,7 @@ body::before{
   min-width: 0;
   display:grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   column-gap: 8px;
   row-gap: 4px;
   align-items: end;
@@ -853,6 +853,20 @@ body::before{
   overflow: hidden;
   text-overflow: ellipsis;
   grid-column: 1 / 2;
+  grid-row: 2 / 3;
+}
+.playersModalHeaderFooter{
+  grid-column: 1 / -1;
+  grid-row: 3 / 4;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+.playersModalHeaderFooter .circleToggle{
+  margin-left: auto;
 }
 .modalRankCard{
   grid-column: 2 / 3;
@@ -886,6 +900,11 @@ body::before{
   white-space: nowrap;
   line-height: 1;
 }
+.modalRankCard__avg{
+  font-size: 0.82em;
+  color: var(--muted);
+  font-weight: 700;
+}
 .modalRankCard__rank .ord{ font-size: 1em; }
 .modalRankCard__vs{
   font-size: 11px;
@@ -917,23 +936,23 @@ body::before{
 
 .playersModalControls{
   padding: 10px 14px 0px;
+  position: relative;
+  z-index: 5;
 }
 .playersModalControls__row{
-  display:flex;
-  align-items:flex-end;
-  justify-content:flex-start;
+  display:grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items:end;
   gap: 10px;
-  flex-wrap: nowrap;
-  flex-direction: row;
 }
-.playersModal .teamPicker{
-  flex: 1 1 0;
+.playersModal .teamPicker,
+.playersModal .pos-toggle--modal{
+  width: 100%;
   min-width: 0;
 }
 .playersModal .pos-toggle--modal{
-  flex: 1 1 0;
-  min-width: 0;
   justify-content:flex-start;
+  flex-wrap: nowrap;
 }
 .playersModalBody{
   padding: 8px 14px 14px;
@@ -958,14 +977,6 @@ body::before{
 .playersTableWrap--modal .playersTableScroll{
   flex: 1 1 auto;
   height: auto;
-}
-.playersModalFooter{
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  gap: 8px;
-  margin-top: 6px;
-  padding: 4px 2px 0;
 }
 .circleToggle{
   width: 16px;
@@ -1003,8 +1014,9 @@ body::before{
     max-height: min(96vh, 1200px);
     overflow: hidden;
   }
-  .modalCard.playersModal{ overflow: hidden; }
+  .modalCard.playersModal{ overflow: visible; }
   .playersModalControls__row{
+    display:flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
@@ -1540,6 +1552,7 @@ body::before{
   .playersHeaderTitle{ font-size: 12px; }
   .playersSelect, .playersInput{ height: 36px; padding: 0 9px; font-size: 12px; }
   .playersTableWrap{height: 20rem;}
+  .playersTableWrap .teamLogo--opt{ width: 20px; height: 20px; }
 
   .chartTitle{ font-size: 12px; }
   .avgPill{ font-size: 8px; }
@@ -1605,7 +1618,7 @@ body::before{
 
 .tableWrap{
   overflow:auto;
-  padding: 12px 7px 12px;
+  padding: 6px 10px 8px;
   border: 1px solid rgba(255,255,255,0.10);
   border-radius: 14px;
   background:
@@ -1659,8 +1672,8 @@ table{
 }
 .heat tbody td{
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  padding: 4px;
-  font-size: 13px;
+  padding: 0px;
+  font-size: 15px;
 }
 .heat tbody tr:hover td{
   background: rgba(255,255,255,0.03);
@@ -1680,14 +1693,18 @@ table{
   -webkit-tap-highlight-color: transparent;
 }
 .heat .tmCell .teamLogo{
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
+}
+.playersTableWrap .teamLogo--opt{
+  width: 22px;
+  height: 22px;
 }
 .cell{
   position: relative;
   border-radius: 14px;
   border:1px solid rgba(255,255,255,0.08);
-  padding: 4px 11px !important;
+  padding: 2px 0px !important;
   background: rgba(0,0,0,0.18);
   cursor: default;
   display:flex;
@@ -1717,13 +1734,13 @@ table{
   z-index: 1;
   align-items: baseline;
   justify-content:center;
-  gap: 6px;
+  gap: 10px;
   line-height: 1.1;
   white-space: nowrap;
 }
 .cell__rk{
   font-weight: 950;
-  font-size: 14px;
+  font-size: 18px;
   letter-spacing: 0.01em;
 }
 .heat .cell__rk .ord__suf{
@@ -1731,7 +1748,7 @@ table{
   font-size: calc(1em - 1px);
 }
 .cell__avg{
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   font-weight: 800;
 }
@@ -1747,7 +1764,7 @@ table{
   .cell__text{gap: 1px;}
   .cell__rk{ font-size: 10px; }
   .cell__avg{display: inline;font-size: 8px;}
-  .heat .tmCell .teamLogo{ width: 16px; height: 16px; }
+  .heat .tmCell .teamLogo{ width: 18px; height: 18px; }
 }
 
 .profileGrid{

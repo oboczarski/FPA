@@ -235,6 +235,12 @@
         <div class="playersModalHeader__text">
           <div class="playersModalTitle" id="playersModalTitle">Players by week</div>
           <div class="playersModalSub muted" id="playersModalSub">Select a defense + position to populate.</div>
+          <div class="playersModalHeaderFooter">
+            <span class="muted smallLine">Excludes players with less than four points — Toggle to show all</span>
+            <button type="button" class="circleToggle" id="modalLowPointsToggle" role="checkbox" aria-checked="false" aria-label="Toggle showing players with fewer than four points">
+              <span class="circleToggle__dot" aria-hidden="true"></span>
+            </button>
+          </div>
           <div class="modalRankCard modalRankCard--desktop" id="modalRankCardDesktop" aria-live="polite"></div>
           <div class="modalRankCard modalRankCard--mobile" id="modalRankCardMobile" aria-live="polite"></div>
         </div>
@@ -286,12 +292,6 @@
           <div class="playersTableScroll">
             <table class="list" id="modalPlayerTable"></table>
           </div>
-        </div>
-        <div class="playersModalFooter">
-          <span class="muted smallLine">Excludes players with less than four points — Toggle to show all</span>
-          <button type="button" class="circleToggle" id="modalLowPointsToggle" role="checkbox" aria-checked="false" aria-label="Toggle showing players with fewer than four points">
-            <span class="circleToggle__dot" aria-hidden="true"></span>
-          </button>
         </div>
       </div>
     </div>
