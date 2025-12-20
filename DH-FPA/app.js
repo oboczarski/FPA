@@ -1212,6 +1212,8 @@ const NO_OVERLAP_SCATTER_PLUGIN = {
 const PLAYER_WEEK_AVG_MARKERS_PLUGIN = {
   id: "playerWeekAvgMarkers",
   afterDraw(chart, _, opts){
+    // Mobile-only: desktop uses in-chart avg pills instead.
+    if (!SCATTER_MOBILE_MQ.matches) return;
     const area = chart.chartArea;
     const yScale = chart.scales?.y;
     if (!area || !yScale) return;
@@ -1263,6 +1265,104 @@ const PLAYER_WEEK_AVG_MARKERS_PLUGIN = {
       const y = yScale.getPixelForValue(leagueAvg);
       if (within(y)) drawMarker(xLeague, y, "circle", leagueColor);
     }
+  }
+};
+
+// Desktop-only: render compact "avg pills" inside the Player Week Scatter plot area.
+const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
+  id: "playerWeekAvgPills",
+  afterDraw(chart, _, opts){
+    if (SCATTER_MOBILE_MQ.matches) return;
+    const area = chart.chartArea;
+    const yScale = chart.scales?.y;
+    if (!area || !yScale) return;
+
+    const teamAvg = opts?.teamAvg;
+    const leagueAvg = opts?.leagueAvg;
+    const teamColor = opts?.teamColor ?? "rgba(0,191,255,0.90)";
+    const leagueColor = opts?.leagueColor ?? "rgba(255,255,255,0.75)";
+
+    const entries = [
+      { key: "team", label: "Team", value: teamAvg, color: teamColor },
+      { key: "league", label: "League", value: leagueAvg, color: leagueColor },
+    ].filter(e => Number.isFinite(e.value));
+    if (!entries.length) return;
+
+    const ctx = chart.ctx;
+    const fontFamily = Chart.defaults?.font?.family || getComputedStyle(document.body).fontFamily || "sans-serif";
+    const fontSize = 10;
+    const pillH = 16;
+    const padX = 7;
+    const gap = 6;
+    const swatchR = 3.5;
+    const r = 999;
+
+    const roundRect = (x, y, w, h, rad) => {
+      const rr = Math.min(rad, h / 2, w / 2);
+      if (typeof ctx.roundRect === "function"){
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, rr);
+        return;
+      }
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rr);
+      ctx.arcTo(x + w, y + h, x, y + h, rr);
+      ctx.arcTo(x, y + h, x, y, rr);
+      ctx.arcTo(x, y, x + w, y, rr);
+      ctx.closePath();
+    };
+
+    const withinY = (y) => Number.isFinite(y) && y >= area.top - 1 && y <= area.bottom + 1;
+
+    ctx.save();
+    ctx.translate(0.5, 0.5);
+    ctx.font = `${fontSize}px ${fontFamily}`;
+    ctx.textBaseline = "middle";
+
+    for (const e of entries){
+      const y0 = yScale.getPixelForValue(e.value);
+      if (!withinY(y0)) continue;
+
+      const text = `${e.label}: ${fmt(e.value,2)}`;
+      const textW = ctx.measureText(text).width;
+      const w = Math.min(textW + padX * 2 + swatchR * 2 + gap, Math.max(60, area.right - area.left - 10));
+
+      const x = e.key === "team"
+        ? (area.left + 8)
+        : (area.right - w - 8);
+
+      const y = clamp(y0 - (pillH / 2), area.top + 4, area.bottom - pillH - 4);
+
+      const fill = rgbaOf(e.color, 0.14);
+      const stroke = rgbaOf(e.color, 0.28);
+
+      ctx.shadowColor = rgbaOf(e.color, 0.35);
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.fillStyle = fill;
+      roundRect(x, y, w, pillH, r);
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      roundRect(x, y, w, pillH, r);
+      ctx.stroke();
+
+      const cy = y + pillH / 2;
+      const cx = x + padX + swatchR;
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, swatchR, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255,255,255,0.86)";
+      ctx.fillText(text, cx + swatchR + gap, cy);
+    }
+
+    ctx.restore();
   }
 };
 
@@ -1605,21 +1705,22 @@ function buildPlayerWeekScatter(){
 
   charts.playerWeekScatter = new Chart(ctx, {
     type: "scatter",
-    plugins: [PLAYER_WEEK_AVG_MARKERS_PLUGIN],
+    plugins: [PLAYER_WEEK_AVG_MARKERS_PLUGIN, PLAYER_WEEK_AVG_PILLS_PLUGIN],
     data: { datasets },
-	    options: {
+		    options: {
       responsive: true,
       maintainAspectRatio: false,
       resizeDelay: 120,
       parsing: false,
 	      interaction: { mode: "nearest", intersect: true },
 	      layout: { padding: isMobile ? { left: 8, right: 10, top: 7, bottom: 3 } : { left: 14, right: 14, top: 8, bottom: 6 } },
-	      plugins: {
-        playerWeekAvgMarkers: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)" },
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (item) => {
+		      plugins: {
+	        playerWeekAvgMarkers: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)" },
+	        playerWeekAvgPills: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)" },
+	        legend: { display: false },
+	        tooltip: {
+	          callbacks: {
+	            label: (item) => {
               const r = item.raw ?? {};
               const tm = r.playerTeam ? ` (${r.playerTeam})` : "";
               return `${r.player ?? "—"}${tm} • ${r.pos ?? "—"} • W${r.x}: ${fmt(r.y,2)} pts`;
