@@ -859,7 +859,7 @@ function buildQuickCards(){
         <div class="card__title">${title}</div>
       </div>
       <div class="card__big">${rkHtml} <span class="cardVs">vs. <span class="posText" data-pos="${pos}">${pos}</span></span></div>
-      <div class="card__sub"><strong>${fmt(avg,2)}</strong> FPA • Games: <strong>${fmt(gm,0)}</strong> ${extra ?? ""}</div>
+      <div class="card__sub"><strong>${fmt(avg,1)}</strong> FPA • Games: <strong>${fmt(gm,0)}</strong> ${extra ?? ""}</div>
       <div class="card__chipRow">${chipFor(rk)}</div>
     </div>
   `;
@@ -899,7 +899,7 @@ function buildQuickCards(){
 	          ? `${dRankTxt} <span class="trendRankSuffix">rank</span> <span class="cardVs">vs. <span class="posText" data-pos="${pos}">${pos}</span></span>`
 	          : "—";
         const sub = hasTrend
-          ? `ΔRank: <strong>${dRankTxt}</strong> • ΔAvg: <strong>${dAvgTxt}</strong>`
+          ? `ΔAvg: <strong>${dAvgTxt}</strong>`
           : "Trend not available";
         return `
           <div class="card" style="background:${bg}; border-color:${rgbaOf(trendAccent,0.22)}">
@@ -1282,10 +1282,13 @@ const PLAYER_WEEK_AVG_MARKERS_PLUGIN = {
 };
 
 // Draw per-team glow behind logo points in the Season vs Weeks scatter.
+// We mimic CSS drop-shadow by drawing the same logo *behind* the chart point with a canvas shadow.
+// Using destination-over avoids double-rendering the logo while keeping the glow visible outside the logo bounds.
 const SCATTER_LOGO_GLOW_PLUGIN = {
   id: "scatterLogoGlow",
-  beforeDatasetDraw(chart, args){
-    if ((args?.index ?? args?.datasetIndex) !== 0) return;
+  afterDatasetDraw(chart, args){
+    const datasetIndex = args?.index ?? args?.datasetIndex;
+    if (datasetIndex !== 0) return;
     const area = chart.chartArea;
     if (!area) return;
 
@@ -1299,30 +1302,31 @@ const SCATTER_LOGO_GLOW_PLUGIN = {
     const ctx = chart.ctx;
     const basePx = 17; // glow tuning reference from the CSS sample
     const scale = clamp(SCATTER_TEAM_LOGO_PX / basePx, 0.9, 3.0);
-    const r = Math.max(5, SCATTER_TEAM_LOGO_PX * 0.28);
+    const boost = 1.35; // slight boost so the glow reads like CSS drop-shadow on canvas
 
     ctx.save();
     ctx.beginPath();
     ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
     ctx.clip();
+    ctx.globalCompositeOperation = "destination-over";
 
     for (let i = 0; i < elements.length; i++){
       const el = elements[i];
       if (!el) continue;
       const raw = data[i] ?? {};
       const t = cleanStr(raw.t).toUpperCase();
+      const img = getTeamLogo(t);
+      if (!img) continue;
       const spec = getTeamLogoGlowSpec(t);
       if (!spec?.glow) continue;
 
-      const blur = (Number(spec.blur) || 3.0) * scale;
+      const s = Number(img.width) || SCATTER_TEAM_LOGO_PX;
+      const blur = (Number(spec.blur) || 3.0) * scale * boost;
       ctx.shadowColor = spec.glow;
       ctx.shadowBlur = blur;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
-      ctx.fillStyle = rgbaOf(spec.glow, 0.18);
-      ctx.beginPath();
-      ctx.arc(el.x, el.y, r, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.drawImage(img, el.x - (s / 2), el.y - (s / 2), s, s);
     }
 
     ctx.restore();

@@ -711,7 +711,8 @@ body::before{
   height: 32rem;
 }
 .playersTableScroll{
-  max-height: 497px;
+  height: 100%;
+  max-height: none;
   overflow: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -867,11 +868,10 @@ body::before{
 }
 .rankRow{
   position: relative;
-
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:10px;
+  gap: 0px;
   padding: 6px 8px;
   border-radius: 12px;
   border:1px solid rgba(255,255,255,0.08);
@@ -889,17 +889,17 @@ body::before{
 }
 
 .trendBadge{
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
-  letter-spacing: 0.04em;
-  padding: 2px 5px;
+  padding: 4px 5px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(0,0,0,0.16);
   color: rgba(255,255,255,0.82);
+  white-space: nowrap;
 }
 
-.rankRow .lhs{display:flex;gap: 10px;align-items:center;}
+.rankRow .lhs{display:flex;gap: 7px;align-items:center;}
 .rankRow .tm{font-weight: 900;letter-spacing: 0.04em;FONT-SIZE: 13px;}
 .rankRow .meta{font-size: 11px;color: var(--muted);}
 .rankRow .rhs{font-size: 10px;color: var(--muted);font-weight: 800;}
@@ -1096,6 +1096,13 @@ body::before{
   .heatPosBtn{ flex: 1 1 0; text-align:center; padding: 6px 8px; font-size: 11px; border-radius: 10px; }
 
   .miniPosBar{ padding: 9px 9px 8px; margin-bottom: 10px; }
+  /* Mini cards: 2-up grid on mobile (then wrap) */
+  .miniStack{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .miniCard{ min-width: 0; }
 
   /* quick cards + players (shrink everything on mobile only) */
   .cards{
@@ -1132,9 +1139,9 @@ body::before{
   .canvasBox--playerWeekScatter{ height: 320px; }
 
   /* mini cards */
-  .miniCard{ padding: 4px 7px; }
-  .miniCard__title{ font-size: 11px; }
-  .rankRow{ padding: 5px 7px; border-radius: 11px; }
+  .miniCard{padding: 4px 2px;}
+  .miniCard__title{font-size: 10px;}
+  .rankRow{padding: 5px 0px;border-radius: 11px;}
   .rankRow .tm{ font-size: 12px; }
   .rankRow .meta{ font-size: 10px; }
   .rankRow .rhs{ font-size: 10px; }
