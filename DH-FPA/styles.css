@@ -200,7 +200,7 @@ body::before{
   font-weight: 750;
 }
 .pageHeader__row{
-  margin-top: 10px;
+  margin-top: 5px;
   display:flex;
   align-items:flex-end;
   justify-content:space-between;
@@ -416,7 +416,7 @@ body::before{
 .heatmapSubtitle{ margin-top: 4px; color: var(--muted); }
 .uploaderSubtitle{ margin: 10px 0 0; color: var(--muted); }
 .muted{ color: var(--muted); }
-.smallLine{font-size: 13px;}
+.smallLine{font-size: 11px;}
 
 .hero__grid{
   display:grid;
@@ -488,6 +488,7 @@ body::before{
 .playersSelect, .playersInput{
   width:100%;
   padding: 10px 12px;
+  height: 44px;
   border-radius: 12px;
   border:1px solid var(--border2);
   background: rgba(5,5,12,0.35);
@@ -542,7 +543,7 @@ body::before{
   color: rgb(204 219 248 / 81%);
 }
 .card__big{
-  margin-top: 6px;
+  margin-top: 3px;
   font-size: 20px;
   font-weight: 850;
   grid-area: big;
@@ -567,11 +568,14 @@ body::before{
 .cardVs .posText{
   font-size: inherit;
 }
+/* Quick cards only: make the position in the big line slightly larger */
+.cards .card__big .cardVs .posText{
+  font-size: 1.12em;
+}
 .trendRankSuffix{
-  font-size: 0.76em;
+  font-size: 0.75em;
   font-weight: 850;
   color: rgba(255,255,255,0.72);
-  letter-spacing: 0.02em;
 }
 .ord__suf{
   font-size: 0.84em;
@@ -719,7 +723,7 @@ body::before{
   -webkit-overflow-scrolling: touch;
 }
 .playersHint{
-  padding: 0 4px;
+  padding: 4px 4px;
 }
 
 .chartTitleRow{
@@ -1182,11 +1186,11 @@ body::before{
   .teamPicker__panel{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
   .cards{ gap: 7px; }
-  .card{padding: 5px 9px 7px;}
-  .card__big{ font-size: 17px; }
+  .card{padding: 5px 7px 7px;}
+  .card__big{font-size: 16px;}
   .chip{padding: 4px 10px;font-size: 10px;}
 
-  .playersPanel{ padding: 7px 7px 9px; }
+  .playersPanel{padding: 7px 7px 2px;}
   .playersHeaderTitle{ font-size: 12px; }
   .playersSelect, .playersInput{ padding: 8px 9px; font-size: 12px; }
   .playersTableWrap{ height: 24rem; }
@@ -1235,9 +1239,9 @@ body::before{
   border-radius: 11px;
 }
 .footnote{
-  padding: 0 14px 14px;
+  padding: 5px 14px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 10px;
 }
 
 table{
@@ -1344,9 +1348,9 @@ table{
   .heat tbody td{ padding: 2px; font-size: 11px; }
   .tmCell{ font-size: 11px; }
   .cell{ padding: 4px 5px !important; border-radius: 11px; }
-  .cell__text{ gap: 2px; }
-  .cell__rk{ font-size: 11px; }
-  .cell__avg{ display: inline; font-size: 10px; }
+  .cell__text{gap: 0px;}
+  .cell__rk{ font-size: 10px; }
+  .cell__avg{display: inline;font-size: 8px;}
   .heat .tmCell .teamLogo{ width: 16px; height: 16px; }
 }
 
@@ -1465,12 +1469,13 @@ table{
   text-align: left;
   cursor:pointer;
   border-radius: 0;
+  text-align: center;
 }
 .list thead th:first-child{ border-top-left-radius: 14px; }
 .list thead th:last-child{ border-top-right-radius: 14px; }
 .list tbody td{
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  padding: 9px 10px;
+  padding: 5px 10px;
   font-size: 13px;
 }
 .list tbody tr:hover td{ background: rgba(255,255,255,0.03); }
