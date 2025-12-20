@@ -871,34 +871,35 @@ body::before{
 .modalRankCard{
   grid-column: 2 / 3;
   grid-row: 2 / 3;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.04);
-  padding: 2px 6px;
-  display:flex;
-  flex-direction: row;
-  align-items:center;
-  gap: 6px;
-  min-width: 96px;
-  max-width: 200px;
+  padding: 6px 10px;
+  display:grid;
+  grid-template-rows: auto auto;
+  row-gap: 2px;
+  min-width: 126px;
+  max-width: 220px;
   align-self: center;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+  text-align: center;
 }
 .modalRankCard__label{
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(255,255,255,0.62);
-  line-height: 1;
+  line-height: 1.05;
 }
 .modalRankCard__value{
   display:flex;
   align-items:baseline;
   gap: 4px;
-  font-size: 13px;
-  font-weight: 850;
+  font-size: 14px;
+  font-weight: 900;
   white-space: nowrap;
-  line-height: 1;
+  line-height: 1.05;
+  justify-content: center;
 }
 .modalRankCard__avg{
   font-size: 0.82em;
@@ -907,13 +908,13 @@ body::before{
 }
 .modalRankCard__rank .ord{ font-size: 1em; }
 .modalRankCard__vs{
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--muted);
 }
-.modalRankCard__value .posText{ font-size: 1em; }
+.modalRankCard__value .posText{ font-size: 1.1em; }
 .modalRankCard--desktop{ display:none; }
-.modalRankCard--mobile{ display:flex; }
+.modalRankCard--mobile{ display:grid; }
 .modalCloseBtn{
   width: 36px;
   height: 36px;
@@ -1025,10 +1026,10 @@ body::before{
   .playersModal .teamPicker{ flex: 1 1 240px; }
   .playersModal .pos-toggle--modal{ flex: 1 1 320px; justify-content:flex-end; }
   .modalRankCard--desktop{
-    display:flex;
-    padding: 4px 10px;
-    min-width: 120px;
-    max-width: 200px;
+    display:grid;
+    padding: 6px 12px;
+    min-width: 140px;
+    max-width: 240px;
   }
   .modalRankCard--mobile{ display:none; }
 }
@@ -1039,10 +1040,16 @@ body::before{
   .playersModalControls{padding: 7px 10px 0px;}
   .playersModalBody{padding: 2px 10px 6px;}
   .playersModal .pos-toggle--modal{justify-content: flex-start;flex: 1 1 0;}
+  .playersFilters--modal .playersSelect{
+    height: 40px;
+    padding: 0 11px;
+    font-size: 13px;
+  }
   .modalRankCard--mobile{
-    padding: 2px 6px;
-    min-width: 90px;
-    max-width: 140px;
+    display:grid;
+    padding: 5px 8px;
+    min-width: 120px;
+    max-width: 180px;
     border-radius: 10px;
   }
 }
@@ -1512,6 +1519,43 @@ body::before{
   .rankRow .tm{ font-size: 12px; }
   .rankRow .meta{ font-size: 10px; }
   .rankRow .rhs{ font-size: 10px; }
+}
+
+@media (min-width: 981px){
+  .chartTitleRow--scatterTop .chartTitle{
+    font-size: 16px;
+    line-height: 1.1;
+  }
+  #scatterTitle{
+    font-size: 19px;
+  }
+
+  .chartTitleRow--playerWeek .chartTitle{
+    font-size: 16px;
+    line-height: 1.1;
+    align-items: center;
+  }
+  #playerWeekTitleTeam,
+  #playerWeekTitlePos{
+    font-size: 19px;
+  }
+  #playerWeekTitleLogo{
+    width: 26px;
+    height: 26px;
+  }
+
+  .playersHeaderTitle{
+    font-size: 16px;
+    line-height: 1.1;
+  }
+  #playersSub .teamText,
+  #playersSub .posText{
+    font-size: 19px;
+  }
+  #playersSub .teamLogo{
+    width: 26px;
+    height: 26px;
+  }
 }
 
 @media (max-width: 520px){

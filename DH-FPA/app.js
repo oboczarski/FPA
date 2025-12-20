@@ -882,7 +882,7 @@ function buildModalRankCard(team, pos){
   const bg = `radial-gradient(140px 40px at 12% 10%, ${rgbaOf(accent,0.22)}, transparent 60%), rgba(255,255,255,0.04)`;
   const border = rgbaOf(accent,0.28);
   const posCode = cleanStr(pos).toUpperCase();
-  const vs = posCode ? `<span class="modalRankCard__vs">vs <span class="posText" data-pos="${posCode}">${posCode}</span></span>` : "";
+  const vs = posCode ? `<span class="modalRankCard__vs">vs. <span class="posText" data-pos="${posCode}">${posCode}</span></span>` : "";
 
   cards.forEach(el => {
     el.style.background = bg;
@@ -1129,7 +1129,7 @@ function buildHeatTable(){
 
   const hdr = (col, label) => {
     const c = cleanStr(col).toUpperCase();
-    const active = sortCycle !== 0 && c === sortCol;
+    const active = c === sortCol && (sortCycle !== 0 || c === defaultCol);
     const icon = active
       ? (sortDir === "desc"
           ? ` <i class="fa-solid fa-arrow-down-wide-short heatSortIcon" aria-hidden="true"></i>`
