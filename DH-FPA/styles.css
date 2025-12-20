@@ -521,7 +521,7 @@ body::before{
   border-radius: var(--r2);
   border:1px solid var(--border2);
   background: rgba(255,255,255,0.045);
-  padding: 12px;
+  padding: 8px;
   display:grid;
   grid-template-columns: 1fr auto;
   grid-template-areas:
@@ -855,6 +855,10 @@ body::before{
   color: var(--muted);
   font-weight: 800;
 }
+.miniCard__title .posText{
+  /* Keep mini card titles compact without affecting posText elsewhere */
+  font-size: 1.3em;
+}
 .miniCard__body{
   max-height: 210px;
   overflow:auto;
@@ -1115,7 +1119,7 @@ body::before{
   .card__title{ font-size: 11px; white-space: nowrap; overflow: visible; text-overflow: clip; }
   .card__big{ font-size: 18px; }
   .card__sub{ font-size: 11px; white-space: nowrap; overflow: visible; text-overflow: clip; }
-  .card__chipRow{ margin-top: 10px; justify-content:center; }
+  .card__chipRow{margin-top: 6px;justify-content:center;}
   .chip{ padding: 6px 10px; font-size: 10px; border-radius: 14px; }
   .chip .swatch{ width: 10px; height: 10px; box-shadow: 0 0 0 3px rgba(255,255,255,0.10); }
 
@@ -1178,9 +1182,9 @@ body::before{
   .teamPicker__panel{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
   .cards{ gap: 7px; }
-  .card{ padding: 9px; }
+  .card{padding: 5px 9px 7px;}
   .card__big{ font-size: 17px; }
-  .chip{ padding: 6px 10px; font-size: 10px; }
+  .chip{padding: 4px 10px;font-size: 10px;}
 
   .playersPanel{ padding: 7px 7px 9px; }
   .playersHeaderTitle{ font-size: 12px; }
@@ -1287,6 +1291,18 @@ table{
   white-space:nowrap;
   text-align: center;
 }
+.heat{
+  user-select: none;
+  -webkit-user-select: none;
+}
+.heatTh.is-sortable,
+.heat .cell{
+  -webkit-tap-highlight-color: transparent;
+}
+.heat .tmCell .teamLogo{
+  width: 18px;
+  height: 18px;
+}
 .cell{
   border-radius: 14px;
   border:1px solid rgba(255,255,255,0.08);
@@ -1328,9 +1344,10 @@ table{
   .heat tbody td{ padding: 2px; font-size: 11px; }
   .tmCell{ font-size: 11px; }
   .cell{ padding: 4px 5px !important; border-radius: 11px; }
-  .cell__text{ gap: 3px; }
-  .cell__rk{ font-size: 12px; }
-  .cell__avg{ display: none; }
+  .cell__text{ gap: 2px; }
+  .cell__rk{ font-size: 11px; }
+  .cell__avg{ display: inline; font-size: 10px; }
+  .heat .tmCell .teamLogo{ width: 16px; height: 16px; }
 }
 
 .profileGrid{

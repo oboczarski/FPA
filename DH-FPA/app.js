@@ -796,8 +796,8 @@ function buildMiniLists(){
           : heatColor(rankScore(r.rk));
 
         const meta = isTrend
-          ? `ΔRk ${fmt(r.dRank,0)} • ΔAvg ${fmt(r.dAvg,2)}`
-          : `Rk ${fmt(r.rk,0)} • Avg ${fmt(r.avg,2)}`;
+          ? `ΔRk ${fmt(r.dRank,0)} • ΔAvg ${fmt(r.dAvg,1)}`
+          : `Rk ${fmt(r.rk,0)} • Avg ${fmt(r.avg,1)}`;
 
         const badge = isTrend
           ? (() => {
@@ -970,6 +970,11 @@ function buildHeatTable(){
     <tbody>
       ${sorted.map(r => {
         const t = cleanStr(r.Team).toUpperCase();
+        const tmColor = teamColorText(t);
+        const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
+        const tmCell = t
+          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${tmStyle}>${t}</span></span>`
+          : `<span class="teamText">—</span>`;
         const makeCell = (pos) => {
           const avg = toNum(r[`${pos}_Avg`]);
           const rk  = toNum(r[`${pos}_Rk`]);
@@ -1003,7 +1008,7 @@ function buildHeatTable(){
 
         return `
           <tr>
-            <td class="tmCell">${t}</td>
+            <td class="tmCell">${tmCell}</td>
             ${makeCell("QB")}
             ${makeCell("RB")}
             ${makeCell("WR")}
@@ -1047,10 +1052,9 @@ function buildHeatTable(){
   $$(".cell", els.heatTable).forEach(cell => {
     cell.addEventListener("click", () => {
       const team = cell.dataset.team;
-      const rawPos = cell.dataset.pos;
-
-      const pos = rawPos === "TOTAL" ? STATE.pos : rawPos;
-      selectTeam(team, pos);
+      if (!team) return;
+      // Heatmap taps should not change the main page position selection.
+      selectTeam(team);
     });
   });
 
@@ -1300,13 +1304,19 @@ const SCATTER_LOGO_GLOW_PLUGIN = {
     const data = ds.data ?? [];
 
     const ctx = chart.ctx;
+    const isMobile = SCATTER_MOBILE_MQ.matches;
     const basePx = 17; // glow tuning reference from the CSS sample
     const scale = clamp(SCATTER_TEAM_LOGO_PX / basePx, 0.9, 3.0);
-    const boost = 1.35; // slight boost so the glow reads like CSS drop-shadow on canvas
+    const boost = isMobile ? 2.05 : 1.35; // mobile needs a stronger glow to read at smaller sizes
 
     ctx.save();
     ctx.beginPath();
-    ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+    // Let mobile glows bleed into the axis padding area so they remain visible.
+    if (isMobile){
+      ctx.rect(0, 0, chart.width, chart.height);
+    }else{
+      ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+    }
     ctx.clip();
     ctx.globalCompositeOperation = "destination-over";
 
@@ -1322,7 +1332,7 @@ const SCATTER_LOGO_GLOW_PLUGIN = {
 
       const s = Number(img.width) || SCATTER_TEAM_LOGO_PX;
       const blur = (Number(spec.blur) || 3.0) * scale * boost;
-      ctx.shadowColor = spec.glow;
+      ctx.shadowColor = isMobile ? rgbaOf(spec.glow, 0.92) : spec.glow;
       ctx.shadowBlur = blur;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
