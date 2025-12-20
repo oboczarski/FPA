@@ -231,23 +231,19 @@
 	  <div class="modalOverlay" id="playersModal" aria-hidden="true">
 	    <div class="modalBackdrop" data-close="true" aria-hidden="true"></div>
 	    <div class="modalCard playersModal" role="dialog" aria-modal="true" aria-labelledby="playersModalTitle">
-	      <div class="modalHeader playersModalHeader">
+      <div class="modalHeader playersModalHeader">
         <div class="playersModalHeader__text">
           <div class="playersModalTitle" id="playersModalTitle">Players by week</div>
           <div class="playersModalSub muted" id="playersModalSub">Select a defense + position to populate.</div>
-          <div class="playersModalHeaderFooter">
-            <span class="muted smallLine">Excludes players with less than four points — Toggle to show all</span>
-            <button type="button" class="circleToggle" id="modalLowPointsToggle" role="checkbox" aria-checked="false" aria-label="Toggle showing players with fewer than four points">
-              <span class="circleToggle__dot" aria-hidden="true"></span>
-            </button>
-          </div>
+        </div>
+        <div class="modalRankWrap">
           <div class="modalRankCard modalRankCard--desktop" id="modalRankCardDesktop" aria-live="polite"></div>
           <div class="modalRankCard modalRankCard--mobile" id="modalRankCardMobile" aria-live="polite"></div>
         </div>
         <button type="button" class="modalCloseBtn" id="playersModalClose" aria-label="Close">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
-	      </div>
+      </div>
 
 	      <div class="playersModalControls" aria-label="Players modal controls">
 	        <div class="playersModalControls__row">
@@ -271,10 +267,10 @@
 	        </div>
 	      </div>
 
-	      <div class="playersModalBody">
-	        <div class="playersFilters playersFilters--modal">
-	          <label class="playersField">
-	            <select id="modalWeekRange" class="playersSelect" aria-label="Week range">
+      <div class="playersModalBody">
+        <div class="playersFilters playersFilters--modal">
+          <label class="playersField">
+            <select id="modalWeekRange" class="playersSelect" aria-label="Week range">
 	              <option value="all">2025 Season</option>
 	              <option value="recent">Weeks 9–15</option>
 	              <option value="1-8">Weeks 1–8</option>
@@ -283,10 +279,16 @@
 	            </select>
 	          </label>
 
-	          <label class="playersField">
-	            <input id="modalPlayerSearch" class="playersInput" type="text" aria-label="Search player or team" placeholder="Player or team…" />
-	          </label>
-	        </div>
+          <label class="playersField">
+            <input id="modalPlayerSearch" class="playersInput" type="text" aria-label="Search player or team" placeholder="Player or team…" />
+          </label>
+        </div>
+        <div class="playersModalFooter">
+          <span class="muted smallLine">Excludes players with less than four points — Toggle to show all</span>
+          <button type="button" class="circleToggle" id="modalLowPointsToggle" role="checkbox" aria-checked="false" aria-label="Toggle showing players with fewer than four points">
+            <span class="circleToggle__dot" aria-hidden="true"></span>
+          </button>
+        </div>
 
         <div class="playersTableWrap playersTableWrap--modal">
           <div class="playersTableScroll">

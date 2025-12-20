@@ -821,19 +821,17 @@ body::before{
 .modalHeader{
   padding: 12px 14px 8px;
   display:flex;
-  align-items:flex-start;
+  align-items:center;
   justify-content:space-between;
   gap: 12px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .playersModalHeader__text{
   min-width: 0;
-  display:grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto auto;
-  column-gap: 8px;
-  row-gap: 4px;
-  align-items: end;
+  display:flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 auto;
 }
 .playersModalTitle{
   font-size: 14px;
@@ -841,7 +839,6 @@ body::before{
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(255,255,255,0.92);
-  grid-column: 1 / -1;
 }
 .playersModalSub{
   margin: 0;
@@ -852,25 +849,14 @@ body::before{
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  grid-column: 1 / 2;
-  grid-row: 2 / 3;
 }
-.playersModalHeaderFooter{
-  grid-column: 1 / -1;
-  grid-row: 3 / 4;
+.modalRankWrap{
   display:flex;
   align-items:center;
-  justify-content:flex-start;
   gap: 8px;
-  flex-wrap: wrap;
-  padding-top: 2px;
-}
-.playersModalHeaderFooter .circleToggle{
   margin-left: auto;
 }
 .modalRankCard{
-  grid-column: 2 / 3;
-  grid-row: 2 / 3;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.04);
@@ -967,6 +953,14 @@ body::before{
 .playersFilters--modal{
   margin: 0;
   padding: 0;
+}
+.playersModalFooter{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 8px;
+  padding: 2px 2px 0;
+  flex-wrap: wrap;
 }
 .playersTableWrap--modal{
   flex: 1 1 auto;
