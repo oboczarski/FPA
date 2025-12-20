@@ -1204,7 +1204,7 @@ body::before{
   .playersPanel{padding: 7px 7px 2px;}
   .playersHeaderTitle{ font-size: 12px; }
   .playersSelect, .playersInput{ height: 36px; padding: 0 9px; font-size: 12px; }
-  .playersTableWrap{height: 21rem;}
+  .playersTableWrap{height: 20rem;}
 
   .chartTitle{ font-size: 12px; }
   .avgPill{ font-size: 8px; }
