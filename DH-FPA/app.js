@@ -224,6 +224,9 @@ const els = {
   playersModal: document.getElementById("playersModal"),
   playersModalClose: document.getElementById("playersModalClose"),
   playersModalSub: document.getElementById("playersModalSub"),
+  modalRankCardDesktop: document.getElementById("modalRankCardDesktop"),
+  modalRankCardMobile: document.getElementById("modalRankCardMobile"),
+  modalLowPointsToggle: document.getElementById("modalLowPointsToggle"),
 
   modalTeamPicker: document.getElementById("modalTeamPicker"),
   modalTeamPickerBtn: document.getElementById("modalTeamPickerBtn"),
@@ -244,6 +247,7 @@ let STATE = {
   scatterMode: "avg", // "avg" | "rank"
   playerSort: { key: "week", dir: "desc" },
   playerWeekScatterPos: "QB", // "ALL" | "QB" | "RB" | "WR" | "TE"
+  modalShowLowPoints: false,
 };
 
 let DATA = {
@@ -277,6 +281,31 @@ function fmt(x, d=2){
   const n = Number(x);
   if (!Number.isFinite(n)) return "—";
   return n.toFixed(d);
+}
+
+function weekRangeLabel(mode){
+  const m = cleanStr(mode).toLowerCase();
+  if (m === "recent") return "Weeks 9–15";
+  if (m === "1-8") return "Weeks 1–8";
+  if (m === "9-12") return "Weeks 9–12";
+  if (m === "13-15") return "Weeks 13–15";
+  return "Season";
+}
+
+function weekRangeBounds(mode){
+  const m = cleanStr(mode).toLowerCase();
+  if (m === "recent") return { min: 9, max: 15 };
+  if (m === "1-8") return { min: 1, max: 8 };
+  if (m === "9-12") return { min: 9, max: 12 };
+  if (m === "13-15") return { min: 13, max: 15 };
+  return { min: 1, max: CONFIG.maxWeek };
+}
+
+function getActiveWeekRange(){
+  if (isPlayersModalOpen()){
+    return els.modalWeekRange?.value || els.weekRange?.value || "all";
+  }
+  return els.weekRange?.value || els.modalWeekRange?.value || "all";
 }
 
 function ordinal(x){
@@ -793,6 +822,83 @@ function calcTrend(team, pos){
     seasonAvg: aSeason,
     recentAvg: aRecent,
   };
+}
+
+function calcRangeRank(team, pos, mode){
+  const t = cleanStr(team).toUpperCase();
+  const p = cleanStr(pos).toUpperCase();
+  const label = weekRangeLabel(mode);
+  if (!t || !p || !CONFIG.positions.includes(p)) return { rank: NaN, avg: NaN, label };
+
+  const m = cleanStr(mode).toLowerCase();
+  if (m === "recent"){
+    return {
+      rank: getMetric(t, "recent", `${p}_Rk`),
+      avg: getMetric(t, "recent", `${p}_Avg`),
+      label,
+    };
+  }
+  if (m === "all" || m === "season" || !m){
+    return {
+      rank: getMetric(t, "season", `${p}_Rk`),
+      avg: getMetric(t, "season", `${p}_Avg`),
+      label,
+    };
+  }
+
+  if (!DATA.playersWeeklyTotals || !DATA.byTeamSeason) return { rank: NaN, avg: NaN, label };
+  const { min, max } = weekRangeBounds(m);
+  const rows = [];
+  for (const tm of DATA.byTeamSeason.keys()){
+    const key = `${tm}|${p}`;
+    const totals = DATA.playersWeeklyTotals.get(key) ?? [];
+    let sum = 0;
+    let count = 0;
+    for (const wk of totals){
+      if (wk.week < min || wk.week > max) continue;
+      sum += wk.total;
+      count += 1;
+    }
+    if (!count) continue;
+    rows.push({ team: tm, avg: sum / count });
+  }
+  if (!rows.length) return { rank: NaN, avg: NaN, label };
+
+  rows.sort((a,b) => b.avg - a.avg);
+  const index = rows.findIndex(r => r.team === t);
+  const rank = index >= 0 ? (rows.length - index) : NaN;
+  const avg = index >= 0 ? rows[index].avg : NaN;
+  return { rank, avg, label };
+}
+
+function buildModalRankCard(team, pos){
+  const cards = [els.modalRankCardDesktop, els.modalRankCardMobile].filter(Boolean);
+  if (!cards.length) return;
+  const mode = getActiveWeekRange();
+  const { rank, avg, label } = calcRangeRank(team, pos, mode);
+  const rkHtml = Number.isFinite(rank) ? ordinalMarkup(rank) : "—";
+  const accent = Number.isFinite(rank) ? heatColor(rankScore(rank)) : "rgba(255,255,255,0.18)";
+  const bg = `radial-gradient(140px 40px at 12% 10%, ${rgbaOf(accent,0.22)}, transparent 60%), rgba(255,255,255,0.04)`;
+  const border = rgbaOf(accent,0.28);
+  const posCode = cleanStr(pos).toUpperCase();
+  const vs = posCode ? `<span class="modalRankCard__vs">vs <span class="posText" data-pos="${posCode}">${posCode}</span></span>` : "";
+
+  cards.forEach(el => {
+    el.style.background = bg;
+    el.style.borderColor = border;
+    el.innerHTML = `
+      <span class="modalRankCard__label">${label}</span>
+      <span class="modalRankCard__value">
+        <span class="modalRankCard__rank">${rkHtml}</span>
+        ${vs}
+      </span>
+    `;
+    if (Number.isFinite(avg)){
+      el.setAttribute("title", `${label}: ${fmt(avg,1)} FPA`);
+    }else{
+      el.removeAttribute("title");
+    }
+  });
 }
 
 // =====================
@@ -1974,7 +2080,7 @@ function sortPlayers(rows){
   });
 }
 
-function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable } = {}){
+function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable, minPoints = null, excludeZeroPoints = false } = {}){
   if (!weekRangeEl || !playerSearchEl || !tableEl) return;
 
   const search = cleanStr(playerSearchEl.value).toLowerCase();
@@ -1987,6 +2093,13 @@ function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearch
       r.player.toLowerCase().includes(search) ||
       (r.playerTeam || "").toLowerCase().includes(search)
     );
+  }
+
+  if (excludeZeroPoints){
+    rows = rows.filter(r => Number.isFinite(r.pts) && r.pts > 0);
+  }
+  if (Number.isFinite(minPoints)){
+    rows = rows.filter(r => Number.isFinite(r.pts) && r.pts >= minPoints);
   }
 
   rows = sortPlayers(rows);
@@ -2045,7 +2158,7 @@ function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearch
   });
 }
 
-function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable } = {}){
+function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable, minPoints = null, excludeZeroPoints = false } = {}){
   if (!team || !pos){
     if (subEl) subEl.textContent = "Select a defense + position to populate.";
     if (tableEl) tableEl.innerHTML = "";
@@ -2058,7 +2171,7 @@ function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = 
 	    ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${style}>${t}</span></span>`
 	    : "—";
   if (subEl) subEl.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
-  buildPlayerTable(team, pos, { weekRangeEl, playerSearchEl, tableEl });
+  buildPlayerTable(team, pos, { weekRangeEl, playerSearchEl, tableEl, minPoints, excludeZeroPoints });
 }
 
 function buildPlayersEverywhere(team, pos){
@@ -2067,8 +2180,18 @@ function buildPlayersEverywhere(team, pos){
   if (isPlayersModalOpen()){
     if (els.modalWeekRange && els.weekRange) els.modalWeekRange.value = els.weekRange.value;
     if (els.modalPlayerSearch && els.playerSearch) els.modalPlayerSearch.value = els.playerSearch.value;
-    buildPlayersSection(team, pos, { subEl: els.playersModalSub, weekRangeEl: els.modalWeekRange, playerSearchEl: els.modalPlayerSearch, tableEl: els.modalPlayerTable });
+    const modalMinPoints = STATE.modalShowLowPoints ? null : 4;
+    buildPlayersSection(team, pos, {
+      subEl: els.playersModalSub,
+      weekRangeEl: els.modalWeekRange,
+      playerSearchEl: els.modalPlayerSearch,
+      tableEl: els.modalPlayerTable,
+      minPoints: modalMinPoints,
+      excludeZeroPoints: true,
+    });
   }
+
+  buildModalRankCard(team, pos);
 }
 
 // =====================
@@ -2268,6 +2391,15 @@ function bindEvents(){
   if (els.modalPlayerSearch){
     els.modalPlayerSearch.addEventListener("input", () => {
       if (els.playerSearch) els.playerSearch.value = els.modalPlayerSearch.value;
+      buildPlayersEverywhere(STATE.selectedTeam, STATE.pos);
+    });
+  }
+  if (els.modalLowPointsToggle){
+    els.modalLowPointsToggle.addEventListener("click", () => {
+      STATE.modalShowLowPoints = !STATE.modalShowLowPoints;
+      const isOn = STATE.modalShowLowPoints;
+      els.modalLowPointsToggle.classList.toggle("is-active", isOn);
+      els.modalLowPointsToggle.setAttribute("aria-checked", String(isOn));
       buildPlayersEverywhere(STATE.selectedTeam, STATE.pos);
     });
   }
