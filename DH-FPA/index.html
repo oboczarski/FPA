@@ -31,7 +31,10 @@
 	              <div class="teamPicker" id="teamPicker">
 	                <button type="button" class="teamPicker__btn" id="teamPickerBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Opponent defense">
 	                  <span class="teamPicker__left">
-		                    <img id="teamPickerLogo" class="teamLogo glow" alt="" />
+		                    <span class="teamLogoStack" aria-hidden="true">
+		                      <img id="teamPickerLogoGlow" class="teamLogo glow teamLogoStack__glow" alt="" />
+		                      <img id="teamPickerLogo" class="teamLogo teamLogoStack__img" alt="" />
+		                    </span>
 	                    <span id="teamPickerCode" class="teamPicker__code">—</span>
 	                  </span>
 	                  <span class="teamPicker__chev" aria-hidden="true">▾</span>
@@ -55,7 +58,10 @@
 		            <div class="glassChip" id="selTeamChip">
 		              <div class="glassChip__label">Defense</div>
 		              <div class="glassChip__value glassChip__value--row">
-			                <img id="selTeamLogo" class="teamLogo teamLogo--chip glow" alt="" />
+			                <span class="teamLogoStack" aria-hidden="true">
+			                  <img id="selTeamLogoGlow" class="teamLogo teamLogo--chip glow teamLogoStack__glow" alt="" />
+			                  <img id="selTeamLogo" class="teamLogo teamLogo--chip teamLogoStack__img" alt="" />
+			                </span>
 		                <span id="selTeamText">—</span>
 		              </div>
 		            </div>
@@ -129,7 +135,10 @@
 			            <div class="chartTitleRow chartTitleRow--wrap chartTitleRow--playerWeek">
 			              <div class="chartTitle">
 			                <span class="teamInline">
-				                  <img id="playerWeekTitleLogo" class="teamLogo teamLogo--opt glow" alt="" />
+				                  <span class="teamLogoStack" aria-hidden="true">
+				                    <img id="playerWeekTitleLogoGlow" class="teamLogo teamLogo--opt glow teamLogoStack__glow" alt="" />
+				                    <img id="playerWeekTitleLogo" class="teamLogo teamLogo--opt teamLogoStack__img" alt="" />
+				                  </span>
 			                  <span id="playerWeekTitleTeam" class="teamText">—</span>
 			                </span>
 		                <span class="muted">vs</span>
@@ -228,25 +237,31 @@
 	  </main>
 
 	  <!-- Players panel expand modal -->
-	  <div class="modalOverlay" id="playersModal" aria-hidden="true">
-	    <div class="modalBackdrop" data-close="true" aria-hidden="true"></div>
-	    <div class="modalCard playersModal" role="dialog" aria-modal="true" aria-labelledby="playersModalTitle">
-	      <div class="modalHeader playersModalHeader">
-	        <div class="playersModalHeader__text">
-	          <div class="playersModalTitle" id="playersModalTitle">Players by week</div>
-	          <div class="playersModalSub muted" id="playersModalSub">Select a defense + position to populate.</div>
-	        </div>
-	        <button type="button" class="modalCloseBtn" id="playersModalClose" aria-label="Close">
-	          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-	        </button>
-	      </div>
+		  <div class="modalOverlay" id="playersModal" aria-hidden="true">
+		    <div class="modalBackdrop" data-close="true" aria-hidden="true"></div>
+		    <div class="modalCard playersModal" role="dialog" aria-modal="true" aria-labelledby="playersModalTitle">
+		      <div class="modalHeader playersModalHeader">
+		        <div class="playersModalHeader__text">
+		          <div class="playersModalTitle" id="playersModalTitle">Players by week</div>
+		          <div class="playersModalSub" id="playersModalSub">Select a defense + position to populate.</div>
+		        </div>
+		        <div class="playersModalHeader__actions">
+		          <div class="modalRankCard" id="modalRankCard" aria-label="Selected matchup rank"></div>
+		          <button type="button" class="modalCloseBtn" id="playersModalClose" aria-label="Close">
+		            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+		          </button>
+		        </div>
+		      </div>
 
 	      <div class="playersModalControls" aria-label="Players modal controls">
 	        <div class="playersModalControls__row">
 	          <div class="teamPicker teamPicker--sm" id="modalTeamPicker">
 	            <button type="button" class="teamPicker__btn" id="modalTeamPickerBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Opponent defense">
 	              <span class="teamPicker__left">
-	                <img id="modalTeamPickerLogo" class="teamLogo glow" alt="" />
+	                <span class="teamLogoStack" aria-hidden="true">
+	                  <img id="modalTeamPickerLogoGlow" class="teamLogo glow teamLogoStack__glow" alt="" />
+	                  <img id="modalTeamPickerLogo" class="teamLogo teamLogoStack__img" alt="" />
+	                </span>
 	                <span id="modalTeamPickerCode" class="teamPicker__code">—</span>
 	              </span>
 	              <span class="teamPicker__chev" aria-hidden="true">▾</span>
@@ -263,7 +278,7 @@
 	        </div>
 	      </div>
 
-	      <div class="playersModalBody">
+		      <div class="playersModalBody">
 	        <div class="playersFilters playersFilters--modal">
 	          <label class="playersField">
 	            <select id="modalWeekRange" class="playersSelect" aria-label="Week range">
@@ -280,14 +295,19 @@
 	          </label>
 	        </div>
 
-	        <div class="playersTableWrap playersTableWrap--modal">
-	          <div class="playersTableScroll">
-	            <table class="list" id="modalPlayerTable"></table>
-	          </div>
-	        </div>
-	      </div>
-	    </div>
-	  </div>
+		        <div class="playersTableWrap playersTableWrap--modal">
+		          <div class="playersTableScroll">
+		            <table class="list" id="modalPlayerTable"></table>
+		          </div>
+		        </div>
+
+		        <div class="playersModalFooter" aria-label="Players modal filters">
+		          <div class="playersModalFooter__text">Excludes players with less than four points — Toggle to show all</div>
+		          <button type="button" class="circleToggle" id="modalLowPtsToggle" aria-pressed="false" aria-label="Toggle low-point players"></button>
+		        </div>
+		      </div>
+		    </div>
+		  </div>
 
 	  <!-- Libraries (CDN). If you prefer offline, download these and point to local files. -->
 	  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>

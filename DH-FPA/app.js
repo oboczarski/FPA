@@ -143,6 +143,20 @@ function teamLogoSrc(team){
   return `assets/NFL-Tags_webp/${code.toLowerCase()}.webp`;
 }
 
+function teamLogoStackMarkup(team, { sizeClass = "teamLogo--opt", wrapClass = "" } = {}){
+  const code = canonicalTeamCode(team);
+  if (!code) return "";
+  const src = teamLogoSrc(code);
+  const wrap = ["teamLogoStack", wrapClass].filter(Boolean).join(" ");
+  const base = ["teamLogo", sizeClass].filter(Boolean).join(" ");
+  return `
+    <span class="${wrap}" aria-hidden="true">
+      <img class="${base} glow teamLogoStack__glow" src="${src}" alt="${code}" />
+      <img class="${base} teamLogoStack__img" src="${src}" alt="${code}" />
+    </span>
+  `;
+}
+
 function getTeamLogo(team){
   const code = canonicalTeamCode(team);
   return TEAM_LOGOS.get(code) ?? null;
@@ -190,8 +204,10 @@ const els = {
   teamPickerBtn: document.getElementById("teamPickerBtn"),
   teamPickerPanel: document.getElementById("teamPickerPanel"),
   teamPickerLogo: document.getElementById("teamPickerLogo"),
+  teamPickerLogoGlow: document.getElementById("teamPickerLogoGlow"),
   teamPickerCode: document.getElementById("teamPickerCode"),
   selTeamLogo: document.getElementById("selTeamLogo"),
+  selTeamLogoGlow: document.getElementById("selTeamLogoGlow"),
   selTeamText: document.getElementById("selTeamText"),
   selPosText: document.getElementById("selPosText"),
   heatTable: document.getElementById("heatTable"),
@@ -204,6 +220,7 @@ const els = {
   playerWeekAvgPills: document.getElementById("playerWeekAvgPills"),
   playerWeekTitlePos: document.getElementById("playerWeekTitlePos"),
   playerWeekTitleLogo: document.getElementById("playerWeekTitleLogo"),
+  playerWeekTitleLogoGlow: document.getElementById("playerWeekTitleLogoGlow"),
   playerWeekTitleTeam: document.getElementById("playerWeekTitleTeam"),
   topSeason: document.getElementById("topSeason"),
   topSeasonTitle: document.getElementById("topSeasonTitle"),
@@ -224,15 +241,18 @@ const els = {
   playersModal: document.getElementById("playersModal"),
   playersModalClose: document.getElementById("playersModalClose"),
   playersModalSub: document.getElementById("playersModalSub"),
+  modalRankCard: document.getElementById("modalRankCard"),
 
   modalTeamPicker: document.getElementById("modalTeamPicker"),
   modalTeamPickerBtn: document.getElementById("modalTeamPickerBtn"),
   modalTeamPickerPanel: document.getElementById("modalTeamPickerPanel"),
   modalTeamPickerLogo: document.getElementById("modalTeamPickerLogo"),
+  modalTeamPickerLogoGlow: document.getElementById("modalTeamPickerLogoGlow"),
   modalTeamPickerCode: document.getElementById("modalTeamPickerCode"),
   modalWeekRange: document.getElementById("modalWeekRange"),
   modalPlayerSearch: document.getElementById("modalPlayerSearch"),
   modalPlayerTable: document.getElementById("modalPlayerTable"),
+  modalLowPtsToggle: document.getElementById("modalLowPtsToggle"),
 };
 
 let STATE = {
@@ -244,6 +264,7 @@ let STATE = {
   scatterMode: "avg", // "avg" | "rank"
   playerSort: { key: "week", dir: "desc" },
   playerWeekScatterPos: "QB", // "ALL" | "QB" | "RB" | "WR" | "TE"
+  modalShowAllPlayers: false, // players modal: show <4pt rows (still excludes 0)
 };
 
 let DATA = {
@@ -457,21 +478,30 @@ function setPlayersModalOpen(open){
   if (!next) setModalTeamPickerOpen(false);
 }
 
+function setLogoEl(imgEl, team){
+  if (!imgEl) return;
+  const t = cleanStr(team).toUpperCase();
+  if (t){
+    imgEl.src = teamLogoSrc(t);
+    imgEl.alt = t;
+    imgEl.style.opacity = "1";
+  }else{
+    imgEl.removeAttribute("src");
+    imgEl.alt = "";
+    imgEl.style.opacity = "0";
+  }
+}
+
+function setLogoPair(imgEl, glowEl, team){
+  setLogoEl(imgEl, team);
+  setLogoEl(glowEl, team);
+}
+
 function syncTeamPicker(team){
   const t = cleanStr(team).toUpperCase();
 
   if (els.teamPickerCode) els.teamPickerCode.textContent = t || "—";
-  if (els.teamPickerLogo){
-    if (t){
-      els.teamPickerLogo.src = teamLogoSrc(t);
-      els.teamPickerLogo.alt = t;
-      els.teamPickerLogo.style.opacity = "1";
-    }else{
-      els.teamPickerLogo.removeAttribute("src");
-      els.teamPickerLogo.alt = "";
-      els.teamPickerLogo.style.opacity = "0";
-    }
-  }
+  setLogoPair(els.teamPickerLogo, els.teamPickerLogoGlow, t);
 
   if (els.teamPickerPanel){
     $$("button.teamOption", els.teamPickerPanel).forEach(btn => {
@@ -482,17 +512,7 @@ function syncTeamPicker(team){
   }
 
   if (els.modalTeamPickerCode) els.modalTeamPickerCode.textContent = t || "—";
-  if (els.modalTeamPickerLogo){
-    if (t){
-      els.modalTeamPickerLogo.src = teamLogoSrc(t);
-      els.modalTeamPickerLogo.alt = t;
-      els.modalTeamPickerLogo.style.opacity = "1";
-    }else{
-      els.modalTeamPickerLogo.removeAttribute("src");
-      els.modalTeamPickerLogo.alt = "";
-      els.modalTeamPickerLogo.style.opacity = "0";
-    }
-  }
+  setLogoPair(els.modalTeamPickerLogo, els.modalTeamPickerLogoGlow, t);
   if (els.modalTeamPickerPanel){
     $$("button.teamOption", els.modalTeamPickerPanel).forEach(btn => {
       const on = btn.dataset.team === t;
@@ -506,17 +526,7 @@ function syncSelectionChips(team, pos){
   const t = cleanStr(team).toUpperCase();
   const p = cleanStr(pos).toUpperCase();
 
-  if (els.selTeamLogo){
-    if (t){
-      els.selTeamLogo.src = teamLogoSrc(t);
-      els.selTeamLogo.alt = t;
-      els.selTeamLogo.style.opacity = "1";
-    }else{
-      els.selTeamLogo.removeAttribute("src");
-      els.selTeamLogo.alt = "";
-      els.selTeamLogo.style.opacity = "0";
-    }
-  }
+  setLogoPair(els.selTeamLogo, els.selTeamLogoGlow, t);
 
   if (els.selTeamText){
     els.selTeamText.textContent = t || "—";
@@ -557,17 +567,87 @@ function syncPlayerWeekScatterTitle(team){
     els.playerWeekTitleTeam.style.textShadow = "none";
   }
 
-  if (els.playerWeekTitleLogo){
-    if (t){
-      els.playerWeekTitleLogo.src = teamLogoSrc(t);
-      els.playerWeekTitleLogo.alt = t;
-      els.playerWeekTitleLogo.style.opacity = "1";
-    }else{
-      els.playerWeekTitleLogo.removeAttribute("src");
-      els.playerWeekTitleLogo.alt = "";
-      els.playerWeekTitleLogo.style.opacity = "0";
+  setLogoPair(els.playerWeekTitleLogo, els.playerWeekTitleLogoGlow, t);
+}
+
+function getWeekRangeSpan(mode){
+  const m = cleanStr(mode);
+  if (m === "1-8") return { from: 1, to: 8 };
+  if (m === "9-12") return { from: 9, to: 12 };
+  if (m === "13-15") return { from: 13, to: 15 };
+  if (m === "recent") return { from: 9, to: 15 };
+  return { from: 1, to: CONFIG.maxWeek };
+}
+
+function calcRankFromPlayersTotals(team, pos, { from, to }){
+  const t = cleanStr(team).toUpperCase();
+  const p = cleanStr(pos).toUpperCase();
+  if (!t || !CONFIG.positions.includes(p)) return { rk: NaN, avg: NaN };
+
+  const teams = [...(DATA.byTeamSeason?.keys?.() ?? [])];
+  if (!teams.length || !DATA.playersWeeklyTotals) return { rk: NaN, avg: NaN };
+
+  const rows = [];
+  for (const tm of teams){
+    const key = `${tm}|${p}`;
+    const arr = DATA.playersWeeklyTotals.get(key) ?? [];
+    let sum = 0;
+    let n = 0;
+    for (const w of arr){
+      const wk = Number(w.week);
+      const val = Number(w.total);
+      if (!Number.isFinite(wk) || !Number.isFinite(val)) continue;
+      if (wk < from || wk > to) continue;
+      sum += val;
+      n += 1;
+    }
+    if (n > 0){
+      rows.push({ team: tm, avg: sum / n });
     }
   }
+
+  rows.sort((a, b) => a.avg - b.avg); // low avg = toughest
+  const idx = rows.findIndex(r => r.team === t);
+  if (idx < 0) return { rk: NaN, avg: NaN };
+  return { rk: idx + 1, avg: rows[idx].avg };
+}
+
+function syncModalLowPtsToggle(){
+  if (!els.modalLowPtsToggle) return;
+  const on = !!STATE.modalShowAllPlayers;
+  els.modalLowPtsToggle.classList.toggle("is-on", on);
+  els.modalLowPtsToggle.setAttribute("aria-pressed", String(on));
+}
+
+function renderModalRankCard(team, pos){
+  if (!els.modalRankCard) return;
+  if (!team || !pos){
+    els.modalRankCard.innerHTML = "";
+    return;
+  }
+
+  const t = cleanStr(team).toUpperCase();
+  const p = cleanStr(pos).toUpperCase();
+  const mode = cleanStr(els.modalWeekRange?.value || els.weekRange?.value || "all");
+  const label = cleanStr(els.modalWeekRange?.selectedOptions?.[0]?.textContent) || "Rank";
+
+  let rk = NaN;
+  if (mode === "all" || mode === "recent"){
+    const ds = mode === "recent" ? "recent" : "season";
+    rk = getMetric(t, ds, `${p}_Rk`);
+  }else{
+    const span = getWeekRangeSpan(mode);
+    const out = calcRankFromPlayersTotals(t, p, span);
+    rk = out.rk;
+  }
+
+  const rkHtml = Number.isFinite(rk) ? ordinalMarkup(rk) : "—";
+
+  // Keep it compact (mobile-first). Label indicates the selected time range.
+  els.modalRankCard.innerHTML = `
+    <div class="modalRankCard__label">${label}</div>
+    <div class="modalRankCard__value">${rkHtml} <span class="cardVs">vs. <span class="posText" data-pos="${p}">${p}</span></span></div>
+  `;
 }
 
 function applyHeatHighlights(){
@@ -810,9 +890,8 @@ function buildTeamSelect(){
 	      btn.setAttribute("role", "option");
 	      btn.setAttribute("aria-selected", "false");
 	      btn.dataset.team = t;
-	      const src = teamLogoSrc(t);
 	      btn.innerHTML = `
-	        <img class="teamLogo teamLogo--opt glow" src="${src}" alt="${t}" />
+	        ${teamLogoStackMarkup(t, { sizeClass: "teamLogo--opt" })}
 	        <span class="teamOption__code">${t}</span>
 	      `;
 	      panel.appendChild(btn);
@@ -1048,7 +1127,7 @@ function buildHeatTable(){
         const tmColor = teamColorText(t);
         const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
         const tmCell = t
-          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${tmStyle}>${t}</span></span>`
+          ? `<span class="teamInline teamInline--tight">${teamLogoStackMarkup(t, { sizeClass: "teamLogo--opt" })}<span class="teamText" ${tmStyle}>${t}</span></span>`
           : `<span class="teamText">—</span>`;
         const makeCell = (pos) => {
           const avg = toNum(r[`${pos}_Avg`]);
@@ -1172,7 +1251,12 @@ function scatterExternalTooltipHandler(context){
     ? `style="color:${teamHex};"`
     : "";
 
-  const logo = t ? `<img class="chartTooltip__logo glow" src="${teamLogoSrc(t)}" alt="${t}" />` : "";
+  const logo = t ? `
+    <span class="teamLogoStack" aria-hidden="true">
+      <img class="chartTooltip__logo glow teamLogoStack__glow" src="${teamLogoSrc(t)}" alt="${t}" />
+      <img class="chartTooltip__logo teamLogoStack__img" src="${teamLogoSrc(t)}" alt="${t}" />
+    </span>
+  ` : "";
   tooltipEl.innerHTML = `
     <div class="chartTooltip__row">
       ${logo}
@@ -1974,13 +2058,21 @@ function sortPlayers(rows){
   });
 }
 
-function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable } = {}){
+function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable, lowPointsMode = "none" } = {}){
   if (!weekRangeEl || !playerSearchEl || !tableEl) return;
 
   const search = cleanStr(playerSearchEl.value).toLowerCase();
   const mode = weekRangeEl.value;
 
   let rows = filterWeeks(getPlayerRows(team, pos), mode);
+
+  // Modal-only: optionally hide low-point rows (still always hides 0-point games).
+  const lp = cleanStr(lowPointsMode);
+  if (lp === "exclude_lt4"){
+    rows = rows.filter(r => Number.isFinite(r.pts) && r.pts >= 4);
+  }else if (lp === "exclude_zero"){
+    rows = rows.filter(r => Number.isFinite(r.pts) && r.pts > 0);
+  }
 
   if (search){
     rows = rows.filter(r =>
@@ -2015,7 +2107,7 @@ function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearch
 			        const ptsStyle = `font-weight:850;${ptsColor ? `color:${ptsColor};` : ""}`;
 			        const tmStyle = tmColor ? `style="color:${tmColor};"` : ``;
 			        const tmCell = tmCode
-			          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
+			          ? `<span class="teamInline teamInline--tight">${teamLogoStackMarkup(tmCode, { sizeClass: "teamLogo--opt" })}<span class="teamText" ${tmStyle}>${tmCode}</span></span>`
 			          : `<span class="teamText">—</span>`;
 			        const playerCell = `<span class="playerName"${nameColor ? ` style="color:${nameColor};"` : ""}>${r.player}</span>`;
 	        return `
@@ -2045,7 +2137,7 @@ function buildPlayerTable(team, pos, { weekRangeEl = els.weekRange, playerSearch
   });
 }
 
-function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable } = {}){
+function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = els.weekRange, playerSearchEl = els.playerSearch, tableEl = els.playerTable, lowPointsMode = "none" } = {}){
   if (!team || !pos){
     if (subEl) subEl.textContent = "Select a defense + position to populate.";
     if (tableEl) tableEl.innerHTML = "";
@@ -2055,10 +2147,10 @@ function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = 
 	  const c = teamColorText(t);
 	  const style = c ? `style="color:${c};"` : "";
 	  const teamTag = t
-	    ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(t)}" alt="${t}" /><span class="teamText" ${style}>${t}</span></span>`
+	    ? `<span class="teamInline teamInline--tight">${teamLogoStackMarkup(t, { sizeClass: "teamLogo--opt" })}<span class="teamText" ${style}>${t}</span></span>`
 	    : "—";
   if (subEl) subEl.innerHTML = `${teamTag} vs <span class="posText" data-pos="${pos}">${pos}</span> • players by week`;
-  buildPlayerTable(team, pos, { weekRangeEl, playerSearchEl, tableEl });
+  buildPlayerTable(team, pos, { weekRangeEl, playerSearchEl, tableEl, lowPointsMode });
 }
 
 function buildPlayersEverywhere(team, pos){
@@ -2067,7 +2159,10 @@ function buildPlayersEverywhere(team, pos){
   if (isPlayersModalOpen()){
     if (els.modalWeekRange && els.weekRange) els.modalWeekRange.value = els.weekRange.value;
     if (els.modalPlayerSearch && els.playerSearch) els.modalPlayerSearch.value = els.playerSearch.value;
-    buildPlayersSection(team, pos, { subEl: els.playersModalSub, weekRangeEl: els.modalWeekRange, playerSearchEl: els.modalPlayerSearch, tableEl: els.modalPlayerTable });
+    const lowPointsMode = STATE.modalShowAllPlayers ? "exclude_zero" : "exclude_lt4";
+    buildPlayersSection(team, pos, { subEl: els.playersModalSub, weekRangeEl: els.modalWeekRange, playerSearchEl: els.modalPlayerSearch, tableEl: els.modalPlayerTable, lowPointsMode });
+    syncModalLowPtsToggle();
+    renderModalRankCard(team, pos);
   }
 }
 
@@ -2234,6 +2329,8 @@ function bindEvents(){
   // players modal (expand)
   if (els.playersExpandBtn && els.playersModal){
     const open = () => {
+      STATE.modalShowAllPlayers = false;
+      syncModalLowPtsToggle();
       if (els.modalWeekRange && els.weekRange) els.modalWeekRange.value = els.weekRange.value;
       if (els.modalPlayerSearch && els.playerSearch) els.modalPlayerSearch.value = els.playerSearch.value;
       setPlayersModalOpen(true);
@@ -2268,6 +2365,14 @@ function bindEvents(){
   if (els.modalPlayerSearch){
     els.modalPlayerSearch.addEventListener("input", () => {
       if (els.playerSearch) els.playerSearch.value = els.modalPlayerSearch.value;
+      buildPlayersEverywhere(STATE.selectedTeam, STATE.pos);
+    });
+  }
+
+  if (els.modalLowPtsToggle){
+    els.modalLowPtsToggle.addEventListener("click", () => {
+      STATE.modalShowAllPlayers = !STATE.modalShowAllPlayers;
+      syncModalLowPtsToggle();
       buildPlayersEverywhere(STATE.selectedTeam, STATE.pos);
     });
   }

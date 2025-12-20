@@ -55,6 +55,22 @@
 }
 .teamInline--tight{ gap: 6px; }
 
+/* Layered logo (glow behind, crisp logo on top) */
+.teamLogoStack{
+  display:inline-grid;
+  place-items:center;
+  vertical-align: middle;
+  line-height: 0;
+}
+.teamLogoStack__glow{
+  grid-area: 1 / 1;
+  z-index: 0;
+}
+.teamLogoStack__img{
+  grid-area: 1 / 1;
+  z-index: 1;
+}
+
 /* ===== Emphasized title team/pos (players + player-week scatter) ===== */
 #playersSub .teamText,
 #playersSub .posText{
@@ -296,9 +312,15 @@ body::before{
   min-width: 0;
 }
 #teamPickerBtn .teamPicker__left{
-  /* Increase selected logo+abbr size without affecting button layout size */
-  transform: scale(1.14);
-  transform-origin: left center;
+  /* Increase selected logo+abbr size without changing button dimensions */
+  gap: 9px;
+}
+#teamPickerBtn .teamLogo{
+  width: 22px;
+  height: 22px;
+}
+#teamPickerBtn .teamPicker__code{
+  font-size: 15px;
 }
 .teamPicker__code{
   font-size: 14px;
@@ -406,7 +428,8 @@ body::before{
 .teamLogo--chip{ width: 22px; height: 22px; }
 
 .teamPicker--sm .teamPicker__btn{
-  padding: 11px 13px;
+  height: 40px;
+  padding: 0 12px;
   border-radius: 16px;
 }
 .finderTitle{ margin:0; font-size: 16px; letter-spacing: 0.01em; }
@@ -811,6 +834,13 @@ body::before{
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .playersModalHeader__text{ min-width: 0; }
+.playersModalHeader__actions{
+  display:flex;
+  align-items:flex-start;
+  gap: 10px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
 .playersModalTitle{
   font-size: 14px;
   font-weight: 950;
@@ -820,12 +850,61 @@ body::before{
 }
 .playersModalSub{
   margin-top: 6px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.70);
+  font-size: 15px;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+  color: rgba(255,255,255,0.86);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.playersModalSub .teamText,
+.playersModalSub .posText{
+  font-size: 16px;
+}
+.playersModalSub .teamLogo{
+  width: 22px;
+  height: 22px;
+}
+
+.modalRankCard{
+  display:flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  height: 36px;
+  min-width: 0;
+  max-width: 240px;
+  padding: 6px 10px;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    radial-gradient(220px 60px at 18% 20%, rgba(255,255,255,0.10), transparent 60%),
+    linear-gradient(135deg, rgba(255,255,255,0.06), rgba(0,0,0,0.14));
+  box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+  backdrop-filter: blur(14px);
+}
+.modalRankCard__label{
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.60);
+  white-space: nowrap;
+}
+.modalRankCard__value{
+  display:flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.92);
+  white-space: nowrap;
+}
+.modalRankCard__value .cardVs{ font-weight: 850; color: rgba(255,255,255,0.72); }
+.modalRankCard__value .posText{ font-size: 13px; }
 .modalCloseBtn{
   width: 36px;
   height: 36px;
@@ -850,12 +929,10 @@ body::before{
   padding: 10px 14px 0px;
 }
 .playersModalControls__row{
-  display:flex;
-  align-items:stretch;
-  justify-content:flex-start;
-  gap: 10px;
-  flex-wrap: nowrap;
-  flex-direction: column;
+  display:grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+  gap: 8px;
+  align-items: end;
 }
 .playersModal .teamPicker{ width: 100%; min-width: 0; }
 .playersModal .pos-toggle--modal{ width: 100%; justify-content:flex-start; }
@@ -884,6 +961,54 @@ body::before{
   height: auto;
 }
 
+.playersModalFooter{
+  margin-top: 8px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  padding: 6px 4px 2px;
+}
+.playersModalFooter__text{
+  font-size: 11px;
+  color: rgba(255,255,255,0.66);
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+.circleToggle{
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.06);
+  cursor:pointer;
+  position: relative;
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,0.12);
+  transition: transform .14s ease, border-color .14s ease, background .14s ease;
+}
+.circleToggle:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.08); }
+.circleToggle:active{ transform: translateY(0px); }
+.circleToggle::after{
+  content:"";
+  position:absolute;
+  inset: 5px;
+  border-radius: 999px;
+  background: rgba(0,191,255,0.92);
+  opacity: 0;
+  transform: scale(0.65);
+  transition: opacity .14s ease, transform .14s ease;
+}
+.circleToggle.is-on{
+  border-color: rgba(0,191,255,0.65);
+  background: linear-gradient(135deg, rgba(0,191,255,0.18), rgba(207,120,255,0.12));
+}
+.circleToggle.is-on::after{
+  opacity: 1;
+  transform: scale(1);
+}
+
 @media (min-width: 681px){
   .modalOverlay{
     align-items: center;
@@ -895,6 +1020,7 @@ body::before{
     max-height: min(96vh, 1200px);
     overflow: hidden;
   }
+  .modalRankCard{ min-width: 170px; max-width: none; }
   .modalCard.playersModal{ overflow: hidden; }
   .playersModalControls__row{
     flex-direction: row;
@@ -1747,12 +1873,21 @@ table{
   border-radius: 0;
   text-align: center;
 }
-.list thead th:first-child{ border-top-left-radius: 14px; }
+.list thead th:first-child{
+  border-top-left-radius: 14px;
+  min-width: 66px;
+  white-space: nowrap;
+}
 .list thead th:last-child{ border-top-right-radius: 14px; }
 .list tbody td{
   border-bottom: 1px solid rgba(255,255,255,0.06);
   padding: 5px 10px;
   font-size: 13px;
+}
+.list tbody td:first-child{
+  min-width: 66px;
+  text-align: center;
+  white-space: nowrap;
 }
 .list tbody tr:hover td{ background: rgba(255,255,255,0.03); }
 
