@@ -1319,9 +1319,11 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     const teamColor = opts?.teamColor ?? "rgba(0,191,255,0.90)";
     const leagueColor = opts?.leagueColor ?? "rgba(255,255,255,0.75)";
 
+    const teamCode = cleanStr(opts?.team).toUpperCase();
+
     const entries = [
-      { key: "tm", label: "TM • AVG", value: teamAvg, color: teamColor },
-      { key: "lg", label: "LG • AVG", value: leagueAvg, color: leagueColor },
+      { key: "tm", label: "AVG", value: teamAvg, color: teamColor, logo: teamCode },
+      { key: "lg", label: "AVG", value: leagueAvg, color: leagueColor, logo: "NFL" },
     ].filter(e => Number.isFinite(e.value));
     if (!entries.length) return;
 
@@ -1330,9 +1332,9 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     const fontFamily = Chart.defaults?.font?.family || getComputedStyle(document.body).fontFamily || "sans-serif";
     const fontSize = isMobile ? 8.5 : 10;
     const pillH = isMobile ? 14 : 16;
-    const padX = isMobile ? 5 : 7;
+    const padX = isMobile ? 4 : 7;
     const gap = isMobile ? 4 : 6;
-    const swatchR = isMobile ? 2.9 : 3.5;
+    const logoS = isMobile ? 10 : 12;
     const r = 999;
     const valueDigits = isMobile ? 1 : 2;
 
@@ -1366,9 +1368,10 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
     const mk = (e) => {
       const yDot = yScale.getPixelForValue(e.value);
       if (!withinY(yDot)) return null;
+      const hasLogo = Boolean(e.logo && getTeamLogo(e.logo));
       const text = `${e.label} ${fmt(e.value, valueDigits)}`;
       const textW = ctx.measureText(text).width;
-      const w = Math.min(textW + padX * 2 + swatchR * 2 + gap, Math.max(60, area.right - area.left - 10));
+      const w = Math.min(textW + padX * 2 + (hasLogo ? (logoS + gap) : 0), Math.max(54, area.right - area.left - 10));
       const x = clamp(anchorX, area.left + padEdge, area.right - w - padEdge);
       const y = clamp(yDot - (pillH / 2), area.top + 4, area.bottom - pillH - 4);
       return { ...e, text, w, x, y, yDot };
@@ -1426,14 +1429,18 @@ const PLAYER_WEEK_AVG_PILLS_PLUGIN = {
       ctx.stroke();
 
       const cy = e.y + pillH / 2;
-      const cx = e.x + padX + swatchR;
-      ctx.fillStyle = e.color;
-      ctx.beginPath();
-      ctx.arc(cx, cy, swatchR, 0, Math.PI * 2);
-      ctx.fill();
+      let textX = e.x + padX;
+      const logo = e.logo ? getTeamLogo(e.logo) : null;
+      if (logo){
+        ctx.shadowColor = rgbaOf(e.color, 0.35);
+        ctx.shadowBlur = 6;
+        ctx.drawImage(logo, e.x + padX, cy - logoS / 2, logoS, logoS);
+        ctx.shadowBlur = 0;
+        textX += logoS + gap;
+      }
 
       ctx.fillStyle = "rgba(255,255,255,0.86)";
-      ctx.fillText(e.text, cx + swatchR + gap, cy);
+      ctx.fillText(e.text, textX, cy);
     };
 
     draw(a);
@@ -1792,9 +1799,9 @@ function buildPlayerWeekScatter(){
 	      interaction: { mode: "nearest", intersect: true },
 	      layout: { padding: isMobile ? { left: 8, right: 10, top: 7, bottom: 3 } : { left: 14, right: 14, top: 8, bottom: 6 } },
 			      plugins: {
-		        playerWeekAvgPills: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)" },
-		        legend: { display: false },
-		        tooltip: {
+			        playerWeekAvgPills: { teamAvg, leagueAvg, teamColor: teamAvgColor, leagueColor: "rgba(255,255,255,0.75)", team },
+			        legend: { display: false },
+			        tooltip: {
 	          callbacks: {
 	            label: (item) => {
               const r = item.raw ?? {};
@@ -1916,7 +1923,6 @@ function buildPlayerTable(team, pos){
 			        const tmCode = cleanStr(tm).toUpperCase();
 			        const tmColor = teamColorText(tmCode);
 			        const glowSpec = getTeamLogoGlowSpec(tmCode);
-			        const nameTint = glowSpec?.glow ? rgbaOf(glowSpec.glow, 0.30) : null;
 			        const glowRgb = glowSpec?.glow ? rgbOf(glowSpec.glow) : null;
 			        const inkMix = SCATTER_MOBILE_MQ.matches ? 0.26 : 0.18;
 			        const nameInk = glowRgb
@@ -1931,7 +1937,7 @@ function buildPlayerTable(team, pos){
 			        const tmCell = tmCode
 			          ? `<span class="teamInline teamInline--tight"><img class="teamLogo teamLogo--opt glow" src="${teamLogoSrc(tmCode)}" alt="${tmCode}" /><span class="teamText" ${tmStyle}>${tmCode}</span></span>`
 			          : `<span class="teamText">—</span>`;
-			        const nameStyle = [nameTint ? `--player-tint:${nameTint};` : "", nameInk ? `--player-ink:${nameInk};` : ""].filter(Boolean).join("");
+			        const nameStyle = [nameInk ? `--player-ink:${nameInk};` : ""].filter(Boolean).join("");
 			        const playerCell = `<span class="playerName"${nameStyle ? ` style="${nameStyle}"` : ""}>${r.player}</span>`;
 	        return `
 	          <tr>
@@ -2148,7 +2154,7 @@ async function bootstrap(){
   chartCommon();
   buildMaps();
   buildPlayersLong();
-  await loadTeamLogos([...DATA.byTeamSeason.keys()]);
+  await loadTeamLogos([...DATA.byTeamSeason.keys(), "NFL"]);
   bindEvents();
 
   buildTeamSelect();

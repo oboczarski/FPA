@@ -705,8 +705,7 @@ body::before{
   color: rgba(255,255,255,0.86);
 }
 .playersPanel .playerName{
-  color: rgba(255,255,255,0.92);
-  text-shadow: 0 0 6px var(--player-tint, transparent);
+  color: var(--player-ink, rgba(255,255,255,0.92));
 }
 .playersFilters{
   display:flex;
@@ -1158,12 +1157,12 @@ body::before{
   .chip .swatch{ width: 10px; height: 10px; box-shadow: 0 0 0 3px rgba(255,255,255,0.10); }
 
   .playersPanel{ padding: 8px 8px 10px; }
-  .playersHeader{ padding: 1px 2px 5px; }
-  .playersHeaderTitle{ font-size: 13px; }
-  .playersPanel .playerName{
-    color: var(--player-ink, rgba(255,255,255,0.92));
-    text-shadow: 0 0 3px var(--player-tint, transparent);
-  }
+	  .playersHeader{ padding: 1px 2px 5px; }
+	  .playersHeaderTitle{ font-size: 13px; }
+	  .playersPanel .playerName{
+	    color: var(--player-ink, rgba(255,255,255,0.92));
+	    text-shadow: none;
+	  }
   .playersFilters{ gap: 6px; margin: 6px 2px 8px; flex-wrap: nowrap; }
   .playersFilters .playersField{ flex: 1 1 0; min-width: 0; }
   .playersSelect, .playersInput{ height: 38px; padding: 0 10px; border-radius: 11px; font-size: 12px; }
