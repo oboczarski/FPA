@@ -984,7 +984,7 @@ function buildHeatTable(){
 
           const has = Number.isFinite(avg) && Number.isFinite(rk);
           const label = has
-            ? `<span class="cell__rk">${ordinal(rk)}</span><span class="cell__avg">(${fmt(avg,1)})</span>`
+            ? `<span class="cell__rk">${ordinalMarkup(rk)}</span><span class="cell__avg">(${fmt(avg,1)})</span>`
             : `<span class="cell__rk">—</span>`;
 
           return `
@@ -1003,7 +1003,7 @@ function buildHeatTable(){
 
         const totHas = Number.isFinite(totAvg) && Number.isFinite(totRk);
         const totLabel = totHas
-          ? `<span class="cell__rk">${ordinal(totRk)}</span><span class="cell__avg">(${fmt(totAvg,1)})</span>`
+          ? `<span class="cell__rk">${ordinalMarkup(totRk)}</span><span class="cell__avg">(${fmt(totAvg,1)})</span>`
           : `<span class="cell__rk">—</span>`;
 
         return `

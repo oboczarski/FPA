@@ -223,7 +223,11 @@ body::before{
   letter-spacing: 0.02em;
 }
 .pos-toggle--lg .pos-btn{
-  padding: 11px 14px;
+  height: 40px;
+  padding: 0 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   border-radius: 14px;
   font-size: 13px;
 }
@@ -271,7 +275,8 @@ body::before{
   align-items:center;
   justify-content:space-between;
   gap: 12px;
-  padding: 12px 14px;
+  height: 40px;
+  padding: 0 14px;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.14);
   background:
@@ -488,7 +493,7 @@ body::before{
 .playersSelect, .playersInput{
   width:100%;
   padding: 10px 12px;
-  height: 44px;
+  height: 42px;
   border-radius: 12px;
   border:1px solid var(--border2);
   background: rgba(5,5,12,0.35);
@@ -1046,9 +1051,10 @@ body::before{
   }
 
   .teamPicker__btn{
-    padding: 10px 10px;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 10px;
     border-radius: 14px;
-    min-height: 44px;
   }
   .teamPicker__code{ font-size: 13px; }
 
@@ -1057,12 +1063,13 @@ body::before{
     flex-wrap:nowrap;
   }
   .pos-toggle--lg .pos-btn{
-    padding: 10px 10px;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 8px;
     border-radius: 14px;
     font-size: 12px;
     flex: 1 1 0;
     text-align:center;
-    min-height: 44px;
   }
 
   .pageChips{ display:none !important; }
@@ -1144,7 +1151,7 @@ body::before{
   .pos2-btn{ padding: 5px 12px; font-size: 10px; }
 
   /* chart heights (mobile only) */
-  .canvasBox--scatter{ height: 310px; }
+  .canvasBox--scatter{ height: 300px; }
   .canvasBox--playerWeekScatter{ height: 320px; }
 
   /* mini cards */
@@ -1171,11 +1178,11 @@ body::before{
     gap: 6px;
   }
   .pageControl__label{ font-size: 9px; margin-bottom: 4px; }
-  .teamPicker__btn{ padding: 9px 9px; border-radius: 13px; }
+  .teamPicker__btn{ padding: 0 9px; border-radius: 13px; }
   .teamPicker__code{ font-size: 12px; }
 
   .pos-toggle--lg{ gap: 5px; }
-  .pos-toggle--lg .pos-btn{ padding: 8px 8px; border-radius: 11px; font-size: 11px; }
+  .pos-toggle--lg .pos-btn{ padding: 0 7px; border-radius: 11px; font-size: 11px; }
 
   .pageChips{ gap: 6px; }
   .glassChip{ padding: 6px 7px; border-radius: 13px; }
@@ -1199,7 +1206,7 @@ body::before{
   .avgPill{ font-size: 8px; }
   .pos2-btn{ padding: 5px 11px; font-size: 10px; }
 
-  .canvasBox--scatter{ height: 300px; }
+  .canvasBox--scatter{ height: 290px; }
   .canvasBox--playerWeekScatter{ height: 310px; }
 
   .playersFilters{ gap: 6px; flex-wrap: nowrap; }
@@ -1208,6 +1215,17 @@ body::before{
   .chartTitleRow{
     flex-direction:column;
     align-items:flex-start;
+  }
+  .chartTitleRow--scatterTop{
+    flex-direction: row;
+    align-items: center;
+  }
+  .chartTitleRow--scatterTop .chartTitle{
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .pos2-toggle{
     justify-content:flex-start;
@@ -1333,6 +1351,10 @@ table{
   font-size: 14px;
   letter-spacing: 0.01em;
 }
+.heat .cell__rk .ord__suf{
+  /* Heatmap: keep ordinal suffix just 1px smaller than the value */
+  font-size: calc(1em - 1px);
+}
 .cell__avg{
   font-size: 12px;
   color: var(--muted);
@@ -1348,7 +1370,7 @@ table{
   .heat tbody td{ padding: 2px; font-size: 11px; }
   .tmCell{ font-size: 11px; }
   .cell{ padding: 4px 5px !important; border-radius: 11px; }
-  .cell__text{gap: 0px;}
+  .cell__text{gap: 1px;}
   .cell__rk{ font-size: 10px; }
   .cell__avg{display: inline;font-size: 8px;}
   .heat .tmCell .teamLogo{ width: 16px; height: 16px; }
