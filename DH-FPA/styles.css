@@ -1233,7 +1233,7 @@ body::before{
 
   .chartTitle{ font-size: 12px; }
   .avgPill{ font-size: 8px; }
-  .pos2-btn{ padding: 5px 11px; font-size: 10px; }
+  .pos2-btn{padding: 5px 9px;font-size: 10px;}
 
   .canvasBox--scatter{ height: 290px; }
   .canvasBox--playerWeekScatter{ height: 310px; }
@@ -1258,6 +1258,7 @@ body::before{
   }
   .pos2-toggle{
     justify-content:flex-start;
+    gap: 5px;
   }
   .heatHeaderField{
     width: 100%;
