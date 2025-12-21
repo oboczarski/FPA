@@ -231,8 +231,8 @@ body::before{
 }
 .pageHeader__centerTitle{
   display:none;
-  font-size: 13px;
-  font-weight: 850;
+  font-size: 23px;
+  font-weight: 200;
   letter-spacing: 0.06em;
   color: rgba(255,255,255,0.72);
   text-transform: uppercase;
@@ -240,9 +240,9 @@ body::before{
   white-space: nowrap;
 }
 .appLogoBtn{
-  width: 48px;
+  width: 103px;
   height: auto;
-  padding: 4px 6px 5px;
+  padding: 0px 7px 5px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.05);
@@ -264,13 +264,14 @@ body::before{
   background: rgba(255,255,255,0.07);
 }
 .appLogoBtn img{
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
+  margin-bottom: -5px;
 }
 .appLogoBtn__label{
-  font-size: 9px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(255,255,255,0.68);
@@ -316,7 +317,7 @@ body::before{
 }
 .glassChip{
   min-width: 160px;
-  padding: 10px 14px 10px;
+  padding: 6px 23px 4px;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.12);
   background:
