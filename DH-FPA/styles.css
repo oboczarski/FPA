@@ -1517,12 +1517,12 @@ body::before{
   .pageSubtitle{ font-size: 11px; margin: 0; }
   .appLogoBtn{
     width: 67px;
-    height: 41px;
+    height: 39px;
     border-radius: 11px;
     filter: hue-rotate(
 37deg);
   }
-  .appLogoBtn img{width: 42px;height: 42px;}
+  .appLogoBtn img{width: 40px;height: 40px;}
   .pageTitleLine{ gap: 8px; }
   .pageTitleBullet{ font-size: 11px; }
 
