@@ -229,14 +229,29 @@ body::before{
   font-size: 13px;
   font-weight: 750;
 }
+.pageHeader__centerTitle{
+  display:none;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.72);
+  text-transform: uppercase;
+  text-align:center;
+  white-space: nowrap;
+}
 .appLogoBtn{
   width: 48px;
-  height: 48px;
+  height: auto;
+  padding: 4px 6px 5px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.05);
-  display:grid;
-  place-items:center;
+  display:flex;
+  flex-direction: column;
+  align-items:center;
+  justify-content:center;
+  gap: 0px;
+  filter: hue-rotate(37deg);
   cursor:pointer;
   flex: 0 0 auto;
   align-self: center;
@@ -249,9 +264,17 @@ body::before{
   background: rgba(255,255,255,0.07);
 }
 .appLogoBtn img{
-  width: 44px;
-  height: 44px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
+}
+.appLogoBtn__label{
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.68);
+  line-height: 1;
 }
 .pageHeader__row{
   margin-top: 5px;
@@ -1442,6 +1465,26 @@ body::before{
   transition: transform .14s ease, border-color .14s ease, background .14s ease, color .14s ease;
 }
 @media (min-width: 981px){
+  .pageHeader__top{
+    display:grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items:center;
+    column-gap: 12px;
+  }
+  .pageTitleBlock{ justify-self: start; }
+  .pageTitleLine{
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    white-space: normal;
+  }
+  .pageTitleBullet{ display:none; }
+  .pageHeader__centerTitle{
+    display:block;
+    justify-self: center;
+  }
+  .appLogoBtn{ justify-self: end; }
+
   .heatHeaderRow{
     width: auto;
     justify-content: center;
@@ -1516,13 +1559,14 @@ body::before{
   .pageTitle{ font-size: 18px; }
   .pageSubtitle{ font-size: 11px; margin: 0; }
   .appLogoBtn{
-    width: 67px;
-    height: 39px;
+    width: 68px;
+    min-height: 40px;
+    padding: 0px 0px;
     border-radius: 11px;
-    filter: hue-rotate(
-37deg);
+    filter: hue-rotate(37deg);
   }
-  .appLogoBtn img{width: 40px;height: 40px;}
+  .appLogoBtn img{width: 28px;height: 28px;margin-bottom: -2px;}
+  .appLogoBtn__label{ font-size: 8px; }
   .pageTitleLine{ gap: 8px; }
   .pageTitleBullet{ font-size: 11px; }
 
