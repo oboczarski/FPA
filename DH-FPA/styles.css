@@ -203,6 +203,7 @@ body::before{
   gap:12px;
   flex-wrap:wrap;
 }
+.pageTitleBlock{ min-width: 0; }
 .pageTitleLine{
   display:flex;
   align-items: baseline;
@@ -227,6 +228,31 @@ body::before{
   color: var(--muted);
   font-size: 13px;
   font-weight: 750;
+}
+.appLogoBtn{
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  flex: 0 0 auto;
+  align-self: center;
+  box-shadow: inset 0 0 3px #60f9, 0 0 2px #40f9;
+  transition: transform .14s ease, border-color .14s ease, background .14s ease;
+}
+.appLogoBtn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.20);
+  background: rgba(255,255,255,0.07);
+}
+.appLogoBtn img{
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display:block;
 }
 .pageHeader__row{
   margin-top: 5px;
@@ -1454,6 +1480,18 @@ body::before{
     padding: 8px 8px 8px;
     margin-bottom: 2px;
   }
+  .pageHeader__top{
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap: nowrap;
+  }
+  .pageTitleLine{
+    flex-direction: column;
+    align-items:flex-start;
+    gap: 2px;
+    white-space: normal;
+  }
+  .pageTitleBullet{ display:none; }
   .pageHeader__row{
     display:grid;
     grid-template-columns: 1fr;
@@ -1477,7 +1515,15 @@ body::before{
   }
 
   .pageTitle{ font-size: 18px; }
-  .pageSubtitle{ font-size: 11px; margin-top: 2px; }
+  .pageSubtitle{ font-size: 11px; margin: 0; }
+  .appLogoBtn{
+    width: 67px;
+    height: 37px;
+    border-radius: 11px;
+    filter: hue-rotate(
+37deg);
+  }
+  .appLogoBtn img{width: 37px;height: 37px;}
   .pageTitleLine{ gap: 8px; }
   .pageTitleBullet{ font-size: 11px; }
 
