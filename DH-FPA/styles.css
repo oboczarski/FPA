@@ -1262,7 +1262,7 @@ body::before{
   background: rgba(255,255,255,0.04);
 }
 .miniPosBar .heatHeaderLabel{ margin-bottom: 6px; }
-.miniPosToggle{ justify-content:flex-start; }
+.miniPosToggle{justify-content: center;}
 .miniStack{
   display:flex;
   flex-direction:column;
@@ -1293,7 +1293,7 @@ body::before{
   gap: 3px;
 }
 @media (min-width: 981px){
-  .miniCard__body{max-height: 189px;}
+  .miniCard__body{max-height: 200px;}
 }
 .rankRow{
   position: relative;
@@ -1401,18 +1401,18 @@ body::before{
 }
 .heatPosToggle{
   display:flex;
-  gap:6px;
+  gap: 7px;
   flex-wrap:wrap;
 }
 .heatPosBtn{
-  padding: 7px 10px;
+  padding: 7px 22px;
   border-radius: 10px;
   border:1px solid var(--border2);
   background: rgba(255,255,255,0.05);
   color: var(--muted);
   cursor:pointer;
   font-weight: 900;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing:0.02em;
   transition: transform .14s ease, border-color .14s ease, background .14s ease, color .14s ease;
 }
