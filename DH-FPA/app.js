@@ -114,9 +114,56 @@ const TEAM_LOGO_ALIASES = {
   JAC: "JAX",
 };
 
+const TEAM_FULL_NAMES = {
+  ARI: "Arizona Cardinals",
+  ATL: "Atlanta Falcons",
+  BAL: "Baltimore Ravens",
+  BUF: "Buffalo Bills",
+  CAR: "Carolina Panthers",
+  CHI: "Chicago Bears",
+  CIN: "Cincinnati Bengals",
+  CLE: "Cleveland Browns",
+  DAL: "Dallas Cowboys",
+  DEN: "Denver Broncos",
+  DET: "Detroit Lions",
+  GB: "Green Bay Packers",
+  HOU: "Houston Texans",
+  IND: "Indianapolis Colts",
+  JAX: "Jacksonville Jaguars",
+  KC: "Kansas City Chiefs",
+  LAC: "Los Angeles Chargers",
+  LAR: "Los Angeles Rams",
+  LV: "Las Vegas Raiders",
+  MIA: "Miami Dolphins",
+  MIN: "Minnesota Vikings",
+  NE: "New England Patriots",
+  NO: "New Orleans Saints",
+  NYG: "New York Giants",
+  NYJ: "New York Jets",
+  PHI: "Philadelphia Eagles",
+  PIT: "Pittsburgh Steelers",
+  SEA: "Seattle Seahawks",
+  SF: "San Francisco 49ers",
+  TB: "Tampa Bay Buccaneers",
+  TEN: "Tennessee Titans",
+  WAS: "Washington Commanders",
+  SD: "Los Angeles Chargers",
+  OAK: "Las Vegas Raiders",
+  STL: "Los Angeles Rams",
+  JAC: "Jacksonville Jaguars",
+};
+
+const POS_FULL_NAMES = {
+  QB: "Quarterback",
+  RB: "Running Back",
+  WR: "Wide Receiver",
+  TE: "Tight End",
+};
+
 const SCATTER_TEAM_LOGO_PX_DESKTOP = 34;
 const SCATTER_TEAM_LOGO_PX_MOBILE = 28;
 const SCATTER_MOBILE_MQ = window.matchMedia("(max-width: 760px)");
+const PAGE_HEADER_DESKTOP_MQ = window.matchMedia("(min-width: 981px)");
 let SCATTER_TEAM_LOGO_PX = SCATTER_MOBILE_MQ.matches ? SCATTER_TEAM_LOGO_PX_MOBILE : SCATTER_TEAM_LOGO_PX_DESKTOP; // Chart.js draws image pointStyles at intrinsic width/height
 const TEAM_LOGOS = new Map(); // TEAM -> HTMLImageElement (sized for scatter points)
 
@@ -282,6 +329,16 @@ let charts = {
   scatter: null,
   playerWeekScatter: null,
 };
+
+// Keep page header chip labels in sync with desktop/mobile layout changes.
+{
+  const onChange = () => syncSelectionChips(STATE.selectedTeam, STATE.pos);
+  if (typeof PAGE_HEADER_DESKTOP_MQ?.addEventListener === "function"){
+    PAGE_HEADER_DESKTOP_MQ.addEventListener("change", onChange);
+  }else if (typeof PAGE_HEADER_DESKTOP_MQ?.addListener === "function"){
+    PAGE_HEADER_DESKTOP_MQ.addListener(onChange);
+  }
+}
 
 function $(sel, root=document){ return root.querySelector(sel); }
 function $$ (sel, root=document){ return [...root.querySelectorAll(sel)]; }
@@ -525,11 +582,14 @@ function syncTeamPicker(team){
 function syncSelectionChips(team, pos){
   const t = cleanStr(team).toUpperCase();
   const p = cleanStr(pos).toUpperCase();
+  const isDesktop = !!PAGE_HEADER_DESKTOP_MQ?.matches;
 
   setLogoPair(els.selTeamLogo, els.selTeamLogoGlow, t);
 
   if (els.selTeamText){
-    els.selTeamText.textContent = t || "—";
+    const canon = t ? canonicalTeamCode(t) : "";
+    const fullTeam = canon ? (TEAM_FULL_NAMES[canon] ?? TEAM_FULL_NAMES[t] ?? canon) : "—";
+    els.selTeamText.textContent = isDesktop ? fullTeam : (t || "—");
     const c = teamColorText(t);
     if (c){
       els.selTeamText.style.color = c;
@@ -540,7 +600,8 @@ function syncSelectionChips(team, pos){
   }
 
   if (els.selPosText){
-    els.selPosText.textContent = p || "—";
+    const fullPos = p ? (POS_FULL_NAMES[p] ?? p) : "—";
+    els.selPosText.textContent = isDesktop ? fullPos : (p || "—");
     els.selPosText.dataset.pos = p || "QB";
   }
 }

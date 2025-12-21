@@ -231,7 +231,7 @@ body::before{
 }
 .pageHeader__centerTitle{
   display:none;
-  font-size: 23px;
+  font-size: 33px;
   font-weight: 200;
   letter-spacing: 0.06em;
   color: rgba(255,255,255,0.72);
@@ -302,7 +302,7 @@ body::before{
 }
 .pos-toggle--lg .pos-btn{
   height: 40px;
-  padding: 0 14px;
+  padding: 0 29px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -1485,6 +1485,30 @@ body::before{
     justify-self: center;
   }
   .appLogoBtn{ justify-self: end; }
+
+  .pageHeader__row{
+    display:grid;
+    grid-template-columns: 1.05fr 1.35fr;
+    gap: 14px;
+    align-items:end;
+  }
+  .pageControls{ grid-column: 1 / 2; }
+  .pageChips{
+    grid-column: 2 / 3;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: nowrap;
+    margin: 0;
+  }
+  .glassChip{
+    min-width: 230px;
+  }
+  .glassChip__value{
+    white-space: nowrap;
+  }
+  #selTeamText{
+    letter-spacing: 0.02em;
+  }
 
   .heatHeaderRow{
     width: auto;
