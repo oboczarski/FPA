@@ -90,7 +90,7 @@
   height: 22px;
 }
 
-*{ box-sizing:border-box; }
+*{box-sizing:border-box;}
 html, body{ height:100%; }
 
 /*
@@ -252,7 +252,6 @@ body::before{
   width: 44px;
   height: 44px;
   object-fit: contain;
-  display:block;
 }
 .pageHeader__row{
   margin-top: 5px;
@@ -1518,12 +1517,12 @@ body::before{
   .pageSubtitle{ font-size: 11px; margin: 0; }
   .appLogoBtn{
     width: 67px;
-    height: 37px;
+    height: 41px;
     border-radius: 11px;
     filter: hue-rotate(
 37deg);
   }
-  .appLogoBtn img{width: 37px;height: 37px;}
+  .appLogoBtn img{width: 42px;height: 40px;}
   .pageTitleLine{ gap: 8px; }
   .pageTitleBullet{ font-size: 11px; }
 
