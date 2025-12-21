@@ -1522,7 +1522,7 @@ body::before{
     filter: hue-rotate(
 37deg);
   }
-  .appLogoBtn img{width: 42px;height: 40px;}
+  .appLogoBtn img{width: 42px;height: 42px;}
   .pageTitleLine{ gap: 8px; }
   .pageTitleBullet{ font-size: 11px; }
 
