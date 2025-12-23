@@ -1467,14 +1467,22 @@ body::before{
 }
 @media (min-width: 981px){
   .pageHeader__top{
-    display:grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
     column-gap: 12px;
+    position: relative;
   }
   .pageTitleBlock{
-    justify-self: center;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     min-width: 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events: none;
   }
   .pageTitleLine{
     flex-direction: row;
@@ -1482,17 +1490,20 @@ body::before{
     gap: 8px;
     white-space: nowrap;
     min-width: 0;
-    line-height: 1.05;
+    line-height: 1;
   }
   .pageTitle{
     font-size: 19px;
+    line-height: 1;
   }
   .pageSubtitle{
     font-size: 19px;
+    line-height: 1;
   }
   .pageTitleBullet{
     display:inline-block;
     font-size: 19px;
+    line-height: 1;
   }
   .pageSubtitle{ order: 1; }
   .pageTitleBullet{ order: 2; }
@@ -1506,14 +1517,8 @@ body::before{
     font-size: 12px;
     letter-spacing: 0.08em;
     white-space: nowrap;
-    line-height: 1.05;
+    line-height: 1;
     align-self: center;
-  }
-  .pageTitleBlock{
-    grid-column: 2 / 3;
-  }
-  .pageHeader__centerTitle{
-    grid-column: 1 / 2;
   }
   .appLogoBtn{
     justify-self: end;
