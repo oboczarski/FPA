@@ -288,7 +288,7 @@ body::before{
 .pageControls{
   display:flex;
   gap: 12px;
-  flex-wrap:wrap;
+  flex-wrap: nowrap;
   align-items:flex-end;
 }
 .pageControl{ min-width: 240px; }
@@ -545,7 +545,7 @@ body::before{
 .pos-toggle{
   display:flex;
   gap:8px;
-  flex-wrap:wrap;
+  flex-wrap: nowrap;
 }
 .pos-btn{
   padding: 9px 12px;
