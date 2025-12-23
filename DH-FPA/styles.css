@@ -1469,7 +1469,7 @@ body::before{
   .pageHeader__top{
     display:grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items:center;
+    align-items: center;
     column-gap: 12px;
   }
   .pageTitleBlock{
@@ -1482,6 +1482,7 @@ body::before{
     gap: 8px;
     white-space: nowrap;
     min-width: 0;
+    line-height: 1.05;
   }
   .pageTitle{
     font-size: 19px;
@@ -1505,6 +1506,8 @@ body::before{
     font-size: 12px;
     letter-spacing: 0.08em;
     white-space: nowrap;
+    line-height: 1.05;
+    align-self: center;
   }
   .pageTitleBlock{
     grid-column: 2 / 3;
@@ -1512,7 +1515,10 @@ body::before{
   .pageHeader__centerTitle{
     grid-column: 1 / 2;
   }
-  .appLogoBtn{ justify-self: end; }
+  .appLogoBtn{
+    justify-self: end;
+    align-self: center;
+  }
 
   .pageHeader__row{
     display:grid;
