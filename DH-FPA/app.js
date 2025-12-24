@@ -9,7 +9,9 @@ const CONFIG = {
     season: "data/Season_FPA_Summary.csv",
     recent: "data/WK9-15_FPA_Summary.csv",
   },
+  // Defaults are overridden at runtime after CSV load.
   maxWeek: 15,
+  recentSpanWeeks: 7,
   recentWeeks: [9, 15],
   positions: ["QB","RB","WR","TE"],
   teamCount: 32,
@@ -733,6 +735,68 @@ function rgbaOf(color, alpha){
   const m = s.match(/rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?\)/i);
   if (!m) return `rgba(255,255,255,${alpha})`;
   return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
+}
+
+function detectMaxWeekFromPlayersWide(rows){
+  const sample = rows?.[0];
+  if (!sample || typeof sample !== "object") return NaN;
+  let mx = 0;
+  for (const k of Object.keys(sample)){
+    const m = String(k).match(/^(\d+)_(?:NM|TM|P)$/);
+    if (!m) continue;
+    const n = Number(m[1]);
+    if (Number.isFinite(n)) mx = Math.max(mx, n);
+  }
+  return mx > 0 ? mx : NaN;
+}
+
+function syncWeekConfigFromData(){
+  const detected = detectMaxWeekFromPlayersWide(DATA.playersWide);
+  if (Number.isFinite(detected) && detected >= 1){
+    CONFIG.maxWeek = detected;
+  }
+
+  const span = Number.isFinite(CONFIG.recentSpanWeeks) ? CONFIG.recentSpanWeeks : 7;
+  const to = Number.isFinite(CONFIG.maxWeek) ? CONFIG.maxWeek : 15;
+  const from = Math.max(1, to - span + 1);
+  CONFIG.recentWeeks = [from, to];
+}
+
+function formatWeekSpan(from, to){
+  const a = Number(from);
+  const b = Number(to);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return "Recent";
+  return `Weeks ${a}\u2013${b}`;
+}
+
+function syncWeekUI(){
+  const [recentFrom, recentTo] = CONFIG.recentWeeks ?? [];
+  const recentLabel = formatWeekSpan(recentFrom, recentTo);
+
+  if (els.btnRecent) els.btnRecent.textContent = recentLabel;
+
+  const scatterRest = document.querySelector(".scatterTitleRest");
+  if (scatterRest) scatterRest.textContent = `\u2014 Season vs ${recentLabel}`;
+
+  const syncSelect = (sel) => {
+    if (!sel) return;
+
+    const optRecent = [...sel.options].find(o => o.value === "recent");
+    if (optRecent) optRecent.textContent = recentLabel;
+
+    // Keep the late-season bucket automatically extended as new weeks are added.
+    const lateFrom = 13;
+    const lateTo = CONFIG.maxWeek;
+    const lateOpt = [...sel.options].find(o => o.value === "13-15" || String(o.value).startsWith("13-"));
+    if (lateOpt){
+      lateOpt.value = `${lateFrom}-${lateTo}`;
+      lateOpt.textContent = formatWeekSpan(lateFrom, lateTo);
+      lateOpt.hidden = !Number.isFinite(lateTo) || lateTo < lateFrom;
+    }
+  };
+
+  syncSelect(els.weekRange);
+  syncSelect(els.modalWeekRange);
 }
 
 function setStatus(kind, text){
@@ -2540,6 +2604,7 @@ function bindEvents(){
 
 async function bootstrap(){
   chartCommon();
+  syncWeekConfigFromData();
   buildMaps();
   buildPlayersLong();
   await loadTeamLogos([...DATA.byTeamSeason.keys(), "NFL"]);
