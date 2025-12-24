@@ -7,12 +7,12 @@ const CONFIG = {
   paths: {
     players: "data/WKLY-DEF_vs_POS_by_Player.csv",
     season: "data/Season_FPA_Summary.csv",
-    recent: "data/WK9-15_FPA_Summary.csv",
+    recent: "data/WK9-16_FPA_Summary.csv",
   },
   // Defaults are overridden at runtime after CSV load.
-  maxWeek: 15,
-  recentSpanWeeks: 7,
-  recentWeeks: [9, 15],
+  maxWeek: 16,
+  recentSpanWeeks: 8,
+  recentWeeks: [9, 16],
   positions: ["QB","RB","WR","TE"],
   teamCount: 32,
 };
@@ -865,7 +865,14 @@ async function handleFileUpload(files){
   for (const f of files){
     byName.set(f.name, f);
   }
-  const needed = [CONFIG.paths.players, CONFIG.paths.season, CONFIG.paths.recent];
+
+  // Extract just the filename from paths for matching
+  const pathToFilename = (p) => p.split("/").pop();
+  const playersFile = pathToFilename(CONFIG.paths.players);
+  const seasonFile = pathToFilename(CONFIG.paths.season);
+  const recentFile = pathToFilename(CONFIG.paths.recent);
+
+  const needed = [playersFile, seasonFile, recentFile];
   const missing = needed.filter(n => !byName.has(n));
   if (missing.length){
     setStatus("err", `Missing: ${missing.join(", ")}`);
@@ -883,9 +890,9 @@ async function handleFileUpload(files){
     });
 
     const [playersText, seasonText, recentText] = await Promise.all([
-      readText(byName.get(CONFIG.paths.players)),
-      readText(byName.get(CONFIG.paths.season)),
-      readText(byName.get(CONFIG.paths.recent)),
+      readText(byName.get(playersFile)),
+      readText(byName.get(seasonFile)),
+      readText(byName.get(recentFile)),
     ]);
 
     const [playersWide, season, recent] = await Promise.all([
@@ -1157,7 +1164,7 @@ function buildQuickCards(){
 
   els.quickCards.innerHTML = [
     card("Season", s.seasonAvg, s.seasonRank, gmS, ""),
-    card("Weeks 9–15", s.recentAvg, s.recentRank, gmR, ""),
+    card(formatWeekSpan(...CONFIG.recentWeeks), s.recentAvg, s.recentRank, gmR, ""),
 		    (() => {
         const bg = `radial-gradient(260px 90px at 18% 10%, ${rgbaOf(trendAccent,0.20)}, transparent 60%), rgba(255,255,255,0.045)`;
         const trendDir = hasTrend ? (s.dRank > 0 ? "up" : (s.dRank < 0 ? "down" : "flat")) : "flat";
@@ -1388,8 +1395,8 @@ function scatterExternalTooltipHandler(context){
       <div>
         <div class="chartTooltip__title"><span class="teamText" ${teamStyle}>${t || "—"}</span></div>
         <div class="chartTooltip__meta">
-          ${isAvg ? `Season: <strong>${seasonVal}</strong> • Weeks 9–15: <strong>${recentVal}</strong> • ΔAvg: <strong>${dAvg}</strong> • ΔRk: <strong>${dRank}</strong>`
-            : `Season: <strong>${seasonVal}</strong> • Weeks 9–15: <strong>${recentVal}</strong> • ΔRk: <strong>${dRank}</strong> • ΔAvg: <strong>${dAvg}</strong>`}
+          ${isAvg ? `Season: <strong>${seasonVal}</strong> • ${formatWeekSpan(...CONFIG.recentWeeks)}: <strong>${recentVal}</strong> • ΔAvg: <strong>${dAvg}</strong> • ΔRk: <strong>${dRank}</strong>`
+            : `Season: <strong>${seasonVal}</strong> • ${formatWeekSpan(...CONFIG.recentWeeks)}: <strong>${recentVal}</strong> • ΔRk: <strong>${dRank}</strong> • ΔAvg: <strong>${dAvg}</strong>`}
         </div>
       </div>
     </div>
@@ -1924,7 +1931,7 @@ function buildScatter(){
 		        y: {
 		          title: {
 		            display: true,
-		            text: `Weeks 9–15 (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})`,
+		            text: `${formatWeekSpan(...CONFIG.recentWeeks)} (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})`,
 		            padding: isMobile ? { top: 0, bottom: 0 } : { top: 0, bottom: 0 },
 		          },
 		          ticks: {
@@ -2605,6 +2612,7 @@ function bindEvents(){
 async function bootstrap(){
   chartCommon();
   syncWeekConfigFromData();
+  syncWeekUI();
   buildMaps();
   buildPlayersLong();
   await loadTeamLogos([...DATA.byTeamSeason.keys(), "NFL"]);
