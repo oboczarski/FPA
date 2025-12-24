@@ -237,6 +237,13 @@ body::before{
   text-align:center;
   white-space: nowrap;
 }
+.pageHeader__centerTitleStar{
+  display:inline-block;
+  font-size: 0.58em;
+  opacity: 0.86;
+  margin: 0 0.55em;
+  transform: translateY(-0.05em);
+}
 .appLogoBtn{
   width: 103px;
   height: auto;
