@@ -502,7 +502,7 @@ body::before{
 .finderTitle{ margin:0; font-size: 16px; letter-spacing: 0.01em; }
 .trendsTitle{ margin:0; font-size: 16px; letter-spacing: 0.01em; }
 .playersTitle{ margin:0; font-size: 16px; letter-spacing: 0.01em; }
-.heatmapTitle{ margin:0; font-size: 16px; letter-spacing: 0.01em; }
+.heatmapTitle{margin:0;font-size: 16px;letter-spacing: 0.01em;text-wrap-mode: nowrap;}
 .uploaderTitle{ margin:0; font-size: 16px; letter-spacing: 0.01em; }
 
 .finderSubtitle{ margin: 10px 0 0; color: var(--muted); }
@@ -1440,8 +1440,6 @@ body::before{
   line-height: 1.15;
   letter-spacing: 0.01em;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .heatHeaderField{
   min-width: 0;
@@ -1722,8 +1720,8 @@ body::before{
   .heatHeaderLabel{ font-size: 10px; margin-bottom: 4px; }
   .heatHeaderHint{font-size: 11px;}
 
-  .segmented{ padding: 4px; border-radius: 12px; min-height: 44px; }
-  .segmented__btn{ padding: 7px 10px; border-radius: 10px; font-size: 11px; }
+  .segmented{padding: 4px;border-radius: 12px;gap: 0px !important;}
+  .segmented__btn{font-size: 12px !important;}
 
   .heatPosToggle{ gap: 6px; flex-wrap:nowrap; }
   .heatPosBtn{ flex: 1 1 0; text-align:center; padding: 6px 8px; font-size: 11px; border-radius: 10px; }
@@ -2078,7 +2076,7 @@ table{
   cursor:pointer;
   font-weight: 850;
   font-size: 13px;
-  letter-spacing: 0.02em;
+  text-wrap-mode: nowrap;
 }
 .segmented__btn.is-active{
   border-color: rgba(255,255,255,0.14);
