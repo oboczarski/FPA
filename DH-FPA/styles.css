@@ -817,7 +817,7 @@ body::before{
   vertical-align: text-bottom;
 }
 .playersHeaderTitle .playersSubBullet{
-  font-size: 11px;
+  font-size: 13px;
   transform: translateY(1px);
 }
 .playersHeaderTitle .playersSubSep,
