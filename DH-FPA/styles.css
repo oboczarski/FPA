@@ -1145,22 +1145,16 @@ body::before{
 }
 .chartTitleRow--playerWeek .chartTitle{ min-width: 0; }
 
-/* Player-week chart title: baseline-align TEAM/vs./POS to the TEAM text (not the logo). */
+/* Player-week chart title: baseline-align "TEAM vs. POS", center the suffix label. */
 .chartTitleRow--playerWeek .teamInline{
-  display: inline-block; /* avoids inline-flex baseline being driven by the logo */
+  flex-direction: row-reverse; /* keeps logo left, makes TEAM text drive baseline */
   vertical-align: baseline;
 }
-.chartTitleRow--playerWeek .teamInline .teamLogoStack{
-  margin-right: 8px; /* match the default .teamInline gap */
-  vertical-align: middle;
-}
-.chartTitleRow--playerWeek #playerWeekTitleTeam,
 .chartTitleRow--playerWeek #playerWeekTitlePos,
 .chartTitleRow--playerWeek .chartTitleVs{
-  display: inline-block;
   vertical-align: baseline;
-  line-height: 1;
 }
+.chartTitleRow--playerWeek #playerWeekTitlePos{ line-height: 1; }
 .chartTitleRow--playerWeek .chartTitleSuffix{
   display: inline-block;
   vertical-align: middle;
