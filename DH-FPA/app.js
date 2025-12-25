@@ -429,14 +429,12 @@ const PLAYER_SCATTER_RGBA = Object.fromEntries(
 
 // Heatmap gradient: 8 colors from hardest (rank 1) to easiest (rank 32)
 const HEAT_GRADIENT = [
-  [58, 12, 163],    // #3A0CA3 - hardest (rank 1)
+  [255, 12, 163],    // #3A0CA3 - hardest (rank 1)
   [99, 0, 255],     // #6300FF
-  [101, 0, 233],    // #6500E9
   [94, 96, 206],    // #5E60CE
   [81, 179, 255],   // #51B3FF
   [111, 222, 255],  // #6FDEFF
-  [64, 255, 227],   // #40FFE3
-  [0, 255, 153],    // #00FF99 - easiest (rank 32)
+  [64, 255, 227],    // #00FF99 - easiest (rank 32)
 ];
 
 // tough -> easy gradient using 8-color stops
@@ -1250,7 +1248,7 @@ function buildHeatTable(){
 
   const hdr = (col, label) => {
     const c = cleanStr(col).toUpperCase();
-    const active = sortCycle !== 0 && c === sortCol;
+    const active = (sortCycle === 0 && c === "TOTAL") || (sortCycle !== 0 && c === sortCol);
     const icon = active
       ? (sortDir === "desc"
           ? ` <i class="fa-solid fa-arrow-down-wide-short heatSortIcon" aria-hidden="true"></i>`
@@ -1283,18 +1281,18 @@ function buildHeatTable(){
           const rk  = toNum(r[`${pos}_Rk`]);
           const sc = rankScore(rk);
           const c = heatColor(sc);
-          const bg = `linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0.08)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(c,0.12)}, transparent 70%)`;
+          const bg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(c,0.30)}, transparent 70%)`;
           const textShadow = `1px 1px 1px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.6)`;
 
           const has = Number.isFinite(avg) && Number.isFinite(rk);
           const label = has
-            ? `<span class="cell__rk">${ordinalMarkup(rk)}</span><span class="cell__avg">(${fmt(avg,1)})</span>`
+            ? `<span class="cell__rk" style="color:${c}; text-shadow:${textShadow};">${ordinalMarkup(rk)}</span><span class="cell__avg" style="color:${c}; text-shadow:${textShadow};">(${fmt(avg,1)})</span>`
             : `<span class="cell__rk">—</span>`;
 
           return `
             <td>
-              <div class="cell" data-team="${t}" data-pos="${pos}" style="background:${bg}; border-color: ${rgbaOf(c,0.15)};">
-                <div class="cell__text" style="color:${c}; text-shadow:${textShadow};">${label}</div>
+              <div class="cell" data-team="${t}" data-pos="${pos}" style="background:${bg}; border-color: ${rgbaOf(c,0.22)};">
+                <div class="cell__text">${label}</div>
               </div>
             </td>
           `;
@@ -1303,12 +1301,12 @@ function buildHeatTable(){
         const totRk  = toNum(r["Total_Rk"]);
         const totSc = rankScore(totRk);
         const totC  = heatColor(totSc);
-        const totBg = `linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0.08)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(totC,0.12)}, transparent 70%)`;
+        const totBg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(totC,0.30)}, transparent 70%)`;
         const totTextShadow = `1px 1px 1px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.6)`;
 
         const totHas = Number.isFinite(totAvg) && Number.isFinite(totRk);
         const totLabel = totHas
-          ? `<span class="cell__rk">${ordinalMarkup(totRk)}</span><span class="cell__avg">(${fmt(totAvg,1)})</span>`
+          ? `<span class="cell__rk" style="color:${totC}; text-shadow:${totTextShadow};">${ordinalMarkup(totRk)}</span><span class="cell__avg" style="color:${totC}; text-shadow:${totTextShadow};">(${fmt(totAvg,1)})</span>`
           : `<span class="cell__rk">—</span>`;
 
         return `
@@ -1319,8 +1317,8 @@ function buildHeatTable(){
             ${makeCell("WR")}
             ${makeCell("TE")}
             <td>
-              <div class="cell" data-team="${t}" data-pos="TOTAL" style="background:${totBg}; border-color: ${rgbaOf(totC,0.15)};">
-                <div class="cell__text" style="color:${totC}; text-shadow:${totTextShadow};">${totLabel}</div>
+              <div class="cell" data-team="${t}" data-pos="TOTAL" style="background:${totBg}; border-color: ${rgbaOf(totC,0.22)};">
+                <div class="cell__text">${totLabel}</div>
               </div>
             </td>
           </tr>
