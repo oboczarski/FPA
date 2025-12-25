@@ -1284,7 +1284,7 @@ function buildHeatTable(){
           const sc = rankScore(rk);
           const c = heatColor(sc);
           const bg = `linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0.08)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(c,0.12)}, transparent 70%)`;
-          const textShadow = `0 0 8px ${rgbaOf(c, 0.7)}, 0 0 2px ${rgbaOf(c, 0.5)}`;
+          const textShadow = `1px 1px 1px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.6)`;
 
           const has = Number.isFinite(avg) && Number.isFinite(rk);
           const label = has
@@ -1304,7 +1304,7 @@ function buildHeatTable(){
         const totSc = rankScore(totRk);
         const totC  = heatColor(totSc);
         const totBg = `linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0.08)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(totC,0.12)}, transparent 70%)`;
-        const totTextShadow = `0 0 8px ${rgbaOf(totC, 0.7)}, 0 0 2px ${rgbaOf(totC, 0.5)}`;
+        const totTextShadow = `1px 1px 1px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.6)`;
 
         const totHas = Number.isFinite(totAvg) && Number.isFinite(totRk);
         const totLabel = totHas
