@@ -2362,9 +2362,9 @@ function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = 
 	    : "—";
   const parts = [
     teamTag,
-    `<span class="playersSubSep">vs</span>`,
+    `<span class="playersSubSep playersSubVs">vs.</span>`,
     `<span class="posText" data-pos="${pos}">${pos}</span>`,
-    showSuffix ? `<span class="playersSubSuffix">• players by week</span>` : null,
+    showSuffix ? `<span class="playersSubSuffix"><span class="playersSubBullet">•</span><span class="playersSubSuffixText">players by week</span></span>` : null,
   ].filter(Boolean);
   if (subEl) subEl.innerHTML = parts.join("");
   buildPlayerTable(team, pos, { weekRangeEl, playerSearchEl, tableEl, lowPointsMode });

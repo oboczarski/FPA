@@ -783,7 +783,7 @@ body::before{
 }
 .playersHeader{
   display:flex;
-  align-items:center;
+  align-items: normal;
   justify-content:space-between;
   gap:12px;
   padding: 2px 4px 6px;
@@ -794,13 +794,38 @@ body::before{
   letter-spacing: 0.01em;
   color: rgba(255,255,255,0.86);
 }
+.playersHeaderTitle .teamInline{
+  display: inline-block; /* baseline should follow team text, not the logo */
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.playersHeaderTitle .teamInline .teamLogoStack{
+  margin-right: 1px; /* match .teamInline--tight gap */
+  vertical-align: middle;
+  margin-bottom: 4px;
+}
+.playersHeaderTitle .posText,
+.playersHeaderTitle .playersSubVs{
+  display: inline-block;
+  vertical-align: baseline;
+  line-height: 1;
+}
+.playersHeaderTitle .playersSubSuffix{
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  vertical-align: text-bottom;
+}
+.playersHeaderTitle .playersSubBullet{
+  font-size: 11px;
+  transform: translateY(1px);
+}
 .playersHeaderTitle .playersSubSep,
 .playersModalSub .playersSubSep{
   display:inline-block;
   margin: 0 0.4em;
 }
 .playersHeaderTitle .playersSubSuffix{
-  display:inline-block;
   margin-left: 0.4em;
 }
 .playersExpandBtn{
@@ -1151,8 +1176,8 @@ body::before{
   vertical-align: baseline;
 }
 .chartTitleRow--playerWeek .teamInline .teamLogoStack{
-  margin-right: 8px; /* match the default .teamInline gap */
-  vertical-align: middle;
+  margin-right: 3px; /* match the default .teamInline gap */
+  vertical-align: sub;
 }
 .chartTitleRow--playerWeek #playerWeekTitleTeam,
 .chartTitleRow--playerWeek #playerWeekTitlePos,
@@ -1196,6 +1221,7 @@ body::before{
   #playerWeekTitleLogoGlow{
     width: 26px;
     height: 26px;
+    transform: translateY(2px);
   }
 
   .chartTitleRow--scatterTop .chartTitle{
@@ -1210,20 +1236,21 @@ body::before{
   .scatterTitleRest{ vertical-align: middle; }
 
   /* Players panel header title: match the same proportional emphasis. */
-  #playersSub{
-    font-size: 15px;
-    line-height: 1.12;
-    display:flex;
-    align-items:center;
-    flex-wrap:wrap;
-    column-gap: 0px;
-    row-gap: 2px;
-  }
-  #playersSub .teamText,
-  #playersSub .posText{
-    font-size: 20px;
-    line-height: 1.0;
-  }
+	  #playersSub{
+	    font-size: 15px;
+	    line-height: 1.12;
+	    display:flex;
+	    align-items: baseline;
+	    flex-wrap:wrap;
+	    column-gap: 0px;
+	    row-gap: 2px;
+	  }
+	  #playersSub .playersSubSuffix{align-self: baseline;}
+	  #playersSub .teamText,
+	  #playersSub .posText{
+	    font-size: 20px;
+	    line-height: 1.0;
+	  }
   #playersSub .teamLogo{
     width: 26px;
     height: 26px;
@@ -1843,7 +1870,7 @@ body::before{
   .chip{padding: 4px 10px;font-size: 10px;}
 
   .playersPanel{padding: 7px 7px 2px;}
-  .playersHeaderTitle{ font-size: 12px; }
+  .playersHeaderTitle{font-size: 12px;}
   /* Slightly larger for readability (mobile priority) */
   .playersSelect, .playersInput{ height: 38px; padding: 0 10px; font-size: 13px; }
   .playersTableWrap{height: 20rem;}
@@ -1903,11 +1930,11 @@ body::before{
   /* title emphasis stays, but scaled down a touch on very small screens */
   #playersSub .teamText,
   #playersSub .posText{ font-size: 15px; }
-  #playersSub .teamLogo{ width: 20px; height: 20px; }
+  #playersSub .teamLogo{width: 24px;height: 24px;}
 
   #playerWeekTitleTeam,
   #playerWeekTitlePos{ font-size: 15px; }
-  #playerWeekTitleLogo{ width: 20px; height: 20px; }
+  #playerWeekTitleLogo{width: 24px;height: 24px;}
 }
 
 .tableWrap{
@@ -2212,4 +2239,7 @@ code{
 .canvasBox canvas{
   display:block;
   width:100% !important;
+}
+.playersSubSuffix{
+ transform: translateY(-1.9px);
 }
