@@ -2364,7 +2364,7 @@ function buildPlayersSection(team, pos, { subEl = els.playersSub, weekRangeEl = 
     teamTag,
     `<span class="playersSubSep playersSubVs">vs.</span>`,
     `<span class="posText" data-pos="${pos}">${pos}</span>`,
-    showSuffix ? `<span class="playersSubSuffix"><span class="playersSubBullet">•</span><span class="playersSubSuffixText">players by week</span></span>` : null,
+    showSuffix ? `<span class="playersSubSuffix"><span class="playersSubBullet">•</span><span class="playersSubSuffixText">FPA players by week</span></span>` : null,
   ].filter(Boolean);
   if (subEl) subEl.innerHTML = parts.join("");
   buildPlayerTable(team, pos, { weekRangeEl, playerSearchEl, tableEl, lowPointsMode });
