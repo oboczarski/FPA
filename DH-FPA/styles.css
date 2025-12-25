@@ -1145,19 +1145,24 @@ body::before{
 }
 .chartTitleRow--playerWeek .chartTitle{ min-width: 0; }
 
-/* Player-week chart title: baseline-align "TEAM vs. POS", center the suffix label. */
+/* Player-week chart title: baseline-align TEAM/vs./POS to the TEAM text (not the logo). */
 .chartTitleRow--playerWeek .teamInline{
-  flex-direction: row-reverse; /* keeps logo left, makes TEAM text drive baseline */
+  display: inline-block; /* avoids inline-flex baseline being driven by the logo */
   vertical-align: baseline;
 }
+.chartTitleRow--playerWeek .teamInline .teamLogoStack{
+  margin-right: 8px; /* match the default .teamInline gap */
+  vertical-align: middle;
+}
+.chartTitleRow--playerWeek #playerWeekTitleTeam,
 .chartTitleRow--playerWeek #playerWeekTitlePos,
 .chartTitleRow--playerWeek .chartTitleVs{
+  display: inline-block;
   vertical-align: baseline;
+  line-height: 1;
 }
-.chartTitleRow--playerWeek #playerWeekTitlePos{ line-height: 1; }
 .chartTitleRow--playerWeek .chartTitleSuffix{
   display: inline-block;
-  vertical-align: middle;
 }
 
 /* Desktop-only: keep Player Week header compact (no avg pills in header). */
@@ -1181,7 +1186,7 @@ body::before{
     font-size: 15px;
     line-height: 1.12;
   }
-  .chartTitleRow--playerWeek .chartTitleSuffix{ vertical-align: middle; }
+  .chartTitleRow--playerWeek .chartTitleSuffix{vertical-align: text-top;}
   #playerWeekTitleTeam,
   #playerWeekTitlePos{
     font-size: 20px;
