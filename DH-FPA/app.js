@@ -427,11 +427,28 @@ const PLAYER_SCATTER_RGBA = Object.fromEntries(
   Object.entries(PLAYER_SCATTER_COLORS).map(([k,v]) => [k, hexToRgbaArr(v)])
 );
 
-// tough -> easy gradient (purple -> aqua)
+// Heatmap gradient: 8 colors from hardest (rank 1) to easiest (rank 32)
+const HEAT_GRADIENT = [
+  [58, 12, 163],    // #3A0CA3 - hardest (rank 1)
+  [99, 0, 255],     // #6300FF
+  [101, 0, 233],    // #6500E9
+  [94, 96, 206],    // #5E60CE
+  [81, 179, 255],   // #51B3FF
+  [111, 222, 255],  // #6FDEFF
+  [64, 255, 227],   // #40FFE3
+  [0, 255, 153],    // #00FF99 - easiest (rank 32)
+];
+
+// tough -> easy gradient using 8-color stops
 function heatColor(score){
-  const cTough = [194, 108, 252];
-  const cEasy  = [0, 255, 193];
-  return lerpRGB(cTough, cEasy, clamp(score,0,1));
+  const t = clamp(score, 0, 1);
+  const numStops = HEAT_GRADIENT.length;
+  const scaledT = t * (numStops - 1);
+  const idx = Math.floor(scaledT);
+  const localT = scaledT - idx;
+  
+  if (idx >= numStops - 1) return lerpRGB(HEAT_GRADIENT[numStops - 1], HEAT_GRADIENT[numStops - 1], 0);
+  return lerpRGB(HEAT_GRADIENT[idx], HEAT_GRADIENT[idx + 1], localT);
 }
 
 // (Heatmap uses `heatColor()` directly for the cell gradients.)
@@ -1266,7 +1283,8 @@ function buildHeatTable(){
           const rk  = toNum(r[`${pos}_Rk`]);
           const sc = rankScore(rk);
           const c = heatColor(sc);
-          const bg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(c,0.30)}, transparent 70%)`;
+          const bg = `linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0.08)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(c,0.12)}, transparent 70%)`;
+          const textShadow = `0 0 8px ${rgbaOf(c, 0.7)}, 0 0 2px ${rgbaOf(c, 0.5)}`;
 
           const has = Number.isFinite(avg) && Number.isFinite(rk);
           const label = has
@@ -1275,8 +1293,8 @@ function buildHeatTable(){
 
           return `
             <td>
-              <div class="cell" data-team="${t}" data-pos="${pos}" style="background:${bg}; border-color: ${rgbaOf(c,0.22)};">
-                <div class="cell__text">${label}</div>
+              <div class="cell" data-team="${t}" data-pos="${pos}" style="background:${bg}; border-color: ${rgbaOf(c,0.15)};">
+                <div class="cell__text" style="color:${c}; text-shadow:${textShadow};">${label}</div>
               </div>
             </td>
           `;
@@ -1285,7 +1303,8 @@ function buildHeatTable(){
         const totRk  = toNum(r["Total_Rk"]);
         const totSc = rankScore(totRk);
         const totC  = heatColor(totSc);
-        const totBg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(totC,0.30)}, transparent 70%)`;
+        const totBg = `linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0.08)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(totC,0.12)}, transparent 70%)`;
+        const totTextShadow = `0 0 8px ${rgbaOf(totC, 0.7)}, 0 0 2px ${rgbaOf(totC, 0.5)}`;
 
         const totHas = Number.isFinite(totAvg) && Number.isFinite(totRk);
         const totLabel = totHas
@@ -1300,8 +1319,8 @@ function buildHeatTable(){
             ${makeCell("WR")}
             ${makeCell("TE")}
             <td>
-              <div class="cell" data-team="${t}" data-pos="TOTAL" style="background:${totBg}; border-color: ${rgbaOf(totC,0.22)};">
-                <div class="cell__text">${totLabel}</div>
+              <div class="cell" data-team="${t}" data-pos="TOTAL" style="background:${totBg}; border-color: ${rgbaOf(totC,0.15)};">
+                <div class="cell__text" style="color:${totC}; text-shadow:${totTextShadow};">${totLabel}</div>
               </div>
             </td>
           </tr>
