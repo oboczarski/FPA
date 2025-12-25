@@ -1400,11 +1400,11 @@ body::before{
 }
 
 .panelHeader{
-  padding: 14px 16px 10px;
+  padding: 8px 16px 6px;
   display:flex;
   align-items:flex-end;
   justify-content:space-between;
-  gap:16px;
+  gap: 16px;
   border-bottom:1px solid rgba(255,255,255,0.08);
 }
 .panelHeader__left{
@@ -1574,7 +1574,7 @@ body::before{
     width: auto;
     justify-content: center;
     align-items: flex-start;
-    gap: 16px;
+    gap: 155px;
   }
   .heatHeaderTitleStack{ align-items: center; text-align: center; }
 }
@@ -1710,7 +1710,7 @@ body::before{
   }
 
   .panelHeader{
-    padding: 10px 10px 8px;
+    padding: 6px 10px 8px;
   }
   .heatHeaderRow{
     width: 100%;
@@ -2064,20 +2064,20 @@ table{
 .segmented{
   display:flex;
   gap:6px;
-  padding: 5px;
+  padding: 2px 2px;
   border-radius: 14px;
   border:1px solid var(--border2);
   background: rgba(0,0,0,0.18);
 }
 .segmented__btn{
-  padding: 8px 12px;
+  padding: 10px 19px;
   border-radius: 12px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
   cursor:pointer;
   font-weight: 850;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.02em;
 }
 .segmented__btn.is-active{
