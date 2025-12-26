@@ -1117,7 +1117,7 @@ function buildTeamSelect(){
   if (els.teamPickerPanel) buildPanel(els.teamPickerPanel);
   if (els.modalTeamPickerPanel) buildPanel(els.modalTeamPickerPanel);
 
-  STATE.selectedTeam = teams[0] ?? null;
+  STATE.selectedTeam = teams.includes("BAL") ? "BAL" : (teams[0] ?? null);
   syncTeamPicker(STATE.selectedTeam);
   syncMiniPosToggle(STATE.miniPos);
 }

@@ -93,6 +93,12 @@
 *{box-sizing:border-box;}
 html, body{ height:100%; }
 
+/* Remove the native focus outline ring on buttons (visual preference). */
+button:focus,
+button:focus-visible{
+  outline: none;
+}
+
 /*
   Backdrop fix:
   Some browsers can render the BODY background in a way that looks like it
