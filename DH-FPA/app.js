@@ -1074,14 +1074,26 @@ function buildTeamSelect(){
 
     const afc = document.createElement("div");
     afc.className = "teamPickerConf teamPickerConf--afc";
-    afc.textContent = "AFC";
     afc.setAttribute("aria-hidden", "true");
+    const afcImg = document.createElement("img");
+    afcImg.className = "teamPickerConf__img";
+    afcImg.src = "assets/NFL-Tags_webp/afc.webp";
+    afcImg.alt = "";
+    afcImg.loading = "eager";
+    afcImg.decoding = "async";
+    afc.appendChild(afcImg);
     panel.appendChild(afc);
 
     const nfc = document.createElement("div");
     nfc.className = "teamPickerConf teamPickerConf--nfc";
-    nfc.textContent = "NFC";
     nfc.setAttribute("aria-hidden", "true");
+    const nfcImg = document.createElement("img");
+    nfcImg.className = "teamPickerConf__img";
+    nfcImg.src = "assets/NFL-Tags_webp/nfc.webp";
+    nfcImg.alt = "";
+    nfcImg.loading = "eager";
+    nfcImg.decoding = "async";
+    nfc.appendChild(nfcImg);
     panel.appendChild(nfc);
 
     const used = new Set();
