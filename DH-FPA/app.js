@@ -162,6 +162,18 @@ const POS_FULL_NAMES = {
   TE: "Tight End",
 };
 
+// Division groupings for the team picker UI (canonical team codes).
+const NFL_DIVISIONS = [
+  { conf: "AFC", name: "AFC East", teams: ["BUF","MIA","NE","NYJ"] },
+  { conf: "AFC", name: "AFC North", teams: ["BAL","CIN","CLE","PIT"] },
+  { conf: "AFC", name: "AFC South", teams: ["HOU","IND","JAX","TEN"] },
+  { conf: "AFC", name: "AFC West", teams: ["DEN","KC","LV","LAC"] },
+  { conf: "NFC", name: "NFC East", teams: ["DAL","NYG","PHI","WAS"] },
+  { conf: "NFC", name: "NFC North", teams: ["CHI","DET","GB","MIN"] },
+  { conf: "NFC", name: "NFC South", teams: ["ATL","CAR","NO","TB"] },
+  { conf: "NFC", name: "NFC West", teams: ["ARI","LAR","SF","SEA"] },
+];
+
 const SCATTER_TEAM_LOGO_PX_DESKTOP = 34;
 const SCATTER_TEAM_LOGO_PX_MOBILE = 28;
 const SCATTER_MOBILE_MQ = window.matchMedia("(max-width: 760px)");
@@ -1028,25 +1040,82 @@ function calcTrend(team, pos){
 function buildTeamSelect(){
   if (els.teamPickerPanel) els.teamPickerPanel.innerHTML = "";
   if (els.modalTeamPickerPanel) els.modalTeamPickerPanel.innerHTML = "";
-  const teams = [...DATA.byTeamSeason.keys()].sort();
-  for (const t of teams){
-    const addOption = (panel) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "teamOption";
-	      btn.setAttribute("role", "option");
-	      btn.setAttribute("aria-selected", "false");
-	      btn.dataset.team = t;
-	      btn.innerHTML = `
-	        ${teamLogoStackMarkup(t, { sizeClass: "teamLogo--opt" })}
-	        <span class="teamOption__code">${t}</span>
-	      `;
-	      panel.appendChild(btn);
-    };
+  const teams = [...DATA.byTeamSeason.keys()].sort(); // actual codes (as in CSV)
 
-    if (els.teamPickerPanel) addOption(els.teamPickerPanel);
-    if (els.modalTeamPickerPanel) addOption(els.modalTeamPickerPanel);
+  const actualByCanon = new Map(); // canon -> [actual]
+  for (const t of teams){
+    const canon = canonicalTeamCode(t);
+    if (!canon) continue;
+    if (!actualByCanon.has(canon)) actualByCanon.set(canon, []);
+    actualByCanon.get(canon).push(t);
   }
+
+  const pickActual = (canon) => {
+    const arr = actualByCanon.get(canon) ?? [];
+    return arr.find(x => x === canon) ?? arr[0] ?? null;
+  };
+
+  const addTeamBtn = (panel, team) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "teamOption";
+    btn.setAttribute("role", "option");
+    btn.setAttribute("aria-selected", "false");
+    btn.dataset.team = team;
+    btn.innerHTML = `
+      ${teamLogoStackMarkup(team, { sizeClass: "teamLogo--opt" })}
+      <span class="teamOption__code">${team}</span>
+    `;
+    panel.appendChild(btn);
+  };
+
+  const buildPanel = (panel) => {
+    panel.innerHTML = "";
+
+    const afc = document.createElement("div");
+    afc.className = "teamPickerConf teamPickerConf--afc";
+    afc.textContent = "AFC";
+    afc.setAttribute("aria-hidden", "true");
+    panel.appendChild(afc);
+
+    const nfc = document.createElement("div");
+    nfc.className = "teamPickerConf teamPickerConf--nfc";
+    nfc.textContent = "NFC";
+    nfc.setAttribute("aria-hidden", "true");
+    panel.appendChild(nfc);
+
+    const used = new Set();
+    for (const div of NFL_DIVISIONS){
+      const col = document.createElement("div");
+      col.className = "teamPickerDiv";
+      col.dataset.division = div.name;
+
+      const title = document.createElement("div");
+      title.className = "teamPickerDiv__title";
+      title.textContent = div.name;
+      title.setAttribute("aria-hidden", "true");
+      col.appendChild(title);
+
+      for (const canon of div.teams){
+        const actual = pickActual(canon);
+        if (!actual || used.has(actual)) continue;
+        used.add(actual);
+        addTeamBtn(col, actual);
+      }
+
+      panel.appendChild(col);
+    }
+
+    // If any teams weren't matched (unexpected codes), append them at the end so they're still selectable.
+    const leftovers = teams.filter(t => !used.has(t));
+    for (const t of leftovers){
+      addTeamBtn(panel, t);
+    }
+  };
+
+  if (els.teamPickerPanel) buildPanel(els.teamPickerPanel);
+  if (els.modalTeamPickerPanel) buildPanel(els.modalTeamPickerPanel);
+
   STATE.selectedTeam = teams[0] ?? null;
   syncTeamPicker(STATE.selectedTeam);
   syncMiniPosToggle(STATE.miniPos);

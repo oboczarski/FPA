@@ -412,8 +412,39 @@ body::before{
   display:none;
   grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 6px;
+  align-items: start;
 }
 .teamPicker.is-open .teamPicker__panel{ display:grid; }
+.teamPickerConf{
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.58);
+  text-align: center;
+  padding: 0px 2px 2px;
+  user-select: none;
+  pointer-events: none;
+}
+.teamPickerConf--afc{ grid-column: 1 / span 4; }
+.teamPickerConf--nfc{ grid-column: 5 / span 4; }
+.teamPickerDiv{
+  display:flex;
+  flex-direction:column;
+  gap: 6px;
+  min-width: 0;
+}
+.teamPickerDiv__title{
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.62);
+  text-align:center;
+  line-height: 1.1;
+  user-select: none;
+  pointer-events: none;
+}
+.teamPickerDiv .teamOption{ width: 100%; }
 .teamOption{
   display:flex;
   align-items:center;
@@ -1749,10 +1780,11 @@ body::before{
   .teamLogo--chip{ width: 17px; height: 17px; }
 
   .teamPicker__panel{
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     max-height: 60vh;
     overflow: auto;
   }
+  .teamPickerConf{ display:none; }
 
   .panelHeader{
     padding: 6px 10px 8px;
