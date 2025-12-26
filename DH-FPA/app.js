@@ -1072,30 +1072,6 @@ function buildTeamSelect(){
   const buildPanel = (panel) => {
     panel.innerHTML = "";
 
-    const afc = document.createElement("div");
-    afc.className = "teamPickerConf teamPickerConf--afc";
-    afc.setAttribute("aria-hidden", "true");
-    const afcImg = document.createElement("img");
-    afcImg.className = "teamPickerConf__img";
-    afcImg.src = "assets/NFL-Tags_webp/afc.webp";
-    afcImg.alt = "";
-    afcImg.loading = "eager";
-    afcImg.decoding = "async";
-    afc.appendChild(afcImg);
-    panel.appendChild(afc);
-
-    const nfc = document.createElement("div");
-    nfc.className = "teamPickerConf teamPickerConf--nfc";
-    nfc.setAttribute("aria-hidden", "true");
-    const nfcImg = document.createElement("img");
-    nfcImg.className = "teamPickerConf__img";
-    nfcImg.src = "assets/NFL-Tags_webp/nfc.webp";
-    nfcImg.alt = "";
-    nfcImg.loading = "eager";
-    nfcImg.decoding = "async";
-    nfc.appendChild(nfcImg);
-    panel.appendChild(nfc);
-
     const used = new Set();
     for (const div of NFL_DIVISIONS){
       const col = document.createElement("div");
@@ -1104,8 +1080,21 @@ function buildTeamSelect(){
 
       const title = document.createElement("div");
       title.className = "teamPickerDiv__title";
-      title.textContent = div.name;
       title.setAttribute("aria-hidden", "true");
+
+      const logo = document.createElement("img");
+      logo.className = "teamPickerDiv__confLogo";
+      logo.src = div.conf === "AFC" ? "assets/NFL-Tags_webp/afc.webp" : "assets/NFL-Tags_webp/nfc.webp";
+      logo.alt = "";
+      logo.loading = "eager";
+      logo.decoding = "async";
+
+      const divLabel = document.createElement("span");
+      divLabel.className = "teamPickerDiv__titleText";
+      divLabel.textContent = div.name.replace(/^AFC\s+/i, "").replace(/^NFC\s+/i, "");
+
+      title.appendChild(logo);
+      title.appendChild(divLabel);
       col.appendChild(title);
 
       for (const canon of div.teams){
