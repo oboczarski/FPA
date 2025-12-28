@@ -3454,7 +3454,7 @@ card__big{
 
   /* Modal table: slightly tighter rows so more players are visible (mobile only). */
   .playersTableWrap--modal .list thead th{ padding: 6px 8px; font-size: 10px; }
-  .playersTableWrap--modal .list tbody td{ padding: 4px 8px; font-size: 11px; }
+  .playersTableWrap--modal .list tbody td{padding: 1px 7px;font-size: 10px;}
 
   /* chart controls */
   .chartCard{ padding: 0px 6px 0px; }
