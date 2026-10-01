@@ -5,27 +5,27 @@ const path = require("node:path");
 const vm = require("node:vm");
 const crypto = require("node:crypto");
 const Data = require("../DH-FPA/data-model.js");
-const file = path.join(__dirname, "../DH-FPA/data/2026-Wkly - FPA.csv");
+const file = path.join(__dirname, "../DH-FPA/data/FPAv2.csv");
 const csv = fs.readFileSync(file, "utf8");
 const source = Data.readSource(csv);
 const fixture = rows => Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS\n" + rows.join("\n"));
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} != ${expected}`);
 
 test("supplied file: all source rows, exclusions, signs and matchup counts reconcile", () => {
-  assert.equal(source.audit.sourceRows, 1249);
-  assert.equal(source.audit.usedRows, 1227);
+  assert.equal(source.audit.sourceRows, 1250);
+  assert.equal(source.audit.usedRows, 1228);
   assert.equal(source.audit.excludedRows, 22);
   assert.equal(source.audit.zeroResults, 471);
   assert.equal(source.audit.negativeResults, 12);
   assert.equal(source.audit.defenseGames, 96);
   assert.equal(source.audit.matchups, 48);
-  assert.equal(source.audit.totalPoints, 7597.14);
+  assert.equal(source.audit.totalPoints, 7621.62);
   assert.deepEqual(source.weeks, [1, 2, 3]);
   assert.equal(source.defenses.length, 32);
   assert.deepEqual(source.diagnostics, { missingPositions: [], unpairedGames: [] });
 });
 test("supplied file: weekly totals independently specified by the source audit", () => {
-  assert.deepEqual([1, 2, 3].map(week => Data.summarize(source, { from: week, to: week }).league.ALL.total), [2600.76, 2410.46, 2585.92]);
+  assert.deepEqual([1, 2, 3].map(week => Data.summarize(source, { from: week, to: week }).league.ALL.total), [2600.76, 2410.46, 2610.40]);
 });
 test("VS identifies the defense, not the player's TM or source player rank", () => {
   const gibbs = source.results.find(row => row.week === 1 && row.player === "Jahmyr Gibbs");
@@ -100,7 +100,7 @@ test("venue filters affect summaries, player results and recent comparisons cons
   assert.equal(away.byTeam.get("BAL").metrics.QB.avg, 14.49);
   assert.equal(away.byTeam.get("BAL").metrics.QB.games, 2);
   assert.ok(Data.selectResults(source, { team: "BAL", venue: "home" }).every(row => row.vs === "@ BAL"));
-  near(home.league.ALL.total + away.league.ALL.total, 7597.14);
+  near(home.league.ALL.total + away.league.ALL.total, 7621.62);
 });
 test("recent windows derive from the actual latest week and support a single week", () => {
   assert.deepEqual(Data.recentSpan(source, 2), { from: 2, to: 3 });
@@ -154,11 +154,84 @@ test("point arithmetic reconciles decimal cents without intermediate rounding", 
   const model = fixture(["1,A,RB,0.10,vs TB", "1,B,RB,0.20,vs TB", "1,C,RB,-0.10,vs TB"]);
   assert.equal(Data.summarize(model).byTeam.get("TB").metrics.RB.total, 0.2);
 });
-test("offline snapshot exactly matches the canonical CSV and its checksum", () => {
+test("bundled source pair exactly matches both provided CSVs and their checksums", () => {
   const context = { window: {} };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../DH-FPA/data/2026-weekly.js"), "utf8"), context);
   const snapshot = context.window.FPA_SOURCE;
-  assert.equal(snapshot.csv, csv);
-  assert.equal(snapshot.sha256, crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex"));
+  for (const [key, name] of [["weekly", "FPAv2.csv"], ["offense", "TSUMS.csv"]]) {
+    const bytes = fs.readFileSync(path.join(__dirname, "../DH-FPA/data", name));
+    assert.equal(snapshot[key].csv, bytes.toString("utf8"));
+    assert.equal(snapshot[key].sha256, crypto.createHash("sha256").update(bytes).digest("hex"));
+    assert.equal(snapshot[key].name, name);
+  }
   assert.equal(snapshot.season, 2026);
+});
+
+const offenseCSV = fs.readFileSync(path.join(__dirname, "../DH-FPA/data/TSUMS.csv"), "utf8");
+const offenses = Data.readOffenses(offenseCSV);
+const expectations = Data.expectedMatchups(source, offenses);
+const offenseFixture = teams => {
+  const positions = [...Data.POSITIONS, "ALL"];
+  const header = ["TM", "G", ...positions.flatMap(pos => [pos, `${pos}RK`, `${pos}x`])];
+  const records = teams.map(([team, averages]) => [team, 3, ...positions.flatMap(pos => {
+    const avg = averages[pos] ?? null;
+    return [avg === null ? "" : (avg * 3).toFixed(2), 1, avg === null ? "" : avg];
+  })].join(","));
+  return Data.readOffenses([header.join(","), ...records].join("\n"));
+};
+
+test("FPAv2 restores Case Keenum's Week 3 score against PHI in every actual total", () => {
+  const added = Data.selectResults(source, { team: "PHI", pos: "QB", from: 3, to: 3 }).find(row => row.player === "Case Keenum");
+  assert.equal(added.pts, 24.48); assert.equal(added.defenseVenue, "away");
+  assert.equal(expectations.byTeam.get("PHI").metrics.QB.actual.total, 62.16);
+});
+test("expected QB FPA uses the three supplied opponent averages without weekly recomputation", () => {
+  const c = expectations.byTeam.get("BAL").metrics.QB;
+  assert.equal(c.expectedTotal, 55.9); assert.equal(c.actual.total, 51.36);
+  assert.equal(c.delta, -4.54); assert.equal(c.games, 3);
+  assert.deepEqual(c.entries.map(e => [e.offense, e.expected]), [["IND", 10.4], ["NO", 24.1], ["DAL", 21.4]]);
+  assert.equal(c.expectedRank, 21); assert.equal(c.actualRank, 12); assert.equal(c.pool, 32);
+});
+test("multiple player records count the opponent baseline only once per game", () => {
+  const m = Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS,TM\n1,A,QB,10,vs TB,CIN\n1,B,QB,5,vs TB,CIN\n1,C,QB,0,vs TB,CIN\n2,A,QB,8,vs TB,CIN");
+  const c = Data.expectedMatchups(m, offenseFixture([["CIN", { QB: 12.5 }]])).byTeam.get("TB").metrics.QB;
+  assert.equal(c.expectedTotal, 25); assert.equal(c.actual.total, 23); assert.equal(c.delta, -2);
+});
+test("ALL expected scoring uses ALLx directly, not a sum of rounded position averages", () => {
+  const c = expectations.byTeam.get("BAL").metrics.ALL;
+  assert.deepEqual(c.entries.map(e => e.expected), [70.6, 109.7, 95.1]);
+  assert.equal(c.expectedTotal, 275.4); assert.equal(c.actual.total, 255.86);
+  assert.equal(Data.selectResults(source, { team: "BAL", pos: "ALL" }).length, Data.selectResults(source, { team: "BAL" }).length);
+  const m = Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS,TM\n" + Data.POSITIONS.map(p => `1,${p},${p},1,vs TB,CIN`).join("\n"));
+  const fake = offenseFixture([["CIN", { QB: 1.1, RB: 1.1, WR: 1.1, TE: 1.1, ALL: 4.3 }]]);
+  assert.equal(Data.expectedMatchups(m, fake).byTeam.get("TB").metrics.ALL.expectedTotal, 4.3);
+});
+test("venue filters apply to both expected and actual FPA over the same games", () => {
+  const home = Data.expectedMatchups(source, offenses, { venue: "home" }).byTeam.get("TB").metrics.QB;
+  const away = Data.expectedMatchups(source, offenses, { venue: "away" }).byTeam.get("TB").metrics.QB;
+  assert.equal(home.expectedTotal, 30.8); assert.equal(home.actual.total, 31.14); assert.equal(home.games, 2);
+  assert.equal(away.expectedTotal, 18); assert.equal(away.actual.total, 15.16); assert.equal(away.games, 1);
+});
+test("missing opponent averages stay unavailable and both ranks use one complete cohort", () => {
+  const m = Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS,TM\n1,A,QB,0,vs TB,CIN\n1,B,QB,2,vs NYG,MIN");
+  const c = Data.expectedMatchups(m, offenseFixture([["CIN", { QB: 0 }]]));
+  const complete = c.byTeam.get("TB").metrics.QB, missing = c.byTeam.get("NYG").metrics.QB;
+  assert.equal(complete.expectedTotal, 0); assert.equal(complete.delta, 0); assert.equal(complete.deltaPct, null);
+  assert.equal(complete.actualRank, 1); assert.equal(complete.expectedRank, 1); assert.equal(complete.pool, 1);
+  assert.equal(missing.actual.total, 2); assert.equal(missing.expectedTotal, null); assert.equal(missing.delta, null);
+  assert.equal(missing.actualRank, null); assert.equal(missing.expectedRank, null);
+});
+test("scatter totals rank unrounded values with competition ties independently on each axis", () => {
+  const m = Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS,TM\n1,A,QB,5,vs TB,CIN\n1,B,QB,5,vs NYG,MIN\n1,C,QB,6,vs SEA,CLE");
+  const c = Data.expectedMatchups(m, offenseFixture([["CIN", { QB: 10.11 }], ["MIN", { QB: 10.11 }], ["CLE", { QB: 10.12 }]]));
+  assert.deepEqual(["TB", "NYG", "SEA"].map(t => c.byTeam.get(t).metrics.QB.expectedRank), [1, 1, 3]);
+  assert.deepEqual(["TB", "NYG", "SEA"].map(t => c.byTeam.get(t).metrics.QB.actualRank), [1, 1, 3]);
+});
+test("JAX source differences are disclosed while published WRx and ALLx stay unchanged", () => {
+  assert.equal(offenses.byTeam.get("JAX").metrics.WR.avg, 34.1);
+  assert.equal(offenses.byTeam.get("JAX").metrics.ALL.avg, 77.9);
+  assert.deepEqual(Data.offenseDifferences(source, offenses), [
+    { team: "JAX", pos: "WR", weeklyTotal: 110.6, offenseTotal: 102.4 },
+    { team: "JAX", pos: "ALL", weeklyTotal: 242.04, offenseTotal: 233.8 },
+  ]);
 });

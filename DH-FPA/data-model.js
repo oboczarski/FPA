@@ -43,7 +43,7 @@
 
   // Explicit CSV parser preserves quoted names, escaped quotes, CRLF and quoted newlines.
   // Unexpected row widths or broken quotes fail before the app changes its current data.
-  function parseCSV(text) {
+  function parseCSV(text, requiredColumns = REQUIRED_COLUMNS) {
     if (typeof text !== "string" || !text.trim()) throw new Error("The CSV is empty.");
     const input = text.replace(/^\uFEFF/, "");
     const matrix = [];
@@ -85,12 +85,12 @@
     }
     if (quoted) throw new Error(`Line ${rowLine}: unclosed CSV quote.`);
     if (field || row.length || closedQuote) finishRow();
-    if (matrix.length < 2) throw new Error("The CSV needs a header and at least one player result.");
+    if (matrix.length < 2) throw new Error("The CSV needs a header and at least one data row.");
     const headers = matrix.shift().values.map(value => value.trim().toUpperCase().replace(/\s+/g, " "));
     if (headers.some(value => !value) || new Set(headers).size !== headers.length) {
       throw new Error("CSV headers must be nonempty and unique.");
     }
-    const missing = REQUIRED_COLUMNS.filter(column => !headers.includes(column));
+    const missing = requiredColumns.filter(column => !headers.includes(column));
     if (missing.length) throw new Error(`Missing required columns: ${missing.join(", ")}.`);
     const records = matrix.map(entry => {
       if (entry.values.length !== headers.length) {
@@ -101,17 +101,17 @@
     return { headers, records };
   }
 
-  function pointCents(value, line) {
+  function pointCents(value, line, column = "FPT_PPR") {
     const text = String(value ?? "").trim();
     if (!/^[+-]?\d+(?:\.\d{1,2})?$/.test(text)) {
-      throw new Error(`Line ${line}: FPT_PPR must be a number with at most two decimal places; received “${text || "blank"}”.`);
+      throw new Error(`Line ${line}: ${column} must be a number with at most two decimal places; received “${text || "blank"}”.`);
     }
     const cents = Math.round(Number(text) * 100);
-    if (!Number.isSafeInteger(cents)) throw new Error(`Line ${line}: FPT_PPR is outside the supported numeric range.`);
+    if (!Number.isSafeInteger(cents)) throw new Error(`Line ${line}: ${column} is outside the supported numeric range.`);
     return cents;
   }
 
-  function readSource(text, { name = "2026-Wkly - FPA.csv", season = 2026 } = {}) {
+  function readSource(text, { name = "FPAv2.csv", season = 2026 } = {}) {
     const parsed = parseCSV(text);
     const results = [], excluded = [], seen = new Set(), gamesByKey = new Map();
     for (const { values: row, line } of parsed.records) {
@@ -264,7 +264,7 @@
   function selectResults(model, { team = null, pos = null, from = 1, to = Infinity, venue = "all", query = "", hideZero = false } = {}) {
     const search = String(query).trim().toLowerCase();
     return model.results.filter(row =>
-      (!team || row.def === team) && (!pos || row.pos === pos) &&
+      (!team || row.def === team) && (!pos || pos === "ALL" || row.pos === pos) &&
       row.week >= from && row.week <= to && (venue === "all" || row.defenseVenue === venue) &&
       (!hideZero || row.cents !== 0) &&
       (!search || [row.player, row.playerTeam, TEAM_NAMES[row.playerTeam], row.vs].filter(Boolean).some(value => value.toLowerCase().includes(search)))
@@ -282,5 +282,100 @@
     };
   }
 
-  return Object.freeze({ POSITIONS, TEAM_NAMES, TEAMS, REQUIRED_COLUMNS, canonicalTeam, parseOpponent, parseCSV, readSource, recentSpan, summarize, selectResults, compare, inScope });
+  // TSUMS is the independent offense baseline. Preserve its published averages
+  // and ranks; never substitute averages recalculated from weekly player data.
+  function readOffenses(text, { name = "TSUMS.csv" } = {}) {
+    const positions = [...POSITIONS, "ALL"];
+    const columns = ["TM", "G", ...positions.flatMap(pos => [pos, `${pos}RK`, `${pos}X`])];
+    const parsed = parseCSV(text, columns), rows = [], byTeam = new Map();
+    for (const { values: row, line } of parsed.records) {
+      const team = canonicalTeam(row.TM);
+      if (!TEAMS.includes(team)) throw new Error(`Line ${line}: unknown TSUMS offense “${row.TM}”.`);
+      if (byTeam.has(team)) throw new Error(`Line ${line}: duplicate TSUMS offense ${team}.`);
+      if (!/^\d+$/.test(row.G)) throw new Error(`Line ${line}: TSUMS G must be a nonnegative integer.`);
+      const games = Number(row.G);
+      if (!Number.isSafeInteger(games)) throw new Error(`Line ${line}: TSUMS G is outside the supported numeric range.`);
+      const metrics = Object.fromEntries(positions.map(pos => {
+        const optionalPoints = column => row[column] === "" ? null : pointCents(row[column], line, column);
+        const totalCents = optionalPoints(pos), averageCents = optionalPoints(`${pos}X`);
+        const rankText = row[`${pos}RK`];
+        if (rankText !== "" && (!/^\d+$/.test(rankText) || Number(rankText) < 1 || Number(rankText) > 32)) {
+          throw new Error(`Line ${line}: ${pos}RK must be a rank from 1 to 32, or blank.`);
+        }
+        return [pos, { total: totalCents === null ? null : totalCents / 100, totalCents,
+          avg: averageCents === null || !games ? null : averageCents / 100,
+          averageCents: games ? averageCents : null, rank: rankText === "" ? null : Number(rankText) }];
+      }));
+      const offense = { team, name: TEAM_NAMES[team], games, metrics };
+      rows.push(offense); byTeam.set(team, offense);
+    }
+    return { name, rawCSV: text, rows, byTeam };
+  }
+
+  // Each defense-week contributes the opponent's position average exactly once.
+  // Expected and actual totals use the same eligible games and venue scope.
+  // An unknown opponent/baseline makes the full comparison unavailable, not zero.
+  function expectedMatchups(model, offenses, scope = {}) {
+    const actual = summarize(model, scope), positions = [...POSITIONS, "ALL"];
+    const rows = actual.rows.map(row => {
+      const games = actual.games.filter(game => game.def === row.team);
+      const metrics = Object.fromEntries(positions.map(pos => {
+        const stat = row.metrics[pos];
+        const entries = games.map(game => {
+          const cents = pos === "ALL" ? game.totalCents : game.positionCents[pos];
+          const baseline = offenses.byTeam.get(game.offense)?.metrics[pos];
+          return { week: game.week, offense: game.offense, venue: game.venue,
+            actual: cents === null ? null : cents / 100,
+            expected: baseline?.avg ?? null, expectedCents: baseline?.averageCents ?? null,
+            offenseRank: baseline?.rank ?? null };
+        });
+        const eligible = entries.filter(entry => entry.actual !== null);
+        const baselineGames = eligible.filter(entry => entry.expectedCents !== null).length;
+        const complete = stat.games > 0 && baselineGames === stat.games;
+        const expectedCents = complete ? eligible.reduce((sum, entry) => sum + entry.expectedCents, 0) : null;
+        const expectedTotal = expectedCents === null ? null : expectedCents / 100;
+        const delta = complete ? (Math.round(stat.total * 100) - expectedCents) / 100 : null;
+        return [pos, { actual: stat, expectedTotal, expectedAvg: complete ? expectedTotal / stat.games : null,
+          delta, deltaPct: complete && expectedTotal !== 0 ? delta / Math.abs(expectedTotal) * 100 : null,
+          expectedRank: null, actualRank: null, pool: 0, baselineGames, games: stat.games, entries }];
+      }));
+      return { team: row.team, metrics };
+    });
+    const pools = {};
+    for (const pos of positions) {
+      const comparable = rows.filter(row => row.metrics[pos].expectedTotal !== null && row.metrics[pos].actual.total !== null);
+      pools[pos] = comparable.length;
+      for (const [field, target] of [["expectedTotal", "expectedRank"], ["actual", "actualRank"]]) {
+        const sorted = [...comparable].sort((a, b) => {
+          const value = row => field === "actual" ? row.metrics[pos].actual.total : row.metrics[pos][field];
+          return value(a) - value(b) || a.team.localeCompare(b.team);
+        });
+        let previous = null, rank = 0;
+        sorted.forEach((row, index) => {
+          const value = field === "actual" ? row.metrics[pos].actual.total : row.metrics[pos][field];
+          if (previous === null || Math.abs(value - previous) > 1e-9) rank = index + 1;
+          row.metrics[pos][target] = rank; row.metrics[pos].pool = comparable.length; previous = value;
+        });
+      }
+    }
+    return { actual, rows, byTeam: new Map(rows.map(row => [row.team, row])), pools };
+  }
+
+  // Surface source disagreements for documentation without altering either file.
+  function offenseDifferences(model, offenses) {
+    const sums = new Map();
+    for (const row of model.results) {
+      if (!row.playerTeam) continue;
+      for (const pos of [row.pos, "ALL"]) {
+        const key = `${row.playerTeam}|${pos}`; sums.set(key, (sums.get(key) || 0) + row.cents);
+      }
+    }
+    return offenses.rows.flatMap(row => [...POSITIONS, "ALL"].flatMap(pos => {
+      const weekly = sums.get(`${row.team}|${pos}`), supplied = row.metrics[pos].totalCents;
+      return weekly !== undefined && supplied !== null && Math.abs(weekly - supplied) > 5
+        ? [{ team: row.team, pos, weeklyTotal: weekly / 100, offenseTotal: supplied / 100 }] : [];
+    }));
+  }
+
+  return Object.freeze({ POSITIONS, TEAM_NAMES, TEAMS, REQUIRED_COLUMNS, canonicalTeam, parseOpponent, parseCSV, readSource, recentSpan, summarize, selectResults, compare, inScope, readOffenses, expectedMatchups, offenseDifferences });
 });

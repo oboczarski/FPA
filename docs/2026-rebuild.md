@@ -1,5 +1,7 @@
 # 2026 matchup app rebuild
 
+Historical record of the first rebuild. The current design and data contract supersede its upload/recent-form features; see `2026-refinement.md` and the repository README.
+
 ## Existing app audit
 
 The original app is a static HTML/CSS/JavaScript site in `DH-FPA`. It loads three 2025 files: a wide player-by-defense table, a season summary, and a Weeks 9–16 summary. It converts the wide player table into individual results, but uses the separate summaries for most ranks and averages. The UI offers a division-based defense picker, four positions, matchup cards, a heatmap, best/trending matchup lists, two Chart.js scatter plots, and an expanded player table. Papa Parse, Chart.js, icon fonts, and web fonts require external requests.

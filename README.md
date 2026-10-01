@@ -1,51 +1,48 @@
-# 2026 Matchup Explorer
+# 2026 Matchups
 
-The static site lives in `DH-FPA/index.html`. Its only scoring source is the supplied **2026-Wkly - FPA.csv**, covering Weeks 1–3. Existing historical CSVs remain in the repository but are not loaded by the app.
+The static app lives in `DH-FPA/index.html`. It uses the supplied **FPAv2.csv** for actual player scoring and **TSUMS.csv** for opponent offense baselines. Both files currently cover three games per team in Weeks 1–3. Historical CSVs remain inactive.
 
-Run a local preview from this repository:
+## Current app
+
+- Compact DataHub-style background, gradient accents, glass panels, and Game Logs-style tables.
+- Shared defense, QB/RB/WR/TE/ALL, and defense-venue selection.
+- Actual and expected scoring summary, weekly positional totals, and the selected matchup's player records immediately below the chart.
+- Search, zero-score visibility, sorting, and an expanded player table. Negative scores remain included. Player-list controls do not change scoring aggregates.
+- Expected-versus-actual scatter with points and ranks modes. Selecting a defense logo updates the matchup; logos also support Enter/Space.
+- Opponent offense table with the supplied TSUMS scoring average/rank, actual points against the selected defense, and the difference.
+- Sortable, selectable league heatmap of FPA/game and defense ranks.
+
+There are no upload/download/export controls, saved uploaded datasets, week-range controls, recent-form comparisons, or trend panels. The app always starts from the bundled source pair. Matchup selections are reflected in the URL.
+
+## Calculation contract
+
+`VS` identifies the defense. `TM` identifies the offense. A player's `vs TB` means TB's defense was away; `@ NYG` means NYG's defense was home.
+
+Actual FPA sums all supplied player points for the selected defense and position. Multiple players in one defense-week count as one game. FPA/game divides by games with records for that position. A zero is a recorded value; missing data stays unavailable. ALL requires all four positions in a game.
+
+Expected FPA adds the opposing offense's supplied TSUMS `QBx`, `RBx`, `WRx`, `TEx`, or `ALLx` once per eligible game. ALL uses `ALLx` directly. TSUMS averages are used as supplied, without deriving replacements from player results. Expected and actual comparisons use the same position/game/venue scope. If a required offense average is absent, the full comparison is unavailable.
+
+Both points-mode scatter axes use **totals**. Rank mode ranks expected totals and actual totals separately within the same complete comparison cohort, ascending from lowest to highest with competition ties (1, 1, 3). Heatmap ranks use unrounded FPA/game; with unequal game counts they can differ from scatter total ranks. TSUMS offense ranks are shown separately and retain their supplied direction: 1 is the most offensive points.
+
+These are comparisons with opponents' season-to-date scoring averages. Those averages include their results against the selected defense.
+
+## Source audit
+
+FPAv2 contains 1,250 rows: 1,228 assigned results and 22 with no opponent. All 32 defenses have four-position coverage in each supplied week. The assigned scores include 471 zeros and 12 negatives, totaling **7,621.62** PPR points across 96 defense-game observations and 48 matchups.
+
+The updated row is Case Keenum, Week 3, CHI, `vs PHI`, 24.48 points. No previous player rows changed.
+
+The source files differ for JAX WR and ALL: weekly totals are 110.60 WR / 242.04 ALL, while TSUMS reports 102.4 WR / 233.8 ALL. Both files are preserved unchanged. Actual scoring uses FPAv2; expectations use the supplied TSUMS averages of 34.1 WR / 77.9 ALL. The app explains this in its methodology disclosure.
+
+## Local use and data maintenance
 
 ```sh
 python3 -m http.server 8765 --bind 127.0.0.1 --directory DH-FPA
 ```
 
-Open `http://127.0.0.1:8765`. You can also open `DH-FPA/index.html` directly: the generated local source snapshot supports `file://` without a server or internet connection. Fonts, icons, charts, and CSV parsing need no CDN dependencies.
+Open `http://127.0.0.1:8765`. The generated source pair also supplies the data for direct-file use. Fonts use the same Google Sans Flex and MuseoModerno families as the DataHub reference, with system-font fallbacks; scoring data and charts are local.
 
-## Views and controls
-
-- Shared position, season/recent/individual/custom week-range, and **defense** venue filters.
-- Defense profile with FPA/game, rank, weighted league comparison, weekly positional totals, and game samples.
-- Sortable, selectable 32-defense matchup heatmap.
-- Season/recent scatter at exact data coordinates, with points/rank modes and keyboard-accessible defense selection.
-- Easiest/toughest matchups and increasing/decreasing points allowed in the recent window.
-- Searchable, sortable player results, expanded results, and a player-score plot. Zero and negative results are shown by default. Hiding zeros affects the displayed player records only.
-- CSV exports of the current rankings, filtered player results, and original source.
-- Source audit, excluded records, and calculation explanations under **Data & updates** and **How these numbers work**.
-
-Selections are reflected in the URL so a defense/position/range/venue can be linked. The recent window defaults to two calendar weeks, currently Weeks 2–3. It can be changed to any available span.
-
-## Updating the data
-
-For browser-local exploration, choose **Data & updates → Choose a 2026 weekly CSV**. Upload one complete season-to-date file. Validation runs before it replaces the current results. Uploads persist in that browser when local storage is available; **Restore bundled data** clears the override. Uploads do not modify this repository or a deployed site's data.
-
-Required columns are `WEEK`, `PLAYER NAME`, `POS`, `FPT_PPR`, and `VS`. `SLPR_ID` and `TM` are used when present for player identity, offense labels, and matchup validation. `AGE` and `PRK_PPR` are preserved in the source but do not enter FPA calculations. PPR scores support up to two decimal places, including zero and negatives. Positions are QB, RB, WR, TE. The file has no season column, so the upload flow is explicitly for 2026 exports.
-
-To update the default data for every visitor:
-
-1. Replace `DH-FPA/data/2026-Wkly - FPA.csv` with the updated 2026 season-to-date CSV.
-2. Run `node scripts/sync-data.cjs` to regenerate `DH-FPA/data/2026-weekly.js`.
-3. Run the verification commands below, then publish through the project's chosen hosting workflow.
-
-The synchronization script validates the CSV and stores its SHA-256 checksum in the offline snapshot. The tests reject a snapshot that differs from the source. HTTP previews prefer the CSV itself; direct-file use reads the matching snapshot. If HTTP source loading fails, the app labels the snapshot fallback visibly.
-
-## Calculations
-
-`VS` supplies the opposing defense. `vs TB` means TB's defense was **away**; `@ NYG` means NYG's defense was **home**. `TM` is the player's offense, not the defense.
-
-All assigned player points are summed by defense, position, and week. FPA/game divides those totals by observed games that have records for the position. Multiple players count as one game. A recorded zero is included; an absent week or position is unavailable. Total FPA requires all four positions in a game. Incomplete samples are shown with their eligible counts.
-
-League averages weight observed defense games equally. Ranks use unrounded averages, with 1 meaning fewest points allowed and higher ranks meaning more. Ties use competition ranks (1, 1, 3). Rank changes are withheld when the rated defense counts differ between windows. Recent-versus-season changes compare overlapping samples and describe recorded scoring; no outside schedules, projections, or historical values are used.
-
-Supplied-data controls: 1,249 source rows, 1,227 assigned results, 22 without an opponent, 471 assigned zero scores, 12 negative scores, 48 unique matchups, 96 defense-game observations, and **7,597.14** assigned PPR points.
+To update the repository's defaults, replace `DH-FPA/data/FPAv2.csv` and `DH-FPA/data/TSUMS.csv`, then run `node scripts/sync-data.cjs`. This validates and bundles both CSVs with their SHA-256 checksums in `DH-FPA/data/2026-weekly.js`. Update asset query versions when publishing new data/code.
 
 ## Verification
 
@@ -54,6 +51,6 @@ node --test tests/data-model.test.cjs
 python3 tests/reconcile_source.py
 ```
 
-The independent reconciliation reads the CSV separately using Python's CSV, Decimal, and Fraction libraries. It compares every defense/position total, game count, unrounded average, competition rank, and weighted league average across 18 week/venue combinations. The unit suite also covers missing positions, zero-only games, negative scores, unequal samples, future-week detection, CSV parsing, duplicates, invalid input, and snapshot identity.
+The targeted calculation suite covers source controls, opponent/venue interpretation, missing values, zeros/negatives, expected-game counting, supplied ALLx handling, complete rank cohorts, ties, source differences, and snapshot identity. Independent Python CSV/Decimal/Fraction reconciliation checks 2,880 defense-position cases across 18 scopes. Source control totals in the tests should be updated deliberately when the supplied period changes.
 
-The audit and implementation plan are in `docs/2026-rebuild.md`.
+Browser and visual checks for this refinement are user-owned. No preview is opened as part of delivery. Current implementation notes are in `docs/2026-refinement.md`; `docs/2026-rebuild.md` records the superseded first rebuild.
