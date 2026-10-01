@@ -153,6 +153,11 @@
     $("footerCoverage").textContent = `2026 · ${weekLabel()} · PPR`;
     renderProfile(); renderWeekly(); renderPlayers(); renderScatter(); renderOpponents(); renderHeatmap();
     $("analysis").setAttribute("aria-busy", "false"); saveURL();
+    // Additive chart views consume the current analysis and share its selection.
+    // Their deferred library/bootstrap never blocks the existing dashboard render.
+    window.FPAChartContext = { analysis, offenses, team: state.team, pos: state.pos, venue: state.venue,
+      divisions: DIVISIONS, positionColor: COLORS[state.pos], select: choose, heatColor };
+    window.FPAChartLab?.update(window.FPAChartContext);
   }
   function renderProfile() {
     const c = comparison(), stat = c.actual;
