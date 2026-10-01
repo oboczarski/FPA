@@ -1,1094 +1,524 @@
-/* 2025 FPA Matchup Explorer
-   - Drop the 3 CSVs next to this file (or upload them via the file input if fetch is blocked).
-   - This page expects ranks where 1 = toughest, 32 = easiest (most fantasy points allowed).
-*/
+/* 2026 Matchup Explorer. All calculations come from the supplied player CSV. */
+(() => {
+  "use strict";
+  const Data = window.FPAData;
+  const $ = id => document.getElementById(id);
+  const POS_COLORS = { QB: "#ff86aa", RB: "#5be3b3", WR: "#72b8ff", TE: "#bd9aff" };
+  const POS_NAMES = { QB: "quarterbacks", RB: "running backs", WR: "wide receivers", TE: "tight ends" };
+  const STORE_KEY = "fpa:2026:uploaded-csv:v1";
+  const state = {
+    team: "BAL", pos: "QB", range: "all", recent: 2, venue: "all", from: 1, to: 3,
+    scatterMode: "avg", insight: "easy", playerView: "table", query: "", hideZero: false,
+    heatSort: { metric: "QB", direction: "desc" }, playerSort: { key: "week", direction: "desc" },
+  };
+  let model = null, datasets = null, sourceKind = "Provided CSV", importing = false, toastTimer = null;
+  const tooltips = new Map();
 
-const CONFIG = {
-  paths: {
-    players: "data/WKLY-DEF_vs_POS_by_Player.csv",
-    season: "data/Season_FPA_Summary.csv",
-    recent: "data/WK9-15_FPA_Summary.csv",
-  },
-  maxWeek: 15,
-  recentWeeks: [9, 15],
-  positions: ["QB","RB","WR","TE"],
-  teamCount: 32,
-};
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  }
+  function fmt(value, digits = 2) { return value !== null && Number.isFinite(value) ? value.toFixed(digits) : "—"; }
+  function count(value) { return Number(value).toLocaleString("en-US"); }
+  function signed(value, digits = 1) { return value === null ? "—" : `${value > 0 ? "+" : ""}${fmt(Math.abs(value) < .000001 ? 0 : value, digits)}`; }
+  function plural(value, word) { return `${count(value)} ${word}${value === 1 ? "" : "s"}`; }
+  function weekLabel(from, to) { return from === to ? `Week ${from}` : `Weeks ${from}–${to}`; }
+  function venueLabel() { return state.venue === "home" ? "Defense at home" : state.venue === "away" ? "Defense on the road" : "All venues"; }
+  function logo(team, className = "") { return team ? `<img class="${esc(className)}" src="assets/NFL-Tags_webp/${team.toLowerCase()}.webp" alt="" width="24" height="24">` : ""; }
+  function scope() {
+    let span = { from: model.minWeek, to: model.maxWeek };
+    if (state.range === "recent") span = Data.recentSpan(model, state.recent);
+    else if (state.range.startsWith("week:")) span = { from: Number(state.range.slice(5)), to: Number(state.range.slice(5)) };
+    else if (state.range === "custom") span = { from: state.from, to: state.to };
+    return { ...span, venue: state.venue };
+  }
+  function rangeLabel() { const span = scope(); return weekLabel(span.from, span.to); }
+  function metric(team = state.team, pos = state.pos, dataset = datasets.current) { return dataset.byTeam.get(team)?.metrics[pos]; }
+  function direction(value) { return value === null || value === 0 ? "" : value > 0 ? "positive" : "negative"; }
+  function heatColor(stat) {
+    if (!stat || stat.rank === null) return "#718395";
+    const stops = [[237,145,177], [180,158,232], [128,181,219], [98,216,197]];
+    const t = stat.pool > 1 ? (stat.rank - 1) / (stat.pool - 1) : .5;
+    const f = Math.min(3, Math.max(0, t * 3)), index = Math.min(2, Math.floor(f));
+    const color = stops[index].map((value, i) => Math.round(value + (stops[index + 1][i] - value) * (f - index)));
+    return `rgb(${color.join(",")})`;
+  }
+  function rankDescription(stat) {
+    if (!stat || stat.rank === null) return "No matching data";
+    if (stat.pool <= 1) return "One rated defense";
+    const t = (stat.rank - 1) / (stat.pool - 1);
+    return t <= .24 ? "Tougher matchup" : t >= .76 ? "Easier matchup" : "Middle of the league";
+  }
+  function empty(title, text, action = "") { return `<div class="emptyState"><strong>${esc(title)}</strong>${esc(text)}${action}</div>`; }
+  function notice(text) {
+    $("toast").textContent = text;
+    $("toast").hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { $("toast").hidden = true; }, 3500);
+  }
+  function warning(text = "") { $("loadError").textContent = text; $("loadError").hidden = !text; }
 
-const els = {
-  btnSeason: document.getElementById("btnSeason"),
-  btnRecent: document.getElementById("btnRecent"),
-  loadStatus: document.getElementById("loadStatus"),
-  teamSelect: document.getElementById("teamSelect"),
-  sortSelect: document.getElementById("sortSelect"),
-  dirSelect: document.getElementById("dirSelect"),
-  heatTable: document.getElementById("heatTable"),
-  quickCards: document.getElementById("quickCards"),
-  uploader: document.getElementById("uploader"),
-  fileInput: document.getElementById("fileInput"),
-
-  scatterTitle: document.getElementById("scatterTitle"),
-  topSeason: document.getElementById("topSeason"),
-  topRecent: document.getElementById("topRecent"),
-  trendUp: document.getElementById("trendUp"),
-  trendDown: document.getElementById("trendDown"),
-
-  profilePill: document.getElementById("profilePill"),
-  weeklySub: document.getElementById("weeklySub"),
-
-  modal: document.getElementById("modal"),
-  modalTitle: document.getElementById("modalTitle"),
-  modalCards: document.getElementById("modalCards"),
-  weekRange: document.getElementById("weekRange"),
-  playerSearch: document.getElementById("playerSearch"),
-  playerTable: document.getElementById("playerTable"),
-};
-
-let STATE = {
-  activeDataset: "season", // "season" | "recent" (controls heatmap + quick cards primary)
-  pos: "QB",
-  selectedTeam: null, // defense team for profile
-  scatterMode: "avg", // "avg" | "rank"
-  sortKey: "Total_Rk",
-  sortDir: "desc",
-  playerSort: { key: "pts", dir: "desc" },
-};
-
-let DATA = {
-  season: null,   // array of rows
-  recent: null,   // array of rows
-  playersWide: null,
-  playersLong: null, // derived
-  playersWeeklyTotals: null, // Map key: team|pos => [{week,total}]
-  byTeamSeason: null, // Map team => row
-  byTeamRecent: null,
-};
-
-let charts = {
-  scatter: null,
-  radar: null,
-  weekly: null,
-  modalWeekly: null,
-};
-
-function $(sel, root=document){ return root.querySelector(sel); }
-function $$ (sel, root=document){ return [...root.querySelectorAll(sel)]; }
-function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
-
-function fmt(x, d=2){
-  if (x === null || x === undefined || x === "" || Number.isNaN(x)) return "—";
-  const n = Number(x);
-  if (!Number.isFinite(n)) return "—";
-  return n.toFixed(d);
-}
-
-function toNum(x){
-  if (x === null || x === undefined) return NaN;
-  const s = String(x).trim().replace(/,/g,"");
-  if (s === "—" || s === "–" || s === "-") return NaN;
-  const n = Number(s);
-  return Number.isFinite(n) ? n : NaN;
-}
-
-function cleanStr(x){
-  if (x === null || x === undefined) return "";
-  const s = String(x).trim();
-  if (s === "—" || s === "–") return "";
-  return s;
-}
-
-// rank 1 (tough) -> 0, rank 32 (easy) -> 1
-function rankScore(rank){
-  const r = toNum(rank);
-  if (!Number.isFinite(r)) return 0.5;
-  return clamp((r - 1) / (CONFIG.teamCount - 1), 0, 1);
-}
-
-function lerp(a, b, t){ return a + (b - a) * t; }
-function lerpRGB(c1, c2, t){
-  const r = Math.round(lerp(c1[0], c2[0], t));
-  const g = Math.round(lerp(c1[1], c2[1], t));
-  const b = Math.round(lerp(c1[2], c2[2], t));
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-// tough -> easy gradient (red -> mint)
-function heatColor(score){
-  const cTough = [255, 88, 92];
-  const cEasy  = [72, 245, 177];
-  return lerpRGB(cTough, cEasy, clamp(score,0,1));
-}
-
-
-function rgbaOf(color, alpha){
-  // color: rgb(r,g,b) or rgba(r,g,b,a)
-  const s = String(color).trim();
-  const m = s.match(/rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?\)/i);
-  if (!m) return `rgba(255,255,255,${alpha})`;
-  return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
-}
-
-function setStatus(kind, text){
-  const dot = els.loadStatus.querySelector(".dot");
-  dot.classList.remove("is-warn");
-  dot.style.background = kind === "ok" ? "rgba(72,245,177,0.85)" : (kind === "err" ? "rgba(255,88,92,0.95)" : "rgba(255,209,102,0.95)");
-  dot.style.boxShadow = kind === "ok" ? "0 0 0 3px rgba(72,245,177,0.12)" : (kind === "err" ? "0 0 0 3px rgba(255,88,92,0.12)" : "0 0 0 3px rgba(255,209,102,0.12)");
-  els.loadStatus.querySelector("span:last-child").textContent = text;
-}
-
-// =====================
-// CSV loading
-// =====================
-function parseCSVText(text){
-  return new Promise((resolve, reject) => {
-    try{
-      Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        dynamicTyping: false,
-        complete: (res) => resolve(res.data),
-        error: (err) => reject(err),
-      });
-    }catch(e){ reject(e); }
-  });
-}
-
-function loadCSVViaFetch(path){
-  return new Promise((resolve, reject) => {
-    Papa.parse(path, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      dynamicTyping: false,
-      complete: (res) => resolve(res.data),
-      error: (err) => reject(err),
+  function readURL() {
+    const params = new URLSearchParams(location.search);
+    if (params.has("team")) state.team = params.get("team");
+    if (params.has("pos")) state.pos = params.get("pos");
+    if (params.has("range")) state.range = params.get("range");
+    if (params.has("recent")) state.recent = Number(params.get("recent"));
+    if (params.has("venue")) state.venue = params.get("venue");
+    if (params.has("from")) state.from = Number(params.get("from"));
+    if (params.has("to")) state.to = Number(params.get("to"));
+  }
+  function saveURL() {
+    const url = new URL(location.href);
+    for (const key of ["team", "pos", "range", "recent", "venue"]) url.searchParams.set(key, String(state[key]));
+    if (state.range === "custom") { url.searchParams.set("from", String(state.from)); url.searchParams.set("to", String(state.to)); }
+    else { url.searchParams.delete("from"); url.searchParams.delete("to"); }
+    try { history.replaceState(null, "", url); } catch { /* Some direct-file browsers disallow history changes. */ }
+  }
+  function normalizeState() {
+    if (!model.defenses.includes(state.team)) state.team = model.defenses.includes("BAL") ? "BAL" : model.defenses[0];
+    if (!Data.POSITIONS.includes(state.pos)) state.pos = "QB";
+    if (!["all", "home", "away"].includes(state.venue)) state.venue = "all";
+    const span = model.maxWeek - model.minWeek + 1;
+    state.recent = Math.max(1, Math.min(span, Math.trunc(state.recent) || 2));
+    if (!["all", "recent", "custom", ...model.weeks.map(week => `week:${week}`)].includes(state.range)) state.range = "all";
+    if (!model.weeks.includes(state.from)) state.from = model.minWeek;
+    if (!model.weeks.includes(state.to)) state.to = model.maxWeek;
+    if (state.from > state.to) state.to = state.from;
+  }
+  function options() {
+    const recent = Data.recentSpan(model, state.recent);
+    const ranges = [
+      ["all", `Season so far (${model.weeks.length}w)`],
+      ["recent", `Recent (${weekLabel(recent.from, recent.to)})`],
+      ...model.weeks.map(week => [`week:${week}`, `Week ${week}`]), ["custom", "Custom range"],
+    ];
+    const rangeMarkup = ranges.map(([value, label]) => `<option value="${value}">${esc(label)}</option>`).join("");
+    for (const id of ["rangeSelect", "expandedRange"]) { $(id).innerHTML = rangeMarkup; $(id).value = state.range; }
+    $("recentSelect").innerHTML = Array.from({ length: model.maxWeek - model.minWeek + 1 }, (_, i) => `<option value="${i + 1}">Last ${i + 1} week${i ? "s" : ""}</option>`).join("");
+    $("recentSelect").value = String(state.recent);
+    for (const id of ["fromSelect", "toSelect"]) $(id).innerHTML = model.weeks.map(week => `<option value="${week}">Week ${week}</option>`).join("");
+    $("fromSelect").value = String(state.from);
+    $("toSelect").value = String(state.to);
+    $("customRange").hidden = state.range !== "custom";
+    const defenses = model.defenses.map(team => `<option value="${team}">${team} · ${esc(Data.TEAM_NAMES[team])}</option>`).join("");
+    for (const id of ["defenseSelect", "expandedDefense"]) { $(id).innerHTML = defenses; $(id).value = state.team; }
+    $("venueSelect").value = state.venue;
+    document.querySelectorAll("[data-position]").forEach(button => {
+      button.dataset.pos = button.dataset.position;
+      button.setAttribute("aria-pressed", String(button.dataset.position === state.pos));
     });
-  });
-}
-
-async function tryAutoLoad(){
-  setStatus("warn", "Loading CSVs…");
-  try{
-    const [playersWide, season, recent] = await Promise.all([
-      loadCSVViaFetch(CONFIG.paths.players),
-      loadCSVViaFetch(CONFIG.paths.season),
-      loadCSVViaFetch(CONFIG.paths.recent),
-    ]);
-    DATA.playersWide = playersWide;
-    DATA.season = season;
-    DATA.recent = recent;
-    setStatus("ok", "Data loaded");
-    els.uploader.style.display = "none";
-    return true;
-  }catch(e){
-    console.warn("Auto-load failed", e);
-    setStatus("warn", "Auto-load blocked — upload CSVs below");
-    els.uploader.style.display = "block";
-    return false;
+    document.documentElement.style.setProperty("--position", POS_COLORS[state.pos]);
   }
-}
-
-async function handleFileUpload(files){
-  const byName = new Map();
-  for (const f of files){
-    byName.set(f.name, f);
+  function refresh({ rebuildOptions = false } = {}) {
+    if (!model) return;
+    normalizeState();
+    if (rebuildOptions) options();
+    else {
+      for (const id of ["rangeSelect", "expandedRange"]) $(id).value = state.range;
+      for (const id of ["defenseSelect", "expandedDefense"]) $(id).value = state.team;
+      $("venueSelect").value = state.venue;
+      $("customRange").hidden = state.range !== "custom";
+      document.querySelectorAll("[data-position]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.position === state.pos)));
+      document.documentElement.style.setProperty("--position", POS_COLORS[state.pos]);
+    }
+    datasets = {
+      season: Data.summarize(model, { from: model.minWeek, to: model.maxWeek, venue: state.venue }),
+      recent: Data.summarize(model, { ...Data.recentSpan(model, state.recent), venue: state.venue }),
+      current: Data.summarize(model, scope()),
+    };
+    tooltips.clear(); hideTooltip();
+    renderCoverage(); renderProfile(); renderHeatmap(); renderComparison(); renderInsights(); renderPlayers(); renderSource();
+    $("dashboard").setAttribute("aria-busy", "false");
+    saveURL();
   }
-  const needed = [CONFIG.paths.players, CONFIG.paths.season, CONFIG.paths.recent];
-  const missing = needed.filter(n => !byName.has(n));
-  if (missing.length){
-    setStatus("err", `Missing: ${missing.join(", ")}`);
-    return;
+  function renderCoverage() {
+    $("throughWeek").textContent = `Through Week ${model.maxWeek}`;
+    $("coverage").innerHTML = [[model.defenses.length, "Defenses"], [model.weeks.length, "Weeks loaded"], [model.audit.usedRows, "Player records"]].map(([value, label]) => `<div class="coverageItem"><div class="coverageValue">${count(value)}</div><div class="coverageLabel">${label}</div></div>`).join("");
+    $("scopeText").innerHTML = `<strong>2026</strong> / ${esc(rangeLabel())} / ${esc(venueLabel())} / <span class="positionBadge" data-pos="${state.pos}">${state.pos}</span>`;
+    $("sampleNote").textContent = model.weeks.length <= 4 ? `${plural(model.weeks.length, "week")} of results · small early-season sample` : `${plural(model.weeks.length, "week")} of supplied results`;
+    $("sourceStatusText").textContent = `${sourceKind} · ${plural(model.audit.usedRows, "matched record")}`;
   }
-
-  try{
-    setStatus("warn", "Reading uploaded CSVs…");
-
-    const readText = (file) => new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(fr.result);
-      fr.onerror = () => reject(fr.error);
-      fr.readAsText(file);
+  function renderProfile() {
+    const row = datasets.current.byTeam.get(state.team), stat = metric(), league = datasets.current.league[state.pos];
+    $("defenseLogo").innerHTML = logo(state.team);
+    $("defenseTitle").textContent = Data.TEAM_NAMES[state.team];
+    $("defenseSubtitle").innerHTML = `vs. <span class="positionBadge" data-pos="${state.pos}">${state.pos}</span> <span> ${esc(rangeLabel())} · ${esc(venueLabel())}</span>`;
+    const deviation = stat.avg !== null && league.avg !== null && league.avg !== 0 ? (stat.avg - league.avg) / Math.abs(league.avg) * 100 : null;
+    const sample = stat.games !== row.games ? `${stat.games} of ${row.games} games with ${state.pos} data` : plural(stat.games, "observed game");
+    $("metrics").innerHTML = `
+      <div class="metric"><div class="metricLabel">FPA / game</div><div class="metricValue">${fmt(stat.avg, 1)}</div><div class="metricSub">${esc(sample)}</div></div>
+      <div class="metric"><div class="metricLabel">Matchup rank</div><div class="metricValue" style="color:${heatColor(stat)}">${stat.rank ?? "—"}<small>${stat.rank === null ? "" : `/ ${stat.pool}`}</small></div><div class="metricSub">${rankDescription(stat)}</div></div>
+      <div class="metric"><div class="metricLabel">Versus league</div><div class="metricValue ${deviation > 0 ? "is-easy" : deviation < 0 ? "is-tough" : ""}">${signed(deviation, 1)}${deviation === null ? "" : '<span class="percent">%</span>'}</div><div class="metricSub">League: <strong>${fmt(league.avg, 1)}</strong> FPA / game</div></div>`;
+    $("weeklyScope").textContent = rangeLabel();
+    $("weeklyLegend").textContent = `${state.team} ${state.pos} total`;
+    renderWeeklyChart();
+    $("positionSummary").innerHTML = Data.POSITIONS.map(pos => {
+      const p = metric(state.team, pos);
+      return `<button type="button" data-position="${pos}" aria-pressed="${pos === state.pos}" aria-label="Explore ${state.team} against ${pos}"><span class="positionBadge" data-pos="${pos}">${pos}</span><strong>${fmt(p.avg, 1)}</strong><span class="positionRank">${p.rank === null ? "No data" : `Rank ${p.rank} · ${plural(p.games, "game")}`}</span></button>`;
+    }).join("");
+    $("profileFootnote").textContent = stat.avg === null ? "No supplied results match this defense, position, range and venue." : `${fmt(stat.total)} recorded PPR points ÷ ${plural(stat.games, "observed game")} = ${fmt(stat.avg)} FPA per game. ${stat.games < row.games ? "Some observed games have no supplied records for this position." : "All assigned player scores are included."}`;
+  }
+  function chartWidth(id, maximum = 900) { return Math.max(280, Math.min(maximum, Math.round($(id).clientWidth || 560))); }
+  function scaleBounds(values, { zero = true, steps = 4 } = {}) {
+    const finite = values.filter(value => value !== null && Number.isFinite(value));
+    let low = finite.length ? Math.min(...finite) : 0, high = finite.length ? Math.max(...finite) : 1;
+    if (zero) { low = Math.min(0, low); high = Math.max(0, high); }
+    if (high - low < 1) high = low + 1;
+    const rough = (high - low) / steps, magnitude = 10 ** Math.floor(Math.log10(rough));
+    const step = ([1, 2, 5, 10].find(value => value * magnitude >= rough) || 10) * magnitude;
+    low = Math.floor(low / step) * step; high = Math.ceil(high / step) * step;
+    if (low === high) high += step;
+    const ticks = [];
+    for (let value = low; value <= high + step / 100; value += step) ticks.push(Math.abs(value) < .00001 ? 0 : value);
+    return { low, high, ticks, step };
+  }
+  function axisLabel(value, bounds) { return fmt(value, bounds.step ? Math.max(0, -Math.floor(Math.log10(bounds.step))) : 0); }
+  function svgFrame(id, width, height, title, content) {
+    return `<svg viewBox="0 0 ${width} ${height}" role="group" aria-labelledby="${id}-title"><title id="${id}-title">${esc(title)}</title>${content}</svg>`;
+  }
+  function renderWeeklyChart() {
+    const span = scope(), weeks = model.weeks.filter(week => week >= span.from && week <= span.to);
+    const entries = weeks.map(week => {
+      const summary = Data.summarize(model, { from: week, to: week, venue: state.venue });
+      const game = model.gamesByKey.get(`${state.team}|${week}`);
+      return { week, total: summary.byTeam.get(state.team).metrics[state.pos].avg, league: summary.league[state.pos].avg, game: game && Data.inScope(game, span) ? game : null };
     });
-
-    const [playersText, seasonText, recentText] = await Promise.all([
-      readText(byName.get(CONFIG.paths.players)),
-      readText(byName.get(CONFIG.paths.season)),
-      readText(byName.get(CONFIG.paths.recent)),
-    ]);
-
-    const [playersWide, season, recent] = await Promise.all([
-      parseCSVText(playersText),
-      parseCSVText(seasonText),
-      parseCSVText(recentText),
-    ]);
-
-    DATA.playersWide = playersWide;
-    DATA.season = season;
-    DATA.recent = recent;
-
-    setStatus("ok", "Data loaded");
-    els.uploader.style.display = "none";
-    bootstrap();
-  }catch(e){
-    console.error(e);
-    setStatus("err", "Upload parse failed");
-  }
-}
-
-// =====================
-// Data transforms
-// =====================
-function buildMaps(){
-  const toMap = (rows) => {
-    const m = new Map();
-    for (const r of rows){
-      const tm = cleanStr(r.Team ?? r.TEAM ?? r.team).toUpperCase();
-      if (!tm) continue;
-      m.set(tm, r);
-    }
-    return m;
-  };
-  DATA.byTeamSeason = toMap(DATA.season);
-  DATA.byTeamRecent = toMap(DATA.recent);
-}
-
-function buildPlayersLong(){
-  const out = [];
-  for (const row of DATA.playersWide){
-    const def = cleanStr(row.TEAM).toUpperCase();
-    const pos = cleanStr(row.POS).toUpperCase();
-    if (!def || !pos) continue;
-
-    for (let w=1; w<=CONFIG.maxWeek; w++){
-      const nm = cleanStr(row[`${w}_NM`]);
-      const plTm = cleanStr(row[`${w}_TM`]).toUpperCase();
-      const pts = toNum(row[`${w}_P`]);
-      if (!nm || !Number.isFinite(pts)) continue;
-      out.push({ def, pos, week: w, player: nm, playerTeam: plTm, pts });
-    }
-  }
-  DATA.playersLong = out;
-
-  const totals = new Map(); // key def|pos -> week->sum
-  for (const r of out){
-    const key = `${r.def}|${r.pos}`;
-    if (!totals.has(key)) totals.set(key, new Map());
-    const wm = totals.get(key);
-    wm.set(r.week, (wm.get(r.week) ?? 0) + r.pts);
-  }
-
-  const totalsArr = new Map(); // key -> [{week,total}]
-  for (const [key, wm] of totals.entries()){
-    const arr = [];
-    for (let w=1; w<=CONFIG.maxWeek; w++){
-      if (wm.has(w)) arr.push({ week:w, total: wm.get(w) });
-    }
-    totalsArr.set(key, arr);
-  }
-  DATA.playersWeeklyTotals = totalsArr;
-}
-
-function getRow(team, datasetName){
-  const m = datasetName === "season" ? DATA.byTeamSeason : DATA.byTeamRecent;
-  return m.get(team);
-}
-
-function getMetric(team, datasetName, metric){
-  const row = getRow(team, datasetName);
-  if (!row) return NaN;
-  return toNum(row[metric]);
-}
-
-function calcTrend(team, pos){
-  // positive = easier recently
-  const rSeason = getMetric(team, "season", `${pos}_Rk`);
-  const rRecent = getMetric(team, "recent", `${pos}_Rk`);
-  const aSeason = getMetric(team, "season", `${pos}_Avg`);
-  const aRecent = getMetric(team, "recent", `${pos}_Avg`);
-  return {
-    dRank: (Number.isFinite(rRecent) && Number.isFinite(rSeason)) ? (rRecent - rSeason) : NaN,
-    dAvg:  (Number.isFinite(aRecent) && Number.isFinite(aSeason)) ? (aRecent - aSeason) : NaN,
-    seasonRank: rSeason,
-    recentRank: rRecent,
-    seasonAvg: aSeason,
-    recentAvg: aRecent,
-  };
-}
-
-// =====================
-// UI builders
-// =====================
-function buildTeamSelect(){
-  els.teamSelect.innerHTML = "";
-  const teams = [...DATA.byTeamSeason.keys()].sort();
-  for (const t of teams){
-    const opt = document.createElement("option");
-    opt.value = t;
-    opt.textContent = t;
-    els.teamSelect.appendChild(opt);
-  }
-  STATE.selectedTeam = teams[0] ?? null;
-  els.teamSelect.value = STATE.selectedTeam ?? "";
-}
-
-function buildMiniLists(){
-  const pos = STATE.pos;
-
-  // Easiest lists
-  const teams = [...DATA.byTeamSeason.keys()];
-  const topN = 6;
-
-  const topBy = (datasetName) => {
-    const rows = teams.map(t => ({
-      t,
-      avg: getMetric(t, datasetName, `${pos}_Avg`),
-      rk: getMetric(t, datasetName, `${pos}_Rk`),
-    }))
-    .filter(x => Number.isFinite(x.avg) && Number.isFinite(x.rk))
-    .sort((a,b) => b.rk - a.rk)
-    .slice(0, topN);
-    return rows;
-  };
-
-  const trend = teams.map(t => ({
-    t,
-    ...calcTrend(t, pos),
-  })).filter(x => Number.isFinite(x.dRank));
-
-  const trendUp = [...trend].sort((a,b) => b.dRank - a.dRank).slice(0, topN);
-  const trendDown = [...trend].sort((a,b) => a.dRank - b.dRank).slice(0, topN);
-
-  const renderList = (root, rows, mode) => {
-    root.innerHTML = "";
-    for (const r of rows){
-      const el = document.createElement("div");
-      el.className = "rankRow";
-      el.innerHTML = (() => {
-        const isTrend = mode === "trend";
-        const dot = isTrend
-          ? (r.dRank > 0 ? "rgb(72, 245, 177)" : (r.dRank < 0 ? "rgb(255, 88, 92)" : "rgb(255, 209, 102)"))
-          : heatColor(rankScore(r.rk));
-
-        const meta = isTrend
-          ? `ΔRk ${fmt(r.dRank,0)} • ΔAvg ${fmt(r.dAvg,2)}`
-          : `Rk ${fmt(r.rk,0)} • Avg ${fmt(r.avg,2)}`;
-
-        const badge = isTrend
-          ? (() => {
-              const arrow = r.dRank > 0 ? "▲" : (r.dRank < 0 ? "▼" : "•");
-              return `<span class="trendBadge" style="border-color:${rgbaOf(dot,0.25)}; background:${rgbaOf(dot,0.12)}; color:${dot};">${arrow} ${Math.abs(fmt(r.dRank,0))}</span>`;
-            })()
-          : "Open";
-
-        return `
-          <div class="lhs">
-            <span class="rankDot" style="background:${dot}; box-shadow:0 0 0 3px ${rgbaOf(dot, 0.14)};"></span>
-            <div class="tm">${r.t}</div>
-            <div class="meta">${meta}</div>
-          </div>
-          <div class="rhs">${badge}</div>
-        `;
-      })();
-el.addEventListener("click", () => {
-        selectTeam(r.t, pos);
-        openDrilldown(r.t, pos);
-      });
-      root.appendChild(el);
-    }
-  };
-
-  renderList(els.topSeason, topBy("season"), "top");
-  renderList(els.topRecent, topBy("recent"), "top");
-  renderList(els.trendUp, trendUp, "trend");
-  renderList(els.trendDown, trendDown, "trend");
-}
-
-function buildQuickCards(){
-  const team = STATE.selectedTeam;
-  const pos = STATE.pos;
-
-  const s = calcTrend(team, pos);
-
-  const easyLabel = (rk) => {
-    const sc = rankScore(rk);
-    if (sc >= 0.78) return "SMASH SPOT";
-    if (sc >= 0.60) return "GOOD";
-    if (sc >= 0.40) return "NEUTRAL";
-    if (sc >= 0.22) return "TOUGH";
-    return "AVOID";
-  };
-
-  const chipFor = (rk) => {
-    const sc = rankScore(rk);
-    const c = heatColor(sc);
-    return `<span class="chip" title="Higher rank = easier matchup">
-      <span class="swatch" style="background:${c}; box-shadow:0 0 0 3px rgba(255,255,255,0.08)"></span>
-      ${easyLabel(rk)}
-    </span>`;
-  };
-
-  const card = (title, avg, rk, gm, extra) => {
-    const accent = heatColor(rankScore(rk));
-    const bg = `radial-gradient(260px 90px at 18% 10%, ${rgbaOf(accent,0.22)}, transparent 60%), rgba(255,255,255,0.045)`;
-    return `
-    <div class="card" style="background:${bg}; border-color:${rgbaOf(accent,0.22)}">
-      <div class="card__top">
-        <div class="card__title">${title}</div>
-        ${chipFor(rk)}
-      </div>
-      <div class="card__big">${fmt(avg,2)} <span class="muted" style="font-size:12px;font-weight:700;">FPA</span></div>
-      <div class="card__sub">Rank: <strong>${fmt(rk,0)}</strong> / 32 • Games: <strong>${fmt(gm,0)}</strong> ${extra ?? ""}</div>
-    </div>
-  `;
-  };
-
-  const gmS = getMetric(team,"season","GM_P");
-  const gmR = getMetric(team,"recent","GM_P");
-
-  const trendAccent = Number.isFinite(s.dRank)
-    ? (s.dRank > 0 ? "rgb(72, 245, 177)" : (s.dRank < 0 ? "rgb(255, 88, 92)" : "rgb(255, 209, 102)"))
-    : "rgb(0, 191, 255)";
-
-  const deltaText = (Number.isFinite(s.dRank) && Number.isFinite(s.dAvg))
-    ? `• Trend: <strong>${s.dRank > 0 ? "+" : ""}${fmt(s.dRank,0)}</strong> ranks, <strong>${s.dAvg > 0 ? "+" : ""}${fmt(s.dAvg,2)}</strong> avg`
-    : "";
-
-  els.quickCards.innerHTML = [
-    card("Season", s.seasonAvg, s.seasonRank, gmS, ""),
-    card("Weeks 9–15", s.recentAvg, s.recentRank, gmR, ""),
-    `<div class="card" style="background:radial-gradient(260px 90px at 18% 10%, ${rgbaOf(trendAccent,0.20)}, transparent 60%), rgba(255,255,255,0.045); border-color:${rgbaOf(trendAccent,0.22)}">
-      <div class="card__top">
-        <div class="card__title">Season ↔ Recent Trend</div>
-        <span class="chip">
-          <span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>
-          ${deltaText ? "TREND" : "—"}
-        </span>
-      </div>
-      <div class="card__big">${deltaText ? `${s.dRank > 0 ? "+" : ""}${fmt(s.dRank,0)} <span class="muted" style="font-size:12px;font-weight:700;">rank</span>` : "—"}</div>
-      <div class="card__sub">${deltaText ? `Recent is ${s.dRank > 0 ? "<strong>easier</strong>" : (s.dRank < 0 ? "<strong>tougher</strong>" : "<strong>flat</strong>")} vs season ${deltaText}` : "Trend not available"}</div>
-    </div>`
-  ].join("");
-
-}
-
-function buildHeatTable(){
-  const datasetName = STATE.activeDataset;
-  const rows = datasetName === "season" ? DATA.season : DATA.recent;
-
-  // sort
-  const key = STATE.sortKey;
-  const dir = STATE.sortDir;
-
-  const sorted = [...rows].sort((a,b) => {
-    const av = toNum(a[key]);
-    const bv = toNum(b[key]);
-    if (!Number.isFinite(av) && !Number.isFinite(bv)) return 0;
-    if (!Number.isFinite(av)) return 1;
-    if (!Number.isFinite(bv)) return -1;
-
-    if (key.endsWith("_Rk") || key === "Total_Rk") {
-      return dir === "desc" ? (bv - av) : (av - bv);
-    }
-    // averages: higher avg = easier, so default "desc" aligns with easiest -> toughest
-    return dir === "desc" ? (bv - av) : (av - bv);
-  });
-
-  els.heatTable.innerHTML = `
-    <thead>
-      <tr>
-        <th style="min-width:74px;">DEF</th>
-        <th>QB</th>
-        <th>RB</th>
-        <th>WR</th>
-        <th>TE</th>
-        <th>Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${sorted.map(r => {
-        const t = cleanStr(r.Team).toUpperCase();
-        const makeCell = (pos) => {
-          const avg = toNum(r[`${pos}_Avg`]);
-          const rk  = toNum(r[`${pos}_Rk`]);
-          const sc = rankScore(rk);
-          const c = heatColor(sc);
-          const bg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(c,0.30)}, transparent 70%)`;
-          return `
-            <td>
-              <div class="cell" data-team="${t}" data-pos="${pos}" style="background:${bg}; border-color: ${rgbaOf(c,0.22)};">
-                <div class="val">${fmt(avg,2)}</div>
-                <div class="rk">Rk ${fmt(rk,0)}</div>
-              </div>
-            </td>
-          `;
-        };
-        const totAvg = toNum(r["Total Avg"]);
-        const totRk  = toNum(r["Total_Rk"]);
-        const totSc = rankScore(totRk);
-        const totC  = heatColor(totSc);
-        const totBg = `linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18)), radial-gradient(120px 60px at 20% 20%, ${rgbaOf(totC,0.30)}, transparent 70%)`;
-
-        return `
-          <tr>
-            <td class="tmCell">${t}</td>
-            ${makeCell("QB")}
-            ${makeCell("RB")}
-            ${makeCell("WR")}
-            ${makeCell("TE")}
-            <td>
-              <div class="cell" data-team="${t}" data-pos="TOTAL" style="background:${totBg}; border-color: ${rgbaOf(totC,0.22)};">
-                <div class="val">${fmt(totAvg,2)}</div>
-                <div class="rk">Rk ${fmt(totRk,0)}</div>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join("")}
-    </tbody>
-  `;
-
-  // bind clicks
-  $$(".cell", els.heatTable).forEach(cell => {
-    cell.addEventListener("click", () => {
-      const team = cell.dataset.team;
-      const pos = cell.dataset.pos === "TOTAL" ? STATE.pos : cell.dataset.pos;
-      selectTeam(team, pos);
-      openDrilldown(team, pos);
+    $("weeklyBreakdown").innerHTML = entries.map(entry => {
+      const opponent = entry.game?.offense;
+      const matchup = opponent ? `${entry.game.venue === "home" ? "vs" : "@"} ${opponent}` : "Opponent unavailable";
+      return `<div class="weekDetail"><strong>Week ${entry.week}</strong><span>${entry.game ? esc(matchup) : "No matching result"}</span><span class="weekPoints">${fmt(entry.total)}${entry.total === null ? "" : " pts"}</span></div>`;
+    }).join("");
+    if (!entries.some(entry => entry.total !== null)) { $("weeklyChart").innerHTML = empty("No matching weekly totals", "Choose another week range or defense venue."); return; }
+    const W = chartWidth("weeklyChart"), H = 210, left = 34, right = W - 9, top = 24, bottom = H - 27;
+    const bounds = scaleBounds(entries.flatMap(entry => [entry.total, entry.league]));
+    const y = value => bottom - (value - bounds.low) / (bounds.high - bounds.low) * (bottom - top);
+    const slot = (right - left) / entries.length, x = index => left + slot * (index + .5), bar = Math.min(58, slot * .42);
+    let markup = bounds.ticks.map(value => `<line class="${value === 0 ? "zeroLine" : "gridLine"}" x1="${left}" x2="${right}" y1="${y(value)}" y2="${y(value)}"/><text x="${left - 7}" y="${y(value) + 3}" text-anchor="end">${axisLabel(value, bounds)}</text>`).join("");
+    entries.forEach((entry, index) => {
+      if (entry.total !== null) {
+        const key = `weekly:${entry.week}`;
+        tooltips.set(key, `<strong>${state.team} vs. ${state.pos} · Week ${entry.week}</strong><br>${fmt(entry.total)} total PPR points allowed<br>League: ${fmt(entry.league)} FPA / game<br><span class="tooltipMuted">${entry.game?.venue === "home" ? "Defense at home" : "Defense away"}${entry.game?.offense ? ` against ${entry.game.offense}` : ""}</span>`);
+        const labelY = entry.total >= 0 ? y(entry.total) - 8 : Math.min(bottom - 6, y(entry.total) + 15);
+        markup += `<g class="chartPoint" role="img" tabindex="0" data-tooltip="${key}" aria-label="Week ${entry.week}: ${fmt(entry.total)} ${state.pos} points allowed"><rect x="${x(index) - bar / 2}" y="${Math.min(y(0), y(entry.total))}" width="${bar}" height="${Math.max(2, Math.abs(y(entry.total) - y(0)))}" rx="4" fill="${POS_COLORS[state.pos]}" fill-opacity=".7"/><text class="chartValue" x="${x(index)}" y="${labelY}" text-anchor="middle">${fmt(entry.total, 1)}</text></g>`;
+      }
+      if (entries.length <= 10 || index % 2 === 0 || index === entries.length - 1) markup += `<text x="${x(index)}" y="${bottom + 19}" text-anchor="middle">W${entry.week}</text>`;
     });
-  });
-}
-
-// =====================
-// Charts
-// =====================
-function chartCommon(){
-  Chart.defaults.color = "rgba(255,255,255,0.78)";
-  Chart.defaults.borderColor = "rgba(255,255,255,0.10)";
-  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-  Chart.defaults.plugins.legend.labels.boxWidth = 10;
-}
-
-function buildScatter(){
-  if (!DATA.byTeamSeason || !DATA.byTeamRecent) return;
-
-  const pos = STATE.pos;
-  els.scatterTitle.textContent = pos;
-
-  const teams = [...DATA.byTeamSeason.keys()].sort();
-  const points = teams.map(t => {
-    const x = STATE.scatterMode === "avg" ? getMetric(t, "season", `${pos}_Avg`) : getMetric(t, "season", `${pos}_Rk`);
-    const y = STATE.scatterMode === "avg" ? getMetric(t, "recent", `${pos}_Avg`) : getMetric(t, "recent", `${pos}_Rk`);
-    return { x, y, t };
-  }).filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
-
-  // diagonal bounds
-  const xs = points.map(p => p.x);
-  const ys = points.map(p => p.y);
-  const minV = Math.min(...xs, ...ys);
-  const maxV = Math.max(...xs, ...ys);
-
-  const diag = [
-    {x:minV, y:minV},
-    {x:maxV, y:maxV}
-  ];
-
-  const ctx = document.getElementById("scatterChart").getContext("2d");
-
-  if (charts.scatter) charts.scatter.destroy();
-
-  charts.scatter = new Chart(ctx, {
-    type: "scatter",
-    data: {
-      datasets: [
-        {
-          label: "Defenses",
-          data: points,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          borderWidth: 0,
-          pointBackgroundColor: (ctx) => {
-            const team = ctx.raw?.t;
-            const rk = getMetric(team, STATE.activeDataset, `${pos}_Rk`);
-            return heatColor(rankScore(rk));
-          },
-        },
-        {
-          type: "line",
-          label: "No-change line",
-          data: diag,
-          pointRadius: 0,
-          borderDash: [6,6],
-          borderWidth: 1,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      // reduce ResizeObserver churn in some publishing environments
-      resizeDelay: 120,
-      parsing: false,
-      scales: {
-        x: {
-          title: { display: true, text: `Season (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
-          grid: { color: "rgba(255,255,255,0.07)" },
-        },
-        y: {
-          title: { display: true, text: `Weeks 9–15 (${STATE.scatterMode === "avg" ? "Avg FPA" : "Rank"})` },
-          grid: { color: "rgba(255,255,255,0.07)" },
-        },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (item) => {
-              const t = item.raw.t;
-              const tr = calcTrend(t, pos);
-              return `${t} • Season ${STATE.scatterMode === "avg" ? fmt(tr.seasonAvg,2) : fmt(tr.seasonRank,0)} • Recent ${STATE.scatterMode === "avg" ? fmt(tr.recentAvg,2) : fmt(tr.recentRank,0)} • ΔRk ${fmt(tr.dRank,0)}`;
-            }
-          }
-        }
-      },
-      onClick: (_, elements) => {
-        const el = elements?.[0];
-        if (!el) return;
-        const p = points[el.index];
-        if (!p) return;
-        selectTeam(p.t, pos);
-        openDrilldown(p.t, pos);
-      }
-    }
-  });
-}
-
-function buildRadar(){
-  const team = STATE.selectedTeam;
-  const pos = STATE.pos;
-
-  const ctx = document.getElementById("radarChart").getContext("2d");
-  if (charts.radar) charts.radar.destroy();
-
-  const labels = ["QB","RB","WR","TE","Total"];
-  const seasonVals = labels.map(l => l === "Total" ? getMetric(team,"season","Total_Rk") : getMetric(team,"season",`${l}_Rk`));
-  const recentVals = labels.map(l => l === "Total" ? getMetric(team,"recent","Total_Rk") : getMetric(team,"recent",`${l}_Rk`));
-
-  charts.radar = new Chart(ctx, {
-    type: "radar",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Season",
-          data: seasonVals,
-          fill: true,
-          backgroundColor: "rgba(207,120,255,0.12)",
-          borderColor: "rgba(207,120,255,0.65)",
-          pointBackgroundColor: "rgba(207,120,255,0.9)",
-          borderWidth: 1.4,
-        },
-        {
-          label: "Weeks 9–15",
-          data: recentVals,
-          fill: true,
-          backgroundColor: "rgba(0,191,255,0.10)",
-          borderColor: "rgba(0,191,255,0.65)",
-          pointBackgroundColor: "rgba(0,191,255,0.9)",
-          borderWidth: 1.4,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      resizeDelay: 120,
-      scales: {
-        r: {
-          min: 1,
-          max: 32,
-          ticks: { display: false },
-          grid: { color: "rgba(255,255,255,0.08)" },
-          angleLines: { color: "rgba(255,255,255,0.08)" },
-          pointLabels: { color: "rgba(255,255,255,0.78)", font: { size: 11, weight: "700" } }
-        }
-      },
-      plugins: {
-        legend: {
-          position: "bottom",
-          labels: { color: "rgba(255,255,255,0.78)" }
-        }
-      }
-    }
-  });
-
-  // weekly totals profile chart
-  buildWeeklyTotalsProfile(team, pos);
-}
-
-function buildWeeklyTotalsProfile(team, pos){
-  const ctx = document.getElementById("weeklyChart").getContext("2d");
-  if (charts.weekly) charts.weekly.destroy();
-
-  const key = `${team}|${pos}`;
-  const arr = DATA.playersWeeklyTotals.get(key) ?? [];
-
-  const labels = arr.map(d => `W${d.week}`);
-  const vals = arr.map(d => d.total);
-
-  els.weeklySub.textContent = `${team} vs ${pos} • total FPA by week (from player-level file)`;
-
-  charts.weekly = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{ label: "Weekly total", data: vals, borderWidth: 0 }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      resizeDelay: 120,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: "rgba(255,255,255,0.06)" } },
-        y: { grid: { color: "rgba(255,255,255,0.06)" }, title: { display:true, text: "FPA (total)" } }
-      }
-    }
-  });
-}
-
-function buildModalWeekly(team, pos){
-  const ctx = document.getElementById("modalWeeklyChart").getContext("2d");
-  if (charts.modalWeekly) charts.modalWeekly.destroy();
-
-  const key = `${team}|${pos}`;
-  const arr = DATA.playersWeeklyTotals.get(key) ?? [];
-
-  const labels = arr.map(d => `W${d.week}`);
-  const vals = arr.map(d => d.total);
-
-  charts.modalWeekly = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{ label: "Weekly total", data: vals, borderWidth: 0 }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      resizeDelay: 120,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: "rgba(255,255,255,0.06)" } },
-        y: { grid: { color: "rgba(255,255,255,0.06)" }, title: { display:true, text: "FPA (total)" } }
-      }
-    }
-  });
-}
-
-// =====================
-// Drilldown modal
-// =====================
-function getPlayerRows(team, pos){
-  return DATA.playersLong.filter(r => r.def === team && r.pos === pos);
-}
-
-function filterWeeks(rows, mode){
-  if (mode === "all") return rows;
-  if (mode === "recent") return rows.filter(r => r.week >= 9 && r.week <= 15);
-  if (mode === "1-8") return rows.filter(r => r.week >= 1 && r.week <= 8);
-  if (mode === "9-12") return rows.filter(r => r.week >= 9 && r.week <= 12);
-  if (mode === "13-15") return rows.filter(r => r.week >= 13 && r.week <= 15);
-  return rows;
-}
-
-function sortPlayers(rows){
-  const {key, dir} = STATE.playerSort;
-  const mult = dir === "asc" ? 1 : -1;
-  return [...rows].sort((a,b) => {
-    const av = key === "player" ? a.player : (key === "team" ? a.playerTeam : (key === "week" ? a.week : a.pts));
-    const bv = key === "player" ? b.player : (key === "team" ? b.playerTeam : (key === "week" ? b.week : b.pts));
-    if (typeof av === "string") return mult * av.localeCompare(bv);
-    return mult * (av - bv);
-  });
-}
-
-function buildPlayerTable(team, pos){
-  const search = cleanStr(els.playerSearch.value).toLowerCase();
-  const mode = els.weekRange.value;
-
-  let rows = filterWeeks(getPlayerRows(team, pos), mode);
-
-  if (search){
-    rows = rows.filter(r =>
-      r.player.toLowerCase().includes(search) ||
-      (r.playerTeam || "").toLowerCase().includes(search)
-    );
+    let segment = [];
+    function finishSegment() { if (segment.length) { markup += `<polyline class="leagueLine" points="${segment.join(" ")}"/>`; segment = []; } }
+    entries.forEach((entry, index) => { if (entry.league === null) finishSegment(); else segment.push(`${x(index)},${y(entry.league)}`); });
+    finishSegment();
+    $("weeklyChart").innerHTML = svgFrame("weekly", W, H, `${state.team} total ${state.pos} points allowed by week, compared with the league average`, markup);
   }
-
-  rows = sortPlayers(rows);
-
-  const headers = [
-    {k:"week", label:"Week"},
-    {k:"player", label:"Player"},
-    {k:"team", label:"TM"},
-    {k:"pts", label:"PPR"},
-  ];
-
-  els.playerTable.innerHTML = `
-    <thead>
-      <tr>
-        ${headers.map(h => `<th data-k="${h.k}">${h.label}${STATE.playerSort.key === h.k ? (STATE.playerSort.dir === "asc" ? " ▲" : " ▼") : ""}</th>`).join("")}
-      </tr>
-    </thead>
-    <tbody>
-      ${rows.map(r => `
-        <tr>
-          <td>W${r.week}</td>
-          <td>${r.player}</td>
-          <td>${r.playerTeam || "—"}</td>
-          <td style="font-weight:850;">${fmt(r.pts,2)}</td>
-        </tr>
-      `).join("")}
-    </tbody>
-  `;
-
-  // bind sort headers
-  $$("thead th", els.playerTable).forEach(th => {
-    th.addEventListener("click", () => {
-      const k = th.dataset.k;
-      if (STATE.playerSort.key === k){
-        STATE.playerSort.dir = STATE.playerSort.dir === "asc" ? "desc" : "asc";
-      }else{
-        STATE.playerSort.key = k;
-        STATE.playerSort.dir = (k === "pts") ? "desc" : "asc";
-      }
-      buildPlayerTable(team, pos);
+  function renderHeatmap() {
+    const sort = state.heatSort, metrics = [...Data.POSITIONS, "ALL"];
+    const rows = [...datasets.current.rows].sort((a, b) => {
+      const first = a.metrics[sort.metric].avg, second = b.metrics[sort.metric].avg;
+      if (first === null || second === null) return first === null && second === null ? a.team.localeCompare(b.team) : first === null ? 1 : -1;
+      return (sort.direction === "desc" ? second - first : first - second) || a.team.localeCompare(b.team);
     });
-  });
-}
-
-function openDrilldown(team, pos){
-  els.modal.classList.add("is-open");
-  els.modal.setAttribute("aria-hidden","false");
-  els.modalTitle.textContent = `${team} vs ${pos}`;
-
-  const tr = calcTrend(team, pos);
-  const gmS = getMetric(team,"season","GM_P");
-  const gmR = getMetric(team,"recent","GM_P");
-
-  const makeCard = (title, avg, rk, gm) => {
-    const sc = rankScore(rk);
-    const c = heatColor(sc);
-    return `
-      <div class="card">
-        <div class="card__top">
-          <div class="card__title">${title}</div>
-          <span class="chip"><span class="swatch" style="background:${c};"></span>${rk >= 24 ? "EASY" : rk <= 10 ? "HARD" : "MID"}</span>
-        </div>
-        <div class="card__big">${fmt(avg,2)} <span class="muted" style="font-size:12px;font-weight:700;">FPA</span></div>
-        <div class="card__sub">Rank: <strong>${fmt(rk,0)}</strong> / 32 • Games: <strong>${fmt(gm,0)}</strong></div>
-      </div>
-    `;
-  };
-
-  const trendCard = `
-    <div class="card">
-      <div class="card__top">
-        <div class="card__title">Trend</div>
-        <span class="chip"><span class="swatch" style="background:linear-gradient(135deg, rgba(0,191,255,1), rgba(207,120,255,1));"></span>${Number.isFinite(tr.dRank) ? "Δ" : "—"}</span>
-      </div>
-      <div class="card__big">${Number.isFinite(tr.dRank) ? `${tr.dRank > 0 ? "+" : ""}${fmt(tr.dRank,0)} <span class="muted" style="font-size:12px;font-weight:700;">rank</span>` : "—"}</div>
-      <div class="card__sub">${Number.isFinite(tr.dAvg) ? `ΔAvg: <strong>${tr.dAvg > 0 ? "+" : ""}${fmt(tr.dAvg,2)}</strong> • Recent is ${tr.dRank > 0 ? "<strong>easier</strong>" : tr.dRank < 0 ? "<strong>tougher</strong>" : "<strong>flat</strong>"}` : "Trend not available"}</div>
-    </div>
-  `;
-
-  els.modalCards.innerHTML = [
-    makeCard("Season", tr.seasonAvg, tr.seasonRank, gmS),
-    makeCard("Weeks 9–15", tr.recentAvg, tr.recentRank, gmR),
-    trendCard
-  ].join("");
-
-  buildModalWeekly(team, pos);
-  buildPlayerTable(team, pos);
-
-  // wire filters
-  els.weekRange.onchange = () => buildPlayerTable(team, pos);
-  els.playerSearch.oninput = () => buildPlayerTable(team, pos);
-}
-
-function closeModal(){
-  els.modal.classList.remove("is-open");
-  els.modal.setAttribute("aria-hidden","true");
-}
-
-// =====================
-// Selection + interactions
-// =====================
-function setDataset(name){
-  STATE.activeDataset = name;
-
-  // buttons
-  const isSeason = name === "season";
-  els.btnSeason.classList.toggle("is-active", isSeason);
-  els.btnRecent.classList.toggle("is-active", !isSeason);
-  els.btnSeason.setAttribute("aria-selected", String(isSeason));
-  els.btnRecent.setAttribute("aria-selected", String(!isSeason));
-
-  buildHeatTable();
-  buildScatter();
-  buildQuickCards();
-}
-
-function setPos(pos){
-  STATE.pos = pos;
-
-  // pos buttons
-  $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === pos));
-
-  buildMiniLists();
-  buildScatter();
-  buildQuickCards();
-  if (STATE.selectedTeam) buildRadar();
-}
-
-function selectTeam(team, pos = STATE.pos){
-  STATE.selectedTeam = team;
-  STATE.pos = pos;
-
-  // update select + pos buttons
-  els.teamSelect.value = team;
-  $$(".pos-btn").forEach(b => b.classList.toggle("is-active", b.dataset.pos === STATE.pos));
-
-  // pill
-  els.profilePill.querySelector("span:last-child").innerHTML = `Selected: <strong>${team}</strong> • Position: <strong>${STATE.pos}</strong>`;
-  els.profilePill.querySelector(".dot").style.background = "rgba(0,191,255,0.85)";
-  els.profilePill.querySelector(".dot").style.boxShadow = "0 0 0 3px rgba(0,191,255,0.12)";
-
-  buildQuickCards();
-  buildMiniLists();
-  buildScatter();
-  buildRadar();
-
-  // highlight selected heat cells
-  $$(".cell", els.heatTable).forEach(c => c.classList.toggle("is-selected", c.dataset.team === team && (c.dataset.pos === STATE.pos || c.dataset.pos === "TOTAL")));
-}
-
-// =====================
-// Stars background
-// =====================
-function startStars(){
-  const canvas = document.getElementById("stars");
-  const ctx = canvas.getContext("2d");
-  let w, h, stars;
-
-  function resize(){
-    w = canvas.width = window.innerWidth * devicePixelRatio;
-    h = canvas.height = window.innerHeight * devicePixelRatio;
-    const count = Math.floor((window.innerWidth * window.innerHeight) / 8500);
-    stars = new Array(count).fill(0).map(() => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      z: Math.random() * 0.9 + 0.1,
-      r: Math.random() * 1.2 + 0.2,
-      s: Math.random() * 0.6 + 0.2
-    }));
+    const header = metrics.map(pos => `<th scope="col" aria-sort="${sort.metric === pos ? sort.direction === "desc" ? "descending" : "ascending" : "none"}"><button type="button" class="${sort.metric === pos ? "is-sorted" : ""}" data-heat-sort="${pos}" aria-label="Sort matchups by ${pos}">${pos === "ALL" ? "Total" : pos}${sort.metric === pos ? `<span class="sortArrow">${sort.direction === "desc" ? "↓" : "↑"}</span>` : ""}</button></th>`).join("");
+    $("heatTable").innerHTML = `<caption class="srOnly">2026 defense matchup ranks and FPA per game for ${esc(rangeLabel())}, ${esc(venueLabel())}</caption><thead><tr><th scope="col">DEFENSE</th>${header}</tr></thead><tbody>${rows.map(row => `<tr class="${row.team === state.team ? "is-selected" : ""}"><td><button type="button" class="heatTeamButton" data-team="${row.team}" aria-label="Explore ${esc(Data.TEAM_NAMES[row.team])}">${logo(row.team)}<span><strong>${row.team}</strong><small>${row.games}g</small></span></button></td>${metrics.map(pos => {
+      const p = row.metrics[pos], label = p.rank === null ? "No matching data" : `Rank ${p.rank} of ${p.pool}, ${fmt(p.avg)} FPA per game, ${plural(p.games, "game")} of ${row.games} observed`;
+      return `<td><button type="button" class="heatCell${row.team === state.team && pos === state.pos ? " is-selected" : ""}" style="--heat:${heatColor(p)}" data-team="${row.team}" data-cell-position="${pos}" aria-label="${row.team} ${pos}: ${esc(label)}" title="${esc(label)}"><span class="heatRank">${p.rank ?? "—"}</span><span class="heatAverage">${fmt(p.avg, 1)}</span></button></td>`;
+    }).join("")}</tr>`).join("")}</tbody>`;
+    $("rankPoolNote").textContent = `${plural(datasets.current.pools[state.pos], "defense")} rated for ${state.pos}.`;
   }
-
-  let t = 0;
-  function tick(){
-    t += 0.006;
-    ctx.clearRect(0,0,w,h);
-    ctx.globalAlpha = 1;
-
-    for (const st of stars){
-      st.y += st.s * devicePixelRatio;
-      st.x += Math.sin(t + st.y * 0.0006) * 0.22 * devicePixelRatio;
-
-      if (st.y > h + 10) st.y = -10;
-      if (st.x > w + 10) st.x = -10;
-      if (st.x < -10) st.x = w + 10;
-
-      const a = 0.22 + st.z * 0.55;
-      ctx.fillStyle = `rgba(255,255,255,${a})`;
-      ctx.beginPath();
-      ctx.arc(st.x, st.y, st.r * devicePixelRatio, 0, Math.PI*2);
-      ctx.fill();
+  function renderComparison() {
+    const recent = Data.recentSpan(model, state.recent);
+    const rankComparable = datasets.season.pools[state.pos] === datasets.recent.pools[state.pos];
+    if (!rankComparable && state.scatterMode === "rank") state.scatterMode = "avg";
+    document.querySelectorAll("[data-scatter-mode]").forEach(button => {
+      button.setAttribute("aria-pressed", String(button.dataset.scatterMode === state.scatterMode));
+      button.disabled = button.dataset.scatterMode === "rank" && !rankComparable;
+      button.title = button.disabled ? "Rank comparison needs the same number of rated defenses in each range." : "";
+    });
+    $("comparisonSubtitle").textContent = `${state.pos} · Season ${weekLabel(model.minWeek, model.maxWeek)} vs. ${weekLabel(recent.from, recent.to)} · ${venueLabel()}`;
+    $("comparisonNote").textContent = recent.from === model.minWeek ? "These windows contain the same supplied weeks." : rankComparable ? "" : "Rank pools differ; comparisons use points.";
+    const ranked = state.scatterMode === "rank", points = model.defenses.map(team => {
+      const comparison = Data.compare(datasets.season, datasets.recent, team, state.pos);
+      return { team, x: ranked ? comparison.season.rank : comparison.season.avg, y: ranked ? comparison.recent.rank : comparison.recent.avg, comparison };
+    }).filter(point => point.x !== null && point.y !== null);
+    $("comparisonExplanation").textContent = ranked ? "Above the diagonal = a higher, easier matchup rank recently." : "Above the diagonal = more points allowed recently.";
+    renderComparisonDetail(state.team);
+    if (!points.length) { $("comparisonChart").innerHTML = empty("No comparable results", "Choose a venue with supplied results in both windows."); return; }
+    const W = chartWidth("comparisonChart"), H = 270, left = 38, right = W - 17, top = 18, bottom = H - 38;
+    const bounds = ranked ? { low: 0, high: Math.max(2, datasets.season.pools[state.pos] + 1), ticks: [...new Set([1, Math.ceil(datasets.season.pools[state.pos] / 4), Math.ceil(datasets.season.pools[state.pos] / 2), Math.ceil(datasets.season.pools[state.pos] * 3 / 4), datasets.season.pools[state.pos]])] } : scaleBounds(points.flatMap(point => [point.x, point.y]));
+    const x = value => left + (value - bounds.low) / (bounds.high - bounds.low) * (right - left);
+    const y = value => bottom - (value - bounds.low) / (bounds.high - bounds.low) * (bottom - top);
+    let markup = bounds.ticks.map(value => `<line class="gridLine" x1="${left}" x2="${right}" y1="${y(value)}" y2="${y(value)}"/><line class="gridLine" y1="${top}" y2="${bottom}" x1="${x(value)}" x2="${x(value)}"/><text x="${left - 7}" y="${y(value) + 3}" text-anchor="end">${axisLabel(value, bounds)}</text><text x="${x(value)}" y="${bottom + 16}" text-anchor="middle">${axisLabel(value, bounds)}</text>`).join("");
+    markup += `<line x1="${left}" y1="${bottom}" x2="${right}" y2="${top}" stroke="#7890a6" stroke-opacity=".65" stroke-dasharray="4 5"/><text class="axisTitle" x="${(left + right) / 2}" y="${H - 3}" text-anchor="middle">Season ${ranked ? "rank" : "FPA / game"}</text><text class="axisTitle" transform="translate(11 ${(top + bottom) / 2}) rotate(-90)" text-anchor="middle">Recent ${ranked ? "rank" : "FPA / game"}</text>`;
+    points.sort((a, b) => Number(a.team === state.team) - Number(b.team === state.team)).forEach(point => {
+      const key = `comparison:${point.team}`, c = point.comparison;
+      tooltips.set(key, `<strong>${esc(Data.TEAM_NAMES[point.team])} · ${state.pos}</strong><br>Season: ${fmt(c.season.avg)} FPA / game (${plural(c.season.games, "game")})<br>Recent: ${fmt(c.recent.avg)} FPA / game (${plural(c.recent.games, "game")})<br><span class="${direction(c.deltaPoints)}">${signed(c.deltaPoints)} points / game</span>`);
+      const selected = point.team === state.team;
+      markup += `<g class="chartPoint" role="button" tabindex="0" data-chart-team="${point.team}" data-tooltip="${key}" aria-label="Explore ${point.team}: season ${fmt(point.x)}, recent ${fmt(point.y)} ${ranked ? "rank" : "FPA per game"}"><circle cx="${x(point.x)}" cy="${y(point.y)}" r="${selected ? 14 : 11}" fill="#142231" stroke="${selected ? POS_COLORS[state.pos] : heatColor(c.season)}" stroke-width="${selected ? 2 : 1}"/><image href="assets/NFL-Tags_webp/${point.team.toLowerCase()}.webp" x="${x(point.x) - 9}" y="${y(point.y) - 9}" width="18" height="18"/><title>${point.team}: ${fmt(point.x)} season, ${fmt(point.y)} recent</title></g>`;
+    });
+    $("comparisonChart").innerHTML = svgFrame("comparison", W, H, `${state.pos} defenses by season versus recent ${ranked ? "rank" : "fantasy points allowed per game"}. Points retain their exact data coordinates.`, markup);
+  }
+  function renderComparisonDetail(team) {
+    const c = Data.compare(datasets.season, datasets.recent, team, state.pos);
+    $("comparisonDetail").innerHTML = `<span class="comparisonTeam">${logo(team)}<strong>${team}</strong></span><span>Season <strong>${fmt(c.season.avg, 1)}</strong></span><span>Recent <strong>${fmt(c.recent.avg, 1)}</strong></span><span class="${direction(c.deltaPoints)}">${signed(c.deltaPoints)} pts / game</span>${c.deltaRank === null ? "" : `<span>${signed(c.deltaRank, 0)} rank</span>`}`;
+  }
+  function renderInsights() {
+    const trend = ["up", "down"].includes(state.insight), recent = Data.recentSpan(model, state.recent);
+    $("insightsPosition").textContent = state.pos; $("insightsPosition").dataset.pos = state.pos;
+    $("insightsSubtitle").textContent = trend ? `${weekLabel(recent.from, recent.to)} versus the season so far · ${venueLabel()}` : `${rangeLabel()} · ${venueLabel()}`;
+    document.querySelectorAll("[data-insight]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.insight === state.insight)));
+    let rows;
+    if (trend) {
+      rows = model.defenses.map(team => ({ team, ...Data.compare(datasets.season, datasets.recent, team, state.pos) }))
+        .filter(row => row.deltaPoints !== null && (state.insight === "up" ? row.deltaPoints > .000001 : row.deltaPoints < -.000001))
+        .sort((a, b) => (state.insight === "up" ? b.deltaPoints - a.deltaPoints : a.deltaPoints - b.deltaPoints) || a.team.localeCompare(b.team));
+    } else {
+      rows = datasets.current.rows.filter(row => row.metrics[state.pos].avg !== null)
+        .sort((a, b) => (state.insight === "easy" ? b.metrics[state.pos].avg - a.metrics[state.pos].avg : a.metrics[state.pos].avg - b.metrics[state.pos].avg) || a.team.localeCompare(b.team));
     }
-
-    requestAnimationFrame(tick);
+    $("insightList").innerHTML = rows.length ? rows.slice(0, 6).map((row, index) => {
+      const p = trend ? row.recent : row.metrics[state.pos];
+      return `<button type="button" class="insightRow" data-team="${row.team}" aria-label="Explore ${esc(Data.TEAM_NAMES[row.team])} against ${state.pos}"><span class="insightIndex">${String(index + 1).padStart(2, "0")}</span>${logo(row.team)}<span class="insightTeam">${esc(Data.TEAM_NAMES[row.team])}<small>${row.team} · ${plural(p.games, "game")}${trend ? " in recent window" : ""}</small></span><span class="insightMetric" style="color:${trend ? row.deltaPoints > 0 ? "var(--mint)" : "var(--pink)" : heatColor(p)}">${trend ? signed(row.deltaPoints) : fmt(p.avg, 1)}<small>${trend ? "Δ FPA / game" : `FPA / game · Rank ${p.rank}`}</small></span></button>`;
+    }).join("") : empty(trend ? "No change in this direction" : "No matching defenses", trend ? "Try a shorter recent window or a different defense venue." : "Choose another week range or venue.");
+    $("insightFootnote").textContent = trend ? "Changes compare overlapping recent and season samples. Positive = more points allowed recently." : `Top ${Math.min(6, rows.length)} ${state.pos} matchups by unrounded FPA per game. Sample counts come from the supplied data.`;
   }
-
-  window.addEventListener("resize", resize);
-  resize();
-  tick();
-}
-
-// =====================
-// Bootstrap
-// =====================
-function bindEvents(){
-  els.btnSeason.addEventListener("click", () => setDataset("season"));
-  els.btnRecent.addEventListener("click", () => setDataset("recent"));
-
-  $$(".pos-btn").forEach(b => b.addEventListener("click", () => setPos(b.dataset.pos)));
-
-  els.teamSelect.addEventListener("change", () => {
-    selectTeam(els.teamSelect.value, STATE.pos);
-  });
-
-  els.sortSelect.addEventListener("change", () => {
-    STATE.sortKey = els.sortSelect.value;
-    buildHeatTable();
-  });
-
-  els.dirSelect.addEventListener("change", () => {
-    STATE.sortDir = els.dirSelect.value;
-    buildHeatTable();
-  });
-
-  $$(".smallToggle__btn").forEach(b => b.addEventListener("click", () => {
-    $$(".smallToggle__btn").forEach(x => x.classList.toggle("is-active", x === b));
-    STATE.scatterMode = b.dataset.scatmode;
-    buildScatter();
-  }));
-
-  // modal close
-  els.modal.addEventListener("click", (e) => {
-    const t = e.target;
-    if (t && t.dataset && t.dataset.close) closeModal();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && els.modal.classList.contains("is-open")) closeModal();
-  });
-
-  // file upload
-  els.fileInput.addEventListener("change", (e) => {
-    const files = [...(e.target.files ?? [])];
-    if (!files.length) return;
-    handleFileUpload(files);
-  });
-}
-
-function bootstrap(){
-  chartCommon();
-  buildMaps();
-  buildPlayersLong();
-  bindEvents();
-
-  buildTeamSelect();
-  buildHeatTable();
-  buildMiniLists();
-  buildScatter();
-  buildQuickCards();
-  selectTeam(STATE.selectedTeam, STATE.pos);
-}
-
-(async function init(){
-  startStars();
-  const ok = await tryAutoLoad();
-  if (ok){
-    bootstrap();
-  }else{
-    // wait for user upload
+  function selectedPlayers() {
+    const rows = Data.selectResults(model, { ...scope(), team: state.team, pos: state.pos, query: state.query, hideZero: state.hideZero });
+    const sort = state.playerSort, getters = { week: row => row.week, player: row => row.player, team: row => row.playerTeam || "", vs: row => row.vs, venue: row => row.defenseVenue, pts: row => row.cents };
+    return rows.sort((a, b) => {
+      const first = getters[sort.key](a), second = getters[sort.key](b);
+      const difference = typeof first === "string" ? first.localeCompare(second) : first - second;
+      return (sort.direction === "asc" ? difference : -difference) || b.week - a.week || b.cents - a.cents || a.player.localeCompare(b.player);
+    });
   }
+  function playersTable(rows) {
+    const columns = [["week", "Week", ""], ["player", "Player", ""], ["team", "Offense", "offenseColumn"], ["vs", "Player VS", "opponentColumn"], ["venue", "Defense venue", "venueColumn"], ["pts", "PPR", ""]];
+    const head = columns.map(([key, title, className]) => `<th scope="col" class="${className}" aria-sort="${state.playerSort.key === key ? state.playerSort.direction === "asc" ? "ascending" : "descending" : "none"}"><button type="button" data-player-sort="${key}" aria-label="Sort players by ${title}">${title}${state.playerSort.key === key ? `<span class="sortArrow">${state.playerSort.direction === "asc" ? "↑" : "↓"}</span>` : ""}</button></th>`).join("");
+    const body = rows.length ? rows.map(row => {
+      const color = row.cents === 0 ? "scoreZero" : row.cents < 0 ? "scoreNegative" : row.pts >= ({ QB: 22, RB: 18, WR: 18, TE: 17 }[state.pos]) ? "scoreHigh" : "";
+      return `<tr><td>W${row.week}</td><td><span class="playerName">${esc(row.player)}</span></td><td class="offenseColumn"><span class="offenseCell" title="${esc(Data.TEAM_NAMES[row.playerTeam] || "Offense not supplied")}">${logo(row.playerTeam)}${row.playerTeam || "—"}</span></td><td class="opponentColumn"><span class="playerOpponent">${esc(row.vs)}</span></td><td class="venueColumn"><span class="venueTag">${row.defenseVenue === "home" ? "Home" : "Away"}</span></td><td class="${color}">${fmt(row.pts)}</td></tr>`;
+    }).join("") : `<tr><td colspan="6">${empty("No player results match", "Try another defense, position, week range, or clear the player filters.", '<button type="button" class="button" data-clear-search>Clear player filters</button>')}</td></tr>`;
+    return `<caption class="srOnly">Recorded ${state.pos} player results against ${state.team}, ${esc(rangeLabel())}</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
+  }
+  function renderPlayers() {
+    const rows = selectedPlayers(), total = rows.reduce((sum, row) => sum + row.cents, 0) / 100;
+    const subtitle = `${state.team} defense vs. ${POS_NAMES[state.pos]} · ${rangeLabel()} · ${venueLabel()}`;
+    $("playersSubtitle").textContent = subtitle; $("expandedSubtitle").textContent = subtitle;
+    for (const id of ["playerSearch", "expandedSearch"]) if ($(id).value !== state.query) $(id).value = state.query;
+    for (const id of ["hideZero", "expandedHideZero"]) $(id).checked = state.hideZero;
+    document.querySelectorAll("[data-player-view]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.playerView === state.playerView)));
+    $("playerTableWrap").hidden = state.playerView !== "table";
+    $("playerPlot").hidden = state.playerView !== "plot";
+    if (state.playerView === "table") $("playerTable").innerHTML = playersTable(rows);
+    else renderPlayerPlot(rows);
+    if ($("playersDialog").open) $("expandedTable").innerHTML = playersTable(rows);
+    const label = `${plural(rows.length, "player record")} · ${fmt(total)} displayed PPR points${state.hideZero ? " · Zero scores hidden" : " · Zero and negative scores included"}`;
+    $("playerCount").textContent = label; $("expandedCount").textContent = label;
+  }
+  function renderPlayerPlot(rows) {
+    if (!rows.length) { $("playerPlot").innerHTML = empty("No player points to plot", "Change the matchup or clear the player filters."); return; }
+    const W = chartWidth("playerPlot"), H = 280, left = 38, right = W - 14, top = 24, bottom = H - 34;
+    const weeks = model.weeks.filter(week => week >= scope().from && week <= scope().to);
+    const x = week => left + (right - left) * (weeks.indexOf(week) + .5) / weeks.length;
+    const bounds = scaleBounds(rows.map(row => row.pts)), y = value => bottom - (value - bounds.low) / (bounds.high - bounds.low) * (bottom - top);
+    const groups = new Map();
+    rows.forEach(row => { const key = `${row.week}|${row.cents}`; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(row); });
+    let markup = bounds.ticks.map(value => `<line class="${value === 0 ? "zeroLine" : "gridLine"}" x1="${left}" x2="${right}" y1="${y(value)}" y2="${y(value)}"/><text x="${left - 7}" y="${y(value) + 3}" text-anchor="end">${axisLabel(value, bounds)}</text>`).join("");
+    weeks.forEach(week => { markup += `<line class="gridLine" x1="${x(week)}" x2="${x(week)}" y1="${top}" y2="${bottom}"/><text x="${x(week)}" y="${bottom + 19}" text-anchor="middle">W${week}</text>`; });
+    const mean = rows.reduce((sum, row) => sum + row.cents, 0) / 100 / rows.length;
+    markup += `<line class="leagueLine" x1="${left}" x2="${right}" y1="${y(mean)}" y2="${y(mean)}"/><text x="${right}" y="${top - 10}" text-anchor="end">Displayed player mean: ${fmt(mean)}</text>`;
+    let index = 0;
+    for (const group of groups.values()) {
+      const first = group[0], key = `player:${index++}`;
+      tooltips.set(key, `<strong>Week ${first.week} · ${fmt(first.pts)} PPR points</strong><br>${group.map(row => `${esc(row.player)}${row.playerTeam ? ` (${row.playerTeam})` : ""}`).join("<br>")}<br><span class="tooltipMuted">${group.length > 1 ? `${group.length} equal scores share this dot.` : esc(first.vs)}</span>`);
+      markup += `<g class="chartPoint" role="img" tabindex="0" data-tooltip="${key}" aria-label="Week ${first.week}: ${fmt(first.pts)} points, ${esc(group.map(row => row.player).join(", "))}"><circle cx="${x(first.week)}" cy="${y(first.pts)}" r="${group.length > 1 ? 8 : 6}" fill="${POS_COLORS[state.pos]}" fill-opacity="${first.cents === 0 ? ".4" : ".75"}" stroke="${POS_COLORS[state.pos]}" stroke-width="1"/>${group.length > 1 ? `<text x="${x(first.week)}" y="${y(first.pts) + 3}" text-anchor="middle" style="fill:#0b1017;font-weight:700;font-size:9px">${group.length}</text>` : ""}</g>`;
+    }
+    $("playerPlot").innerHTML = svgFrame("players-plot", W, H, `${state.pos} individual player scores against ${state.team}. Negative and zero scores are included; equal scores in a week share a dot.`, markup) + '<p class="smallMuted" style="padding:8px 0">Each dot shows a player record. Hover or focus to see names. Equal scores in the same week share a dot. The dashed line is the mean of displayed player scores.</p>';
+  }
+  function renderSource() {
+    const a = model.audit;
+    $("sourceCard").innerHTML = `<div class="sourceCardTitle"><span class="liveDot"></span><strong>${esc(model.name)}</strong></div><p>${sourceKind} · 2026 · ${esc(weekLabel(model.minWeek, model.maxWeek))} · PPR scoring</p><div class="sourceCardStats"><div><strong>${count(a.sourceRows)}</strong><span>source rows</span></div><div><strong>${count(a.usedRows)}</strong><span>matched results</span></div><div><strong>${count(a.excludedRows)}</strong><span>without an opponent</span></div></div>`;
+    const missing = model.diagnostics.missingPositions, unpaired = model.diagnostics.unpairedGames;
+    $("sourceDiagnostics").innerHTML = `<div class="diagnosticsText">${plural(model.weeks.length, "week")} loaded: ${model.weeks.join(", ")}. ${plural(model.defenses.length, "defense")}, ${plural(a.defenseGames, "defense-game observation")}${a.matchups === null ? ". Opponent offenses are not fully supplied." : `, ${plural(a.matchups, "unique matchup")}.`}<br>${plural(a.zeroResults, "assigned zero score")} and ${plural(a.negativeResults, "negative score")} included. Total assigned points: <strong>${fmt(a.totalPoints)}</strong>.<br>${missing.length ? `${missing.length} defense games have a position without supplied records. Affected position totals stay unavailable for those games.` : "Every observed defense game has records for all four positions."}${unpaired.length ? `<br>${unpaired.length} observations lack the other defense's reverse matchup in this file.` : ""}</div>${missing.length ? `<table class="diagnosticsTable"><thead><tr><th>Week</th><th>Defense</th><th>Missing position</th></tr></thead><tbody>${missing.map(row => `<tr><td>${row.week}</td><td>${row.defense}</td><td>${row.positions.join(", ")}</td></tr>`).join("")}</tbody></table>` : ""}${model.excluded.length ? `<p class="diagnosticsText">The following rows have no opposing defense and are excluded from matchup totals.</p><table class="diagnosticsTable"><thead><tr><th>Week</th><th>Player</th><th>VS</th><th>PPR</th></tr></thead><tbody>${model.excluded.map(row => `<tr><td>${row.week}</td><td>${esc(row.player)}</td><td>${esc(row.vs) || "Blank"}</td><td>${fmt(row.pts)}</td></tr>`).join("")}</tbody></table>` : '<p class="diagnosticsText">No rows were excluded for a missing opponent.</p>'}`;
+  }
+  function hideTooltip() { $("chartTooltip").hidden = true; }
+  function showTooltip(target, event) {
+    const content = tooltips.get(target.dataset.tooltip);
+    if (!content) return;
+    const tip = $("chartTooltip"); tip.innerHTML = content; tip.hidden = false;
+    const rect = target.getBoundingClientRect(), x = event?.clientX ?? rect.left + rect.width / 2, y = event?.clientY ?? rect.top + rect.height / 2;
+    tip.style.left = `${Math.max(10, Math.min(innerWidth - tip.offsetWidth - 10, x + 12))}px`;
+    tip.style.top = `${Math.max(10, Math.min(innerHeight - tip.offsetHeight - 10, y + 16))}px`;
+    if (target.dataset.chartTeam) renderComparisonDetail(target.dataset.chartTeam);
+  }
+  function openDialog(id) {
+    hideTooltip();
+    if (id === "playersDialog" && model) { $("expandedTable").innerHTML = playersTable(selectedPlayers()); }
+    if (!$(id).open) $(id).showModal();
+    document.documentElement.style.overflow = "hidden";
+  }
+  function csvText(headers, rows) {
+    const cell = value => {
+      let text = value === null || value === undefined ? "" : String(value);
+      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    return [headers, ...rows].map(row => row.map(cell).join(",")).join("\r\n");
+  }
+  function download(name, text) {
+    const blob = new Blob([text], { type: "text/csv;charset=utf-8" }), url = URL.createObjectURL(blob), anchor = document.createElement("a");
+    anchor.href = url; anchor.download = name; document.body.appendChild(anchor); anchor.click(); anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function exportRankings() {
+    const positions = [...Data.POSITIONS, "ALL"];
+    const headers = ["SEASON", "FROM_WEEK", "TO_WEEK", "DEFENSE_VENUE", "DEFENSE", "OBSERVED_GAMES", ...positions.flatMap(pos => [`${pos}_FPA_PER_GAME`, `${pos}_RANK`, `${pos}_RATED_DEFENSES`, `${pos}_GAMES`])];
+    const range = scope();
+    const rows = datasets.current.rows.map(row => [2026, range.from, range.to, state.venue, row.team, row.games, ...positions.flatMap(pos => { const p = row.metrics[pos]; return [p.avg, p.rank, p.pool, p.games]; })]);
+    download(`2026-matchup-rankings-W${range.from}-${range.to}-${state.venue}.csv`, csvText(headers, rows));
+    notice("Current matchup rankings downloaded.");
+  }
+  function exportPlayers() {
+    const rows = selectedPlayers().map(row => [row.week, row.playerId.startsWith(`${row.pos}:`) ? "" : row.playerId, row.player, row.pos, row.playerTeam, row.pts, row.vs, row.def, row.defenseVenue]);
+    download(`2026-${state.team}-${state.pos}-player-results.csv`, csvText(["WEEK", "SLPR_ID", "PLAYER NAME", "POS", "TM", "FPT_PPR", "VS", "DEFENSE", "DEFENSE_VENUE"], rows));
+    notice(`${plural(rows.length, "player result")} downloaded.`);
+  }
+  async function builtinSource() {
+    const snapshot = window.FPA_SOURCE;
+    let fetchError = null;
+    if (location.protocol !== "file:") {
+      const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
+      try {
+        const name = snapshot?.name || "2026-Wkly - FPA.csv";
+        const response = await fetch(`data/${encodeURIComponent(name)}`, { cache: "no-store", signal: controller.signal });
+        if (!response.ok) throw new Error(`Source CSV returned HTTP ${response.status}.`);
+        const parsed = Data.readSource(await response.text(), { name });
+        return { model: parsed, kind: "Provided CSV", message: "" };
+      } catch (error) { fetchError = error; }
+      finally { clearTimeout(timer); }
+    }
+    if (!snapshot?.csv) throw fetchError || new Error("The bundled source is unavailable. Upload your 2026 CSV in Data & updates.");
+    return {
+      model: Data.readSource(snapshot.csv, { name: snapshot.name }),
+      kind: location.protocol === "file:" ? "Provided CSV · offline copy" : "Bundled CSV snapshot",
+      message: fetchError ? `The bundled CSV snapshot is shown because the source file could not be loaded: ${fetchError.message}` : "",
+    };
+  }
+  function useSource(next, kind) {
+    model = next; sourceKind = kind;
+    state.query = ""; state.hideZero = false;
+    refresh({ rebuildOptions: true });
+    warning();
+  }
+  async function importFile(file) {
+    if (importing || !file) return;
+    importing = true; $("fileInput").disabled = true; $("restoreSource").disabled = true;
+    $("uploadMessage").classList.remove("is-error"); $("uploadMessage").textContent = "Reading and validating weekly results…";
+    try {
+      if (file.size > 8 * 1024 * 1024) throw new Error("This CSV is larger than 8 MB. Use a season-to-date player export.");
+      const text = await file.text(), next = Data.readSource(text, { name: file.name });
+      let saved = true;
+      try { localStorage.setItem(STORE_KEY, JSON.stringify({ season: 2026, name: file.name, csv: text })); } catch { saved = false; }
+      useSource(next, "Uploaded CSV");
+      $("uploadMessage").textContent = `Loaded ${plural(next.audit.usedRows, "matchup result")} through Week ${next.maxWeek}. ${plural(next.audit.excludedRows, "row")} without an opponent excluded. ${saved ? "Saved in this browser." : "Browser storage is unavailable; this upload lasts for this session."}`;
+    } catch (error) {
+      $("uploadMessage").classList.add("is-error");
+      $("uploadMessage").textContent = `${error.message} ${model ? "The current dataset is still loaded." : "Choose a valid CSV to load matchup results."}`;
+    } finally { importing = false; $("fileInput").disabled = false; $("restoreSource").disabled = false; $("fileInput").value = ""; }
+  }
+  function changeTeam(team, pos = state.pos) {
+    if (!model.defenses.includes(team)) return;
+    state.team = team;
+    if (Data.POSITIONS.includes(pos)) { state.pos = pos; state.heatSort.metric = pos; }
+    refresh();
+  }
+  function bindEvents() {
+    $("openData").addEventListener("click", () => openDialog("dataDialog"));
+    $("sourceStatus").addEventListener("click", () => openDialog("dataDialog"));
+    $("expandPlayers").addEventListener("click", () => { if (model) { openDialog("playersDialog"); renderPlayers(); } });
+    document.querySelectorAll("dialog").forEach(dialog => {
+      dialog.addEventListener("close", () => { document.documentElement.style.overflow = ""; });
+      dialog.addEventListener("click", event => { if (event.target === dialog && (event.clientX < dialog.getBoundingClientRect().left || event.clientX > dialog.getBoundingClientRect().right || event.clientY < dialog.getBoundingClientRect().top || event.clientY > dialog.getBoundingClientRect().bottom)) dialog.close(); });
+    });
+    document.addEventListener("click", event => {
+      const target = event.target.closest("button,[data-chart-team]");
+      if (!target) return;
+      if (target.hasAttribute("data-close-dialog")) { target.closest("dialog").close(); return; }
+      if (!model) return;
+      if (target.dataset.position) { state.pos = target.dataset.position; state.heatSort.metric = state.pos; refresh(); }
+      else if (target.dataset.team || target.dataset.chartTeam) changeTeam(target.dataset.team || target.dataset.chartTeam, target.dataset.cellPosition === "ALL" ? state.pos : target.dataset.cellPosition || state.pos);
+      else if (target.dataset.heatSort) {
+        state.heatSort.direction = state.heatSort.metric === target.dataset.heatSort && state.heatSort.direction === "desc" ? "asc" : "desc";
+        state.heatSort.metric = target.dataset.heatSort; renderHeatmap();
+      } else if (target.dataset.playerSort) {
+        state.playerSort.direction = state.playerSort.key === target.dataset.playerSort ? state.playerSort.direction === "desc" ? "asc" : "desc" : ["week", "pts"].includes(target.dataset.playerSort) ? "desc" : "asc";
+        state.playerSort.key = target.dataset.playerSort; renderPlayers();
+      } else if (target.dataset.scatterMode) { state.scatterMode = target.dataset.scatterMode; renderComparison(); }
+      else if (target.dataset.insight) { state.insight = target.dataset.insight; renderInsights(); }
+      else if (target.dataset.playerView) { state.playerView = target.dataset.playerView; renderPlayers(); }
+      else if (target.hasAttribute("data-clear-search")) { state.query = ""; state.hideZero = false; renderPlayers(); }
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") hideTooltip();
+      const point = event.target.closest("[data-chart-team]");
+      if (model && point && ["Enter", " "].includes(event.key)) { event.preventDefault(); changeTeam(point.dataset.chartTeam); }
+    });
+    document.addEventListener("pointerover", event => { const target = event.target.closest("[data-tooltip]"); if (target) showTooltip(target, event); });
+    document.addEventListener("pointerout", event => { if (event.target.closest("[data-tooltip]") && !event.relatedTarget?.closest?.("[data-tooltip]")) hideTooltip(); });
+    document.addEventListener("focusin", event => { const target = event.target.closest("[data-tooltip]"); if (target) showTooltip(target); else hideTooltip(); });
+    document.addEventListener("scroll", hideTooltip, true);
+    for (const id of ["defenseSelect", "expandedDefense"]) $(id).addEventListener("change", event => { if (model) changeTeam(event.target.value); });
+    for (const id of ["rangeSelect", "expandedRange"]) $(id).addEventListener("change", event => { if (model) { state.range = event.target.value; refresh(); } });
+    $("recentSelect").addEventListener("change", event => { if (model) { state.recent = Number(event.target.value); refresh({ rebuildOptions: true }); } });
+    $("venueSelect").addEventListener("change", event => { if (model) { state.venue = event.target.value; refresh(); } });
+    $("fromSelect").addEventListener("change", event => { if (model) { state.from = Number(event.target.value); if (state.from > state.to) state.to = state.from; refresh({ rebuildOptions: true }); } });
+    $("toSelect").addEventListener("change", event => { if (model) { state.to = Number(event.target.value); if (state.to < state.from) state.from = state.to; refresh({ rebuildOptions: true }); } });
+    for (const id of ["playerSearch", "expandedSearch"]) $(id).addEventListener("input", event => { if (model) { state.query = event.target.value; renderPlayers(); } });
+    for (const id of ["hideZero", "expandedHideZero"]) $(id).addEventListener("change", event => { if (model) { state.hideZero = event.target.checked; renderPlayers(); } });
+    $("resetFilters").addEventListener("click", () => {
+      if (!model) return;
+      Object.assign(state, { pos: "QB", range: "all", recent: 2, venue: "all", from: model.minWeek, to: model.maxWeek, query: "", hideZero: false });
+      state.heatSort = { metric: "QB", direction: "desc" }; refresh({ rebuildOptions: true }); notice("Filters reset to the season so far.");
+    });
+    $("fileInput").addEventListener("change", event => importFile(event.target.files[0]));
+    $("restoreSource").addEventListener("click", async () => {
+      if (importing) return;
+      importing = true; $("fileInput").disabled = true; $("restoreSource").disabled = true;
+      try {
+        const source = await builtinSource();
+        let cleared = true;
+        try { localStorage.removeItem(STORE_KEY); } catch { cleared = false; }
+        useSource(source.model, source.kind); warning(source.message);
+        $("uploadMessage").classList.remove("is-error"); $("uploadMessage").textContent = `The supplied 2026 dataset has been restored. ${cleared ? "The browser's uploaded override was cleared." : "Browser storage is unavailable; the restore applies to this session."}`;
+      } catch (error) { $("uploadMessage").classList.add("is-error"); $("uploadMessage").textContent = error.message; }
+      finally { importing = false; $("fileInput").disabled = false; $("restoreSource").disabled = false; }
+    });
+    $("downloadSource").addEventListener("click", () => { if (model) download(model.name, model.rawCSV); });
+    $("exportRankings").addEventListener("click", () => { if (model) exportRankings(); });
+    $("exportPlayers").addEventListener("click", () => { if (model) exportPlayers(); });
+    document.querySelectorAll(".navigation a").forEach(link => link.addEventListener("click", () => { document.querySelectorAll(".navigation a").forEach(other => other.classList.toggle("is-active", other === link)); }));
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer); hideTooltip();
+      resizeTimer = setTimeout(() => { if (model) { renderWeeklyChart(); renderComparison(); if (state.playerView === "plot") renderPlayerPlot(selectedPlayers()); } }, 120);
+    });
+  }
+  async function init() {
+    bindEvents(); readURL();
+    let storedWarning = "";
+    try {
+      try {
+        const saved = localStorage.getItem(STORE_KEY);
+        if (saved) {
+          const source = JSON.parse(saved);
+          if (source.season !== 2026) throw new Error("Saved upload is not a 2026 dataset.");
+          useSource(Data.readSource(source.csv, { name: source.name }), "Uploaded CSV");
+          return;
+        }
+      } catch (error) { storedWarning = `The saved upload could not be read. ${error.message} `; }
+      const source = await builtinSource();
+      useSource(source.model, source.kind); warning(storedWarning + source.message);
+    } catch (error) {
+      warning(error.message); $("scopeText").textContent = "Upload the supplied CSV to begin.";
+      $("throughWeek").textContent = "CSV needed"; $("sourceStatusText").textContent = "Choose weekly data";
+      $("dashboard").setAttribute("aria-busy", "false"); openDialog("dataDialog");
+    }
+  }
+  init();
 })();

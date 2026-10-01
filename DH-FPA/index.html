@@ -1,275 +1,101 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>2025 Fantasy Points Against — Matchup Explorer</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1017">
+  <meta name="description" content="Explore 2026 PPR fantasy points allowed by defense and position, using weekly player results.">
+  <title>2026 Matchup Explorer · Dynasty Hub</title>
+  <link rel="icon" href="assets/icons/favicon.ico">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-180.png">
+  <link rel="stylesheet" href="styles.css?v=2026.1">
+  <script defer src="data-model.js?v=2026.1"></script>
+  <script defer src="data/2026-weekly.js?v=2026.1"></script>
+  <script defer src="app.js?v=2026.1"></script>
 </head>
 <body>
-  <canvas id="stars" aria-hidden="true"></canvas>
-
-  <header class="topbar">
-    <div class="topbar__left">
-      <div class="badge">FPA</div>
-      <div>
-        <div class="title">2025 Fantasy Points Against</div>
-        <div class="subtitle">Matchup Explorer • Season vs Weeks 9–15 • Player-level drilldowns</div>
-      </div>
-    </div>
-
-    <div class="topbar__right">
-      <div class="segmented" role="tablist" aria-label="Dataset selector">
-        <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
-        <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
-      </div>
-
-      <div class="pill" id="loadStatus" title="Data load status">
-        <span class="dot is-warn"></span>
-        <span>Loading CSVs…</span>
-      </div>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <section class="panel hero">
-      <div class="hero__grid">
-        <div class="hero__left">
-          <h2>Quick Matchup Finder</h2>
-          <p class="muted">
-            Pick a position + opponent defense to instantly see how targetable that defense is for that position —
-            comparing full-season trends vs recent (Weeks 9–15).
-          </p>
-
-          <div class="controls">
-            <label class="field">
-              <span>Position</span>
-              <div class="pos-toggle" role="group" aria-label="Position toggle">
-                <button class="pos-btn is-active" data-pos="QB">QB</button>
-                <button class="pos-btn" data-pos="RB">RB</button>
-                <button class="pos-btn" data-pos="WR">WR</button>
-                <button class="pos-btn" data-pos="TE">TE</button>
-              </div>
-            </label>
-
-            <label class="field">
-              <span>Opponent Defense</span>
-              <select id="teamSelect" class="select"></select>
-            </label>
-          </div>
-
-          <div class="cards" id="quickCards">
-            <!-- populated by JS -->
-          </div>
-        </div>
-
-        <div class="hero__right">
-          <h2>Landscape</h2>
-          <p class="muted">
-            Scatter = defenses by FPA (Season vs Recent). Above the diagonal → trending easier.
-          </p>
-
-          <div class="chartCard">
-            <div class="chartTitleRow">
-              <div class="chartTitle">
-                <span id="scatterTitle">QB</span> — Season vs Weeks 9–15
-              </div>
-              <div class="smallToggle">
-                <button class="smallToggle__btn is-active" data-scatmode="avg">Avg</button>
-                <button class="smallToggle__btn" data-scatmode="rank">Rank</button>
-              </div>
-            </div>
-
-            <!-- IMPORTANT: fixed-height parent prevents "expanding forever" resize loops in some hosts -->
-            <div class="canvasBox canvasBox--scatter">
-              <canvas id="scatterChart"></canvas>
-            </div>
-
-            <div class="chartHint">
-              Tip: hover points for details • click a point to open drilldown
-            </div>
-          </div>
-        </div>
-
-        <!-- Full-width row to avoid the left-column “dead space” you saw in published views -->
-        <div class="hero__mini">
-          <div class="miniCard">
-            <div class="miniCard__title">Easiest (Season)</div>
-            <div class="miniCard__body" id="topSeason"></div>
-          </div>
-          <div class="miniCard">
-            <div class="miniCard__title">Easiest (Weeks 9–15)</div>
-            <div class="miniCard__body" id="topRecent"></div>
-          </div>
-          <div class="miniCard">
-            <div class="miniCard__title">Biggest Trend: Easier</div>
-            <div class="miniCard__body" id="trendUp"></div>
-          </div>
-          <div class="miniCard">
-            <div class="miniCard__title">Biggest Trend: Tougher</div>
-            <div class="miniCard__body" id="trendDown"></div>
-          </div>
-        </div>
-      </div>
+  <svg class="iconSprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="icon-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 3v17h17M8 14l4-5 4 2 5-7"/></symbol>
+    <symbol id="icon-data" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="icon-expand" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m6 0h6v-6"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="icon-reset" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 2 9M3 3v7h7"/></symbol>
+    <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
+  </svg>
+  <a class="skipLink" href="#overview">Skip to matchup analysis</a>
+  <header class="topbar"><div class="topbarInner">
+    <a class="brand" href="https://dynastyhub.netlify.app/" aria-label="Dynasty Hub home"><img src="assets/welcome/welcome-logo-256.png" width="36" height="36" alt=""><span>DYNASTY<span class="brandLight">HUB</span></span></a>
+    <nav class="navigation" aria-label="Dashboard sections"><a class="is-active" href="#overview">Overview</a><a href="#rankings">Rankings</a><a href="#players">Player results</a></nav>
+    <button type="button" class="button button--quiet" id="openData"><svg class="icon"><use href="#icon-data"/></svg><span>Data &amp; updates</span></button>
+  </div></header>
+  <main class="workspace" id="overview">
+    <section class="intro" aria-labelledby="pageTitle">
+      <div><div class="eyebrow"><span class="liveDot"></span>2026 NFL SEASON <span class="eyebrowDivider">/</span> <span id="throughWeek">Loading results</span></div><h1 id="pageTitle">Matchup Explorer<span class="titleDot">.</span></h1><p class="introDescription">Fantasy points allowed. Every defense, every position, every week.</p></div>
+      <div class="coverage" id="coverage" aria-label="Source coverage"></div>
     </section>
-
-    <section class="grid2">
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <h2>Heatmap Table</h2>
-            <div class="muted">Click any cell to drill into weekly players + weekly totals.</div>
-          </div>
-
-          <div class="panelHeader__right">
-            <label class="field small">
-              <span>Sort by</span>
-              <select id="sortSelect" class="select">
-                <option value="Total_Rk">Total (rank)</option>
-                <option value="QB_Rk">QB (rank)</option>
-                <option value="RB_Rk">RB (rank)</option>
-                <option value="WR_Rk">WR (rank)</option>
-                <option value="TE_Rk">TE (rank)</option>
-                <option value="Total Avg">Total (avg)</option>
-                <option value="QB_Avg">QB (avg)</option>
-                <option value="RB_Avg">RB (avg)</option>
-                <option value="WR_Avg">WR (avg)</option>
-                <option value="TE_Avg">TE (avg)</option>
-              </select>
-            </label>
-
-            <label class="field small">
-              <span>Direction</span>
-              <select id="dirSelect" class="select">
-                <option value="desc">Easiest → Toughest</option>
-                <option value="asc">Toughest → Easiest</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div class="tableWrap">
-          <table class="heat" id="heatTable">
-            <!-- populated by JS -->
-          </table>
-        </div>
-        <div class="footnote">
-          Ranks: 1 = toughest (fewest points allowed) • 32 = easiest (most allowed)
-        </div>
+    <div class="loadError" id="loadError" role="alert" hidden></div>
+    <section class="filterbar" aria-label="Analysis filters">
+      <div class="filterPosition"><span class="fieldLabel">POSITION</span><div class="positionToggle" id="positionToggle" role="group" aria-label="Analysis position"><button type="button" data-position="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" aria-pressed="false">TE</button></div></div>
+      <label class="filterField"><span class="fieldLabel">WEEK RANGE</span><select id="rangeSelect" aria-label="Analysis week range"><option value="all">Season so far</option></select></label>
+      <label class="filterField"><span class="fieldLabel">RECENT WINDOW</span><select id="recentSelect" aria-label="Recent window"><option value="2">Last 2 weeks</option></select></label>
+      <label class="filterField"><span class="fieldLabel">DEFENSE VENUE</span><select id="venueSelect" aria-label="Defense venue"><option value="all">All venues</option><option value="home">At home</option><option value="away">On the road</option></select></label>
+      <button type="button" class="iconButton filterReset" id="resetFilters" aria-label="Reset analysis filters" title="Reset filters"><svg class="icon"><use href="#icon-reset"/></svg></button>
+      <div class="customRange" id="customRange" hidden><label>From <select id="fromSelect" aria-label="First week"></select></label><span aria-hidden="true">→</span><label>Through <select id="toSelect" aria-label="Last week"></select></label></div>
+    </section>
+    <div class="scopeLine"><span id="scopeText">Loading the supplied weekly data…</span><span class="sampleNote" id="sampleNote"></span></div>
+    <div class="dashboardGrid" id="dashboard" aria-busy="true">
+      <section class="panel defensePanel" aria-labelledby="defenseTitle">
+        <div class="panelHeader defenseHeader"><div class="defenseIdentity"><div class="defenseLogo" id="defenseLogo"></div><div><div class="fieldLabel">DEFENSE PROFILE</div><h2 id="defenseTitle">Select a defense</h2><div class="panelSubtitle" id="defenseSubtitle"></div></div></div><label class="defensePicker"><span class="srOnly">Opponent defense</span><select id="defenseSelect" aria-label="Opponent defense"></select></label></div>
+        <div class="metricGrid" id="metrics"></div>
+        <div class="profileChart"><div class="sectionHeading"><h3>Week by week</h3><span id="weeklyScope" class="smallMuted"></span></div><div class="chartLegend"><span><i class="legendSquare"></i><span id="weeklyLegend">Defense total</span></span><span><i class="legendLine"></i>League average</span></div><div class="chart" id="weeklyChart"></div><div class="weeklyBreakdown" id="weeklyBreakdown"></div></div>
+        <div class="positionSummary" id="positionSummary" aria-label="Selected defense by position"></div><div class="panelFootnote" id="profileFootnote"></div>
       </section>
-
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <h2>Defense Profile</h2>
-            <div class="muted">Select a team from the table or scatter to compare season vs recent.</div>
-          </div>
-          <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
-        </div>
-
-        <div class="profileGrid">
-          <div class="profileCard">
-            <div class="profileCard__title">Season vs Weeks 9–15 (Ranks)</div>
-            <div class="canvasBox canvasBox--radar">
-              <canvas id="radarChart"></canvas>
-            </div>
-            <div class="chartHint">Higher rank = easier matchup</div>
-          </div>
-
-          <div class="profileCard">
-            <div class="profileCard__title">Weekly Totals vs Selected Position</div>
-            <div class="muted smallLine" id="weeklySub">Select a position + team to populate.</div>
-            <div class="canvasBox canvasBox--weekly">
-              <canvas id="weeklyChart"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="profileFooter">
-          <div class="muted smallLine">
-            Drilldowns use <strong>WKLY-DEF_vs_POS_by_Player.csv</strong> to show which players drove each week’s FPA.
-          </div>
-        </div>
+      <section class="panel rankingsPanel" id="rankings" aria-labelledby="rankingsTitle">
+        <div class="panelHeader"><div><div class="fieldLabel">THE LEAGUE AT A GLANCE</div><h2 id="rankingsTitle">Matchup heatmap</h2><p class="panelSubtitle">Select a cell to explore that defense.</p></div><button type="button" class="iconButton" id="exportRankings" aria-label="Download current matchup rankings" title="Download rankings"><svg class="icon"><use href="#icon-download"/></svg></button></div>
+        <div class="heatLegend"><span>Tougher</span><span class="heatLegendScale" aria-hidden="true"></span><span>Easier</span><span class="heatLegendNote">Rank / FPA per game</span></div>
+        <div class="heatTableScroll" tabindex="0" aria-label="Scrollable matchup heatmap"><table class="heatTable" id="heatTable"><caption class="srOnly">Defense rankings and average fantasy points allowed by position</caption></table></div>
+        <div class="panelFootnote">Rank 1 allows the fewest points. Higher ranks allow more. <span id="rankPoolNote"></span></div>
       </section>
+      <section class="panel comparisonPanel" aria-labelledby="comparisonTitle">
+        <div class="panelHeader"><div><div class="fieldLabel">RECENT FORM</div><h2 id="comparisonTitle">Season &amp; recent</h2><p class="panelSubtitle" id="comparisonSubtitle"></p></div><div class="smallToggle" role="group" aria-label="Comparison metric"><button type="button" data-scatter-mode="avg" aria-pressed="true">Points</button><button type="button" data-scatter-mode="rank" aria-pressed="false">Ranks</button></div></div>
+        <div class="comparisonChart chart" id="comparisonChart"></div><div class="comparisonDetail" id="comparisonDetail" aria-live="polite"></div><div class="panelFootnote"><span id="comparisonExplanation">Above the diagonal = more points allowed recently.</span> Select a defense to explore it. <span id="comparisonNote"></span></div>
+      </section>
+      <section class="panel insightsPanel" aria-labelledby="insightsTitle">
+        <div class="panelHeader"><div><div class="fieldLabel">MATCHUP WATCH</div><h2 id="insightsTitle">Where the points go</h2><p class="panelSubtitle" id="insightsSubtitle"></p></div><span class="positionBadge" id="insightsPosition">QB</span></div>
+        <div class="insightTabs" role="group" aria-label="Matchup list"><button type="button" data-insight="easy" aria-pressed="true">Easiest</button><button type="button" data-insight="tough" aria-pressed="false">Toughest</button><button type="button" data-insight="up" aria-pressed="false">Getting easier</button><button type="button" data-insight="down" aria-pressed="false">Getting tougher</button></div><div id="insightList" class="insightList"></div><div class="panelFootnote" id="insightFootnote"></div>
+      </section>
+    </div>
+    <section class="panel playersPanel" id="players" aria-labelledby="playersTitle">
+      <div class="panelHeader"><div><div class="fieldLabel">BEHIND THE TOTALS</div><h2 id="playersTitle">Player results</h2><p class="panelSubtitle" id="playersSubtitle"></p></div><div class="playersActions"><div class="smallToggle" role="group" aria-label="Player results view"><button type="button" data-player-view="table" aria-pressed="true">Table</button><button type="button" data-player-view="plot" aria-pressed="false">Plot</button></div><button type="button" class="iconButton" id="expandPlayers" aria-label="Expand player results" title="Expand player results"><svg class="icon"><use href="#icon-expand"/></svg></button></div></div>
+      <div class="playerFilters"><label class="searchField"><svg class="icon"><use href="#icon-search"/></svg><input type="search" id="playerSearch" placeholder="Search a player or offense…" aria-label="Search player results"></label><label class="checkboxField"><input type="checkbox" id="hideZero">Hide zero scores</label><button type="button" class="button button--quiet" id="exportPlayers"><svg class="icon"><use href="#icon-download"/></svg>Export results</button></div>
+      <div class="playerTableScroll" id="playerTableWrap" tabindex="0" aria-label="Scrollable player results"><table class="playerTable" id="playerTable"></table></div><div class="playerPlot chart" id="playerPlot" hidden></div><div class="playerFooter"><span id="playerCount" aria-live="polite"></span><span>Zero scores are recorded values; participation is not supplied.</span></div>
     </section>
-
-    <section class="panel uploader" id="uploader">
-      <h2>CSV Loader (only if auto-load fails)</h2>
-      <p class="muted">
-        If you opened this page directly as a file (<code>file://</code>), browsers often block CSV fetches.
-        Easiest fix: run a tiny local server (example: <code>python -m http.server</code>) or upload these files below.
-      </p>
-
-      <div class="uploadRow">
-        <input id="fileInput" class="file" type="file" accept=".csv" multiple />
-        <div class="muted smallLine">
-          Select exactly these 3 files: <strong>WKLY-DEF_vs_POS_by_Player.csv</strong>, <strong>Season_FPA_Summary.csv</strong>, <strong>WK9-15_FPA_Summary.csv</strong>
-        </div>
-      </div>
-    </section>
+    <details class="methodology" id="methodology"><summary><svg class="icon"><use href="#icon-info"/></svg>How these numbers work<span class="methodologyChev" aria-hidden="true">+</span></summary><div class="methodologyGrid">
+      <div><h3>One defense. One position. One game.</h3><p>We add every supplied player’s PPR points against a defense for that position and week. FPA per game is that total divided by the number of observed games. Zero and negative scores are included. A missing position or week stays unavailable.</p></div>
+      <div><h3>The opponent determines the defense.</h3><p><code>vs TB</code> means the player was home and Tampa Bay’s defense was away. <code>@ NYG</code> means the player was away and the Giants’ defense was home. Venue filters always describe the defense.</p></div>
+      <div><h3>Ranks use the actual averages.</h3><p>Rank 1 allows the fewest points. Higher ranks are easier scoring matchups. We rank unrounded averages; ties share a rank. The league average weights each observed defense game equally. Player ranks in the source are not defense ranks.</p></div>
+      <div><h3>Only the supplied 2026 results.</h3><p>Recent form compares the selected recent window with the season so far. Those samples overlap. Rows without an opponent cannot be assigned to a defense. Early-season results describe the sample; they do not project a player’s next score.</p></div>
+    </div></details>
+    <footer class="pageFooter"><span>DYNASTY HUB <span class="footerSlash">/</span> 2026 MATCHUP DATABASE</span><button type="button" class="sourceStatus" id="sourceStatus"><span class="liveDot"></span><span id="sourceStatusText">Loading weekly results</span></button></footer>
   </main>
-
-  <!-- Drilldown modal -->
-  <div class="modal" id="modal" aria-hidden="true">
-    <div class="modal__backdrop" data-close="1"></div>
-    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal__head">
-        <div>
-          <div class="modal__kicker">Drilldown</div>
-          <div id="modalTitle" class="modal__title">—</div>
-        </div>
-        <button class="iconBtn" data-close="1" aria-label="Close">✕</button>
-      </div>
-
-      <div class="modal__body">
-        <div class="modalCards" id="modalCards"></div>
-
-        <div class="modalSplit">
-          <div class="modalSection">
-            <div class="modalSection__title">Weekly Totals</div>
-            <div class="canvasBox canvasBox--modalWeekly">
-              <canvas id="modalWeeklyChart"></canvas>
-            </div>
-            <div class="chartHint">Bars = total FPA allowed to that position each week</div>
-          </div>
-
-          <div class="modalSection">
-            <div class="modalSection__title">Players (click headers to sort)</div>
-            <div class="modalFilters">
-              <label class="field small">
-                <span>Weeks</span>
-                <select id="weekRange" class="select">
-                  <option value="all">All (1–15)</option>
-                  <option value="recent">Weeks 9–15</option>
-                  <option value="1-8">Weeks 1–8</option>
-                  <option value="9-12">Weeks 9–12</option>
-                  <option value="13-15">Weeks 13–15</option>
-                </select>
-              </label>
-
-              <label class="field small">
-                <span>Search</span>
-                <input id="playerSearch" class="input" type="text" placeholder="Player or team…" />
-              </label>
-            </div>
-
-            <div class="tableWrap modalTableWrap">
-              <table class="list" id="playerTable"></table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal__foot">
-        <button class="btn" data-close="1">Close</button>
-      </div>
+  <dialog class="dialog dataDialog" id="dataDialog" aria-labelledby="dataDialogTitle">
+    <div class="dialogHeader"><div><div class="fieldLabel">2026 SEASON</div><h2 id="dataDialogTitle">Data &amp; updates</h2></div><button type="button" class="iconButton" data-close-dialog aria-label="Close data and updates"><svg class="icon"><use href="#icon-close"/></svg></button></div>
+    <div class="dialogBody"><div class="sourceCard" id="sourceCard"></div><h3 class="dialogSectionTitle">Update with one weekly CSV</h3><p class="smallMuted">Upload the complete season-to-date file to replace this browser’s dataset. All views recalculate, and new weeks become available automatically. The upload is saved in this browser when local storage is available.</p>
+      <label class="uploadBox"><svg class="icon"><use href="#icon-upload"/></svg><span><strong>Choose a 2026 weekly CSV</strong><span>Required: WEEK, PLAYER NAME, POS, FPT_PPR, VS</span></span><input type="file" id="fileInput" accept=".csv,text/csv" aria-label="Choose a 2026 weekly CSV"></label><p class="uploadMessage" id="uploadMessage" role="status"></p>
+      <div class="dataActions"><button type="button" class="button" id="downloadSource"><svg class="icon"><use href="#icon-download"/></svg>Download current source</button><button type="button" class="button button--quiet" id="restoreSource"><svg class="icon"><use href="#icon-reset"/></svg>Restore bundled data</button></div><details class="sourceDetails"><summary>Source coverage &amp; excluded rows</summary><div id="sourceDiagnostics"></div></details>
     </div>
-  </div>
-
-  <!-- Libraries (CDN). If you prefer offline, download these and point to local files. -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="app.js"></script>
+  </dialog>
+  <dialog class="dialog expandedDialog" id="playersDialog" aria-labelledby="expandedTitle">
+    <div class="dialogHeader"><div><div class="fieldLabel">BEHIND THE TOTALS</div><h2 id="expandedTitle">Player results</h2><p class="panelSubtitle" id="expandedSubtitle"></p></div><button type="button" class="iconButton" data-close-dialog aria-label="Close expanded player results"><svg class="icon"><use href="#icon-close"/></svg></button></div>
+    <div class="dialogBody"><div class="expandedControls"><label><span class="fieldLabel">DEFENSE</span><select id="expandedDefense" aria-label="Expanded opponent defense"></select></label><div class="positionToggle" id="expandedPosition" role="group" aria-label="Expanded position"><button type="button" data-position="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" aria-pressed="false">TE</button></div><label><span class="fieldLabel">WEEK RANGE</span><select id="expandedRange" aria-label="Expanded week range"></select></label></div>
+      <div class="playerFilters"><label class="searchField"><svg class="icon"><use href="#icon-search"/></svg><input type="search" id="expandedSearch" placeholder="Search a player or offense…" aria-label="Search expanded player results"></label><label class="checkboxField"><input type="checkbox" id="expandedHideZero">Hide zero scores</label></div><div class="expandedTableScroll" tabindex="0" aria-label="Expanded player results"><table class="playerTable" id="expandedTable"></table></div><div class="playerFooter"><span id="expandedCount"></span><span>Filters also update the dashboard.</span></div>
+    </div>
+  </dialog>
+  <div class="chartTooltip" id="chartTooltip" role="status" hidden></div><div class="toast" id="toast" role="status" hidden></div>
+  <noscript><p class="noscript">Enable JavaScript to explore the supplied 2026 results. The source CSV is in the data folder.</p></noscript>
 </body>
 </html>
