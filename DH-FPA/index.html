@@ -11,10 +11,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,slnt,wdth,wght,GRAD,ROND@6..144,-10..0,25..151,1..1000,0..100,0..100&amp;family=MuseoModerno:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.2">
+  <link rel="stylesheet" href="styles.css?v=2026.3">
   <script defer src="data-model.js?v=2026.2"></script>
   <script defer src="data/2026-weekly.js?v=2026.2"></script>
-  <script defer src="app.js?v=2026.2"></script>
+  <script defer src="chart-utils.js?v=2026.3"></script>
+  <script defer src="app.js?v=2026.3"></script>
 </head>
 <body data-page="matchups">
   <div class="background-orb background-orb--one" aria-hidden="true"></div>
@@ -38,7 +39,7 @@
     </header>
     <div class="loadError" id="loadError" role="alert" hidden></div>
     <section class="toolbar glass-panel" aria-label="Matchup selection">
-      <label class="defensePicker"><span class="fieldLabel">DEFENSE</span><select id="defenseSelect" aria-label="Opponent defense"></select></label>
+      <div class="defensePicker"><span class="fieldLabel">DEFENSE</span><div class="teamPicker" id="teamPicker" data-picker-kind="team"></div></div>
       <div class="positionToggle" id="positionToggle" role="group" aria-label="Analysis position">
         <button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button>
         <button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button>
@@ -46,7 +47,7 @@
         <button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button>
         <button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button>
       </div>
-      <label class="venuePicker"><span class="fieldLabel">DEFENSE VENUE</span><select id="venueSelect" aria-label="Defense venue"><option value="all">All games</option><option value="home">At home</option><option value="away">On the road</option></select></label>
+      <div class="venuePicker"><span class="fieldLabel">DEFENSE VENUE</span><div class="teamPicker venueMenu" id="venueMenu" data-picker-kind="venue"></div></div>
       <span class="toolbarNote" id="scopeNote"></span>
     </section>
     <div class="matchupLayout" id="analysis" aria-busy="true">
@@ -92,7 +93,11 @@
   <dialog class="expandedDialog glass-panel" id="playersDialog" aria-labelledby="expandedTitle">
     <div class="dialogHeader"><div><span class="fieldLabel">RECORDED PLAYER SCORES</span><h2 id="expandedTitle">Players faced</h2><p class="panelSubtitle" id="expandedSubtitle"></p></div><button type="button" class="iconButton" data-close-dialog aria-label="Close expanded player results"><svg class="icon"><use href="#icon-close"/></svg></button></div>
     <div class="dialogBody">
-      <div class="expandedControls"><select id="expandedDefense" aria-label="Expanded opponent defense"></select><div class="positionToggle" role="group" aria-label="Expanded position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div><select id="expandedVenue" aria-label="Expanded defense venue"><option value="all">All games</option><option value="home">Defense at home</option><option value="away">Defense on the road</option></select></div>
+      <div class="expandedControls">
+        <div class="teamPicker" id="modalTeamPicker" data-picker-kind="team"></div>
+        <div class="positionToggle" role="group" aria-label="Expanded position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div>
+        <div class="teamPicker venueMenu" id="modalVenueMenu" data-picker-kind="venue"></div>
+      </div>
       <div class="playerFilters"><label class="searchField"><svg class="icon"><use href="#icon-search"/></svg><input type="search" id="expandedSearch" placeholder="Search players or offenses" aria-label="Search expanded player results"></label><label class="checkboxField"><input type="checkbox" id="expandedHideZero">Hide zeros</label></div>
       <div class="tableScroll expandedTableScroll" tabindex="0" aria-label="Expanded player results"><table class="playerTable" id="expandedTable"></table></div><div class="playerFooter"><span id="expandedCount"></span><span>Selections update the dashboard.</span></div>
     </div>

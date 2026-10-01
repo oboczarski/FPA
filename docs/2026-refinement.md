@@ -33,3 +33,11 @@ Example: BAL QB opponents IND/NO/DAL supply averages 10.4/24.1/21.4. Expected to
 Run only bounded calculation and source checks: updated targeted unit suite, independent actual/expected reconciliation, source/snapshot identity, JavaScript syntax, HTML/JS control wiring, and Git whitespace. Browser/mobile/tablet visual testing and deployment checks are user-owned. Do not open a preview. Publish only the intended FPA files on the current F-39 branch.
 
 Completed: all 33 unit checks passed; independent reconciliation passed for 2,880 defense-position cases across 18 scopes, including expected/actual totals, both scatter ranks, deltas, and weighted league averages. Source checks confirmed the player section follows the weekly chart, every literal JS control ID exists, removed flows have no HTML controls or runtime handlers, local resources exist, and both supplied CSVs remain byte-identical. JavaScript syntax and Git whitespace checks passed. No browser session or preview was opened.
+
+## Follow-up: original menus and scatter axis bounds
+
+Restore the original defense dropdown from `608b6e2`: AFC/NFC division groups, conference and team logos, layered logo glows, rounded dark options, and the selected cyan/violet treatment. Use it in both the main toolbar and expanded player dialog, with matching venue menus. Keep the compact page layout. Menus fit the viewport, can scroll, close outside or on Escape, and support Arrow Up/Down and Home/End selection. Native popovers place them above the glass panels and modal table.
+
+Fit expected and actual points axes independently, rounding each minimum down and maximum up to multiples of 10. The requested 32.4–76.2 range becomes 30–80. Position/venue changes recompute the bounds. Clip the actual=expected line and shading in data coordinates so different axis ranges retain the correct comparison. Preserve rank-mode bounds/ticks and all scoring calculations and source files.
+
+Bounded follow-up verification: seven chart checks passed, covering the requested range, independent axes, negative/missing values, degenerate ranges, equality geometry, nonoverlapping ranges, and the original rank equality line. Syntax/control-ID/local-resource checks passed; source inspection confirmed all four native selects were replaced. Browser and visual testing remain user-owned; no preview was opened.

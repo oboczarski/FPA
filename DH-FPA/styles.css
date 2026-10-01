@@ -31,13 +31,11 @@ h1 { font:600 26px/1.1 "MuseoModerno",var(--font); letter-spacing:-.7px; backgro
 h2 { font-size:17px; line-height:1.2; font-weight:550; letter-spacing:-.3px; }
 h3 { font-size:12px; font-weight:550; }
 a { color:inherit; text-decoration:none; }
-button,input,select { font:inherit; color:inherit; min-width:0; }
+button,input { font:inherit; color:inherit; min-width:0; }
 button { cursor:pointer; background:none; }
-button,a,input,select,summary { -webkit-tap-highlight-color:transparent; }
+button,a,input,summary { -webkit-tap-highlight-color:transparent; }
 button:disabled { cursor:default; opacity:.45; }
-button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible { outline:2px solid #74efff; outline-offset:2px; }
-select { width:100%; padding:6px 22px 6px 8px; min-height:31px; cursor:pointer; font-size:11px; border:1px solid var(--border); border-radius:8px; background:rgba(33,40,62,.6); }
-select option { color:var(--text); background:#151c2b; }
+button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible,[tabindex]:focus-visible { outline:2px solid #74efff; outline-offset:2px; }
 input[type="checkbox"] { accent-color:#88b8ff; width:13px; height:13px; margin:0; }
 [hidden] { display:none!important; }
 svg { display:block; }
@@ -66,12 +64,45 @@ svg { display:block; }
 .coverage strong { color:#d6defa; font-weight:500; }
 .loadError { margin:0 0 8px; padding:10px; color:#ffd1da; border:1px solid #ff8fab40; background:#852b4920; border-radius:10px; }
 .toolbar { display:flex; align-items:center; gap:14px; padding:8px 12px; margin-bottom:10px; }
-.toolbar label { display:flex; align-items:center; gap:8px; }
+.defensePicker,.venuePicker { display:flex; align-items:center; gap:8px; min-width:0; }
 .fieldLabel { color:var(--dim); font-size:7px; font-weight:600; letter-spacing:1.1px; white-space:nowrap; }
-.defensePicker { flex:0 1 280px; }
-.defensePicker select { width:222px; }
+.defensePicker { flex:0 1 184px; }
+.defensePicker > .teamPicker { flex:1; }
 .venuePicker { flex:0 0 216px; }
-.venuePicker select { width:126px; }
+.venuePicker > .teamPicker { flex:1; }
+.teamPicker { position:relative; min-width:0; }
+.teamPicker__btn {
+  width:100%; height:36px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 12px;
+  border-radius:14px; border:1px solid rgba(255,255,255,.14); color:rgba(255,255,255,.92); font-weight:900; letter-spacing:.04em;
+  background:radial-gradient(180px 70px at 20% 20%,rgba(0,191,255,.14),transparent 60%),linear-gradient(135deg,rgba(255,255,255,.06),rgba(0,0,0,.16));
+}
+.teamPicker__btn:hover { border-color:rgba(255,255,255,.2); }
+.teamPicker.is-open .teamPicker__btn { border-color:rgba(0,191,255,.55); }
+.teamPicker__left { display:flex; align-items:center; gap:9px; min-width:0; }
+.teamPicker__code { font-size:15px; font-weight:950; }
+.teamPicker__chev { opacity:.75; font-size:12px; }
+.teamLogoStack { display:inline-grid; place-items:center; vertical-align:middle; line-height:0; flex:none; }
+.teamLogo { width:19px; height:19px; object-fit:contain; border-radius:4px; display:block; }
+.teamLogoStack__glow { grid-area:1 / 1; z-index:0; filter:drop-shadow(0 0 3px var(--team-glow)); }
+.teamLogoStack__img { grid-area:1 / 1; z-index:1; }
+.teamPicker__btn .teamLogo { width:22px; height:22px; }
+.teamPicker__panel {
+  position:fixed; inset:auto; margin:0; z-index:120; width:min(560px,calc(100vw - 28px)); max-height:calc(100dvh - 16px); overflow:auto;
+  padding:10px; border-radius:18px; border:1px solid rgba(255,255,255,.14); color:rgba(255,255,255,.92);
+  background:rgba(8,8,18,.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 16px 48px rgba(0,0,0,.5);
+  display:none; grid-template-columns:repeat(8,minmax(0,1fr)); gap:6px; align-items:start;
+}
+.teamPicker__panel:popover-open { display:grid; }
+.teamPickerDiv { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.teamPickerDiv__title { display:flex; align-items:center; justify-content:center; gap:6px; font-size:10px; font-weight:500; letter-spacing:.06em; color:rgb(209,204,228); line-height:1.1; user-select:none; margin-bottom:1px; text-transform:uppercase; }
+.teamPickerDiv__confLogo { width:14px; height:14px; object-fit:contain; opacity:.9; filter:drop-shadow(0 0 6px rgba(0,0,0,.35)); }
+.teamOption { width:100%; display:flex; align-items:center; justify-content:center; gap:4px; padding:7px 3px; border-radius:14px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); color:rgba(255,255,255,.9); font-weight:950; letter-spacing:.06em; }
+.teamOption:hover { border-color:rgba(255,255,255,.18); background:rgba(255,255,255,.07); }
+.teamOption.is-selected { border-color:rgba(0,191,255,.55); background:linear-gradient(135deg,rgba(0,191,255,.14),rgba(207,120,255,.12)); }
+.teamOption__code { font-size:12px; }
+.venueMenuLabel { font-size:11px; font-weight:600; letter-spacing:0; white-space:nowrap; }
+.venueMenu .teamPicker__panel { width:164px; grid-template-columns:1fr; }
+.venueOption { justify-content:flex-start; padding:8px 10px; font-size:11px; font-weight:600; letter-spacing:0; }
 .toolbarNote { margin-left:auto; color:var(--dim); font-size:9px; white-space:nowrap; }
 .positionToggle,.smallToggle { display:inline-flex; gap:3px; padding:3px; border:1px solid #aabbff1c; border-radius:11px; background:#03091642; box-shadow:inset 0 2px 9px #01051238; }
 .positionToggle button { position:relative; min-width:41px; padding:5px 9px; border:1px solid transparent; border-radius:8px; color:var(--muted); font-size:11px; font-weight:600; }
@@ -212,7 +243,7 @@ dialog::backdrop { background:rgba(0,0,0,.58); backdrop-filter:blur(5px); }
 .dialogHeader h2 { margin:3px 0; }
 .dialogBody { padding:10px 12px 12px; }
 .expandedControls { display:flex; align-items:center; gap:9px; margin-bottom:8px; }
-.expandedControls > select { flex:1; min-width:120px; }
+.expandedControls > .teamPicker { flex:1; min-width:120px; }
 .expandedTableScroll { max-height:58dvh; }
 .expandedTableScroll table { min-width:500px; }
 .noscript { position:relative; padding:15px; color:var(--text); }
@@ -220,7 +251,6 @@ dialog::backdrop { background:rgba(0,0,0,.58); backdrop-filter:blur(5px); }
   .toolbar { gap:9px; }
   .toolbarNote { display:none; }
   .defensePicker { flex:1; }
-  .defensePicker select { width:100%; }
   .venuePicker { flex-basis:200px; }
   .defenseHeader h2 { font-size:18px; }
   .metricStrip { gap:4px; }
@@ -252,15 +282,17 @@ dialog::backdrop { background:rgba(0,0,0,.58); backdrop-filter:blur(5px); }
   .seasonTag { font-size:8px; padding:2px 5px; }
   .coverage { flex-basis:100%; text-align:left; margin:1px 0 0; font-size:9px; }
   .toolbar { padding:7px 9px; flex-wrap:wrap; gap:7px; margin-bottom:8px; }
-  .toolbar label { gap:5px; }
+  .defensePicker,.venuePicker { gap:5px; }
   .defensePicker { flex:1 1 100%; }
-  .defensePicker select { flex:1; font-size:11px; }
+  .teamPicker__btn { height:34px; padding-inline:10px; border-radius:13px; }
+  .teamPicker__code { font-size:13px; }
+  .teamPicker__panel { grid-template-columns:repeat(4,minmax(0,1fr)); }
   .toolbar .positionToggle { flex:1; }
   .positionToggle { padding:2px; border-radius:9px; }
   .positionToggle button { flex:1; min-width:0; font-size:10px; padding:5px 7px; }
   .venuePicker { flex:0 0 117px; }
   .venuePicker .fieldLabel { display:none; }
-  .venuePicker select { width:100%; font-size:10px; min-height:30px; }
+  .venueMenuLabel { font-size:10px; }
   .matchupLayout,.leagueColumn { display:flex; flex-direction:column; gap:8px; }
   .leagueColumn { width:100%; }
   .leagueColumn > section { width:100%; }
@@ -305,7 +337,7 @@ dialog::backdrop { background:rgba(0,0,0,.58); backdrop-filter:blur(5px); }
   .methodologyContent { grid-template-columns:1fr; gap:6px; }
   .pageFooter { font-size:6px; letter-spacing:.6px; }
   .expandedControls { flex-wrap:wrap; gap:7px; }
-  .expandedControls > select { min-width:120px; flex:1 1 45%; }
+  .expandedControls > .teamPicker { min-width:120px; flex:1 1 45%; }
   .expandedControls .positionToggle { order:3; width:100%; }
   .dialogHeader,.dialogBody { padding:10px; }
 }

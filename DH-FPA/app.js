@@ -1,13 +1,36 @@
 /* Current-season matchups: FPAv2 actual scoring and TSUMS offense baselines. */
 (() => {
   "use strict";
-  const Data = window.FPAData, $ = id => document.getElementById(id);
+  const Data = window.FPAData, Charts = window.FPACharts, $ = id => document.getElementById(id);
   const POSITIONS = ["QB", "RB", "WR", "TE", "ALL"];
   const COLORS = { QB: "#ffb2d8", RB: "#75e0b7", WR: "#63b0de", TE: "#ab9bff", ALL: "#aabaff" };
   const LABELS = { QB: "quarterbacks", RB: "running backs", WR: "wide receivers", TE: "tight ends", ALL: "all positions" };
+  // Restore the original division picker and its team-logo glow colors.
+  const DIVISIONS = [
+    { conf: "AFC", name: "East", teams: ["BUF", "MIA", "NE", "NYJ"] },
+    { conf: "AFC", name: "North", teams: ["BAL", "CIN", "CLE", "PIT"] },
+    { conf: "AFC", name: "South", teams: ["HOU", "IND", "JAX", "TEN"] },
+    { conf: "AFC", name: "West", teams: ["DEN", "KC", "LV", "LAC"] },
+    { conf: "NFC", name: "East", teams: ["DAL", "NYG", "PHI", "WAS"] },
+    { conf: "NFC", name: "North", teams: ["CHI", "DET", "GB", "MIN"] },
+    { conf: "NFC", name: "South", teams: ["ATL", "CAR", "NO", "TB"] },
+    { conf: "NFC", name: "West", teams: ["ARI", "LAR", "SF", "SEA"] },
+  ];
+  const TEAM_GLOWS = {
+    ARI: "rgba(151,35,63,.95)", ATL: "rgba(255,56,95,.93)", BAL: "rgba(158,43,246,.95)", BUF: "rgba(198,12,48,.93)",
+    CAR: "rgba(0,133,202,.95)", CHI: "rgba(120,90,240,.93)", CIN: "rgba(251,79,20,.95)", CLE: "rgba(225,135,0,.68)",
+    DAL: "rgba(134,147,151,.86)", DEN: "rgba(251,79,20,.93)", DET: "rgba(0,183,235,.86)", GB: "rgba(0,235,150,.68)",
+    HOU: "rgba(167,25,48,.95)", IND: "rgba(0,183,235,.93)", JAX: "rgba(0,103,120,.95)", KC: "rgba(255,0,64,.84)",
+    LAC: "rgba(0,191,255,.74)", LAR: "rgba(0,91,200,.93)", LV: "rgba(165,172,175,.86)", MIA: "rgba(0,142,151,.93)",
+    MIN: "rgba(115,0,255,.95)", NE: "rgba(255,56,95,.93)", NO: "rgba(160,148,101,.86)", NYG: "rgba(55,56,200,.95)",
+    NYJ: "rgba(64,160,120,.95)", PHI: "rgba(43,140,78,.95)", PIT: "rgba(255,182,18,.61)", SEA: "rgba(105,190,40,.86)",
+    SF: "rgba(179,153,93,.74)", TB: "rgba(247,122,97,.74)", TEN: "rgba(75,146,219,.95)", WAS: "rgba(180,36,36,.95)",
+  };
+  const VENUES = { all: "All games", home: "At home", away: "On the road" };
+  const pickerRoots = [...document.querySelectorAll("[data-picker-kind]")];
   const state = { team: "BAL", pos: "QB", venue: "all", mode: "points", query: "", hideZero: false,
     heatSort: { pos: "QB", direction: "desc" }, playerSort: { key: "week", direction: "desc" } };
-  let model = null, offenses = null, analysis = null;
+  let model = null, offenses = null, analysis = null, openPicker = null;
   const tooltips = new Map();
 
   const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -19,6 +42,68 @@
   const comparison = team => analysis.byTeam.get(team || state.team).metrics[state.pos];
   const direction = value => value > 0 ? "is-easy" : value < 0 ? "is-tough" : "";
   const empty = (title, detail) => `<div class="emptyState"><strong>${esc(title)}</strong>${esc(detail)}</div>`;
+
+  function pickerLogo(team) {
+    const image = `assets/NFL-Tags_webp/${team.toLowerCase()}.webp`;
+    return `<span class="teamLogoStack" aria-hidden="true" style="--team-glow:${TEAM_GLOWS[team] || "transparent"}"><img class="teamLogo teamLogoStack__glow" src="${image}" alt=""><img class="teamLogo teamLogoStack__img" src="${image}" alt=""></span>`;
+  }
+  function buildPickers() {
+    for (const root of pickerRoots) {
+      const isTeam = root.dataset.pickerKind === "team", label = isTeam ? "Opponent defense" : "Defense venue";
+      const options = isTeam ? DIVISIONS.map(division => `<div class="teamPickerDiv" role="group" aria-label="${division.conf} ${division.name}">
+        <div class="teamPickerDiv__title" aria-hidden="true"><img class="teamPickerDiv__confLogo" src="assets/NFL-Tags_webp/${division.conf.toLowerCase()}.webp" alt=""><span>${division.name}</span></div>
+        ${division.teams.filter(team => model.defenses.includes(team)).map(team => `<button type="button" class="teamOption" role="option" aria-selected="false" tabindex="-1" data-picker-value="${team}" aria-label="${esc(Data.TEAM_NAMES[team])}" title="${esc(Data.TEAM_NAMES[team])}">${pickerLogo(team)}<span class="teamOption__code">${team}</span></button>`).join("")}</div>`).join("") :
+        Object.entries(VENUES).map(([value, text]) => `<button type="button" class="teamOption venueOption" role="option" aria-selected="false" tabindex="-1" data-picker-value="${value}">${text}</button>`).join("");
+      root.innerHTML = `<button type="button" class="teamPicker__btn" id="${root.id}Btn" data-picker-toggle="${root.id}" aria-haspopup="listbox" aria-expanded="false" aria-controls="${root.id}Panel" aria-label="${label}"><span class="teamPicker__left"></span><span class="teamPicker__chev" aria-hidden="true">▾</span></button><div class="teamPicker__panel" id="${root.id}Panel" popover="manual" role="listbox" aria-label="${label} options">${options}</div>`;
+    }
+  }
+  function closePicker(restoreFocus = false) {
+    if (!openPicker) return;
+    const root = openPicker, panel = $(`${root.id}Panel`), button = $(`${root.id}Btn`);
+    openPicker = null; panel.hidePopover(); root.classList.remove("is-open");
+    button.setAttribute("aria-expanded", "false");
+    if (restoreFocus) button.focus({ preventScroll: true });
+  }
+  function focusPickerOption(option) {
+    if (!option) return;
+    option.focus({ preventScroll: true });
+    const panel = option.closest(".teamPicker__panel"), box = option.getBoundingClientRect(), bounds = panel.getBoundingClientRect();
+    if (box.top < bounds.top + 10) panel.scrollTop -= bounds.top + 10 - box.top;
+    else if (box.bottom > bounds.bottom - 10) panel.scrollTop += box.bottom - bounds.bottom + 10;
+  }
+  function showPicker(root, last = false) {
+    closePicker();
+    const panel = $(`${root.id}Panel`), button = $(`${root.id}Btn`);
+    panel.showPopover(); root.classList.add("is-open"); button.setAttribute("aria-expanded", "true"); openPicker = root;
+    const anchor = button.getBoundingClientRect(), padding = 8, gap = 6;
+    const viewportWidth = document.documentElement.clientWidth, viewportHeight = innerHeight;
+    panel.style.maxHeight = `${Math.max(36, viewportHeight - padding * 2)}px`;
+    const box = panel.getBoundingClientRect();
+    panel.style.left = `${Math.max(padding, Math.min(anchor.left, viewportWidth - box.width - padding))}px`;
+    const below = viewportHeight - anchor.bottom - gap - padding, above = anchor.top - gap - padding;
+    const placeAbove = box.height > below && above > below;
+    panel.style.maxHeight = `${Math.max(36, placeAbove ? above : below)}px`;
+    panel.style.top = `${placeAbove ? Math.max(padding, anchor.top - gap - Math.min(box.height, above)) : anchor.bottom + gap}px`;
+    const options = [...panel.querySelectorAll("[data-picker-value]")];
+    const selected = options.find(option => option.getAttribute("aria-selected") === "true");
+    focusPickerOption(last ? options.at(-1) : selected || options[0]);
+  }
+  function pickerKeys(event) {
+    const root = event.target.closest("[data-picker-kind]");
+    if (!root || !model) return;
+    if (!openPicker && ["ArrowDown", "ArrowUp"].includes(event.key)) {
+      event.preventDefault(); showPicker(root, event.key === "ArrowUp"); return;
+    }
+    if (openPicker !== root) return;
+    if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closePicker(true); return; }
+    if (event.key === "Tab") { closePicker(true); return; }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const options = [...$(`${root.id}Panel`).querySelectorAll("[data-picker-value]")];
+    const index = options.indexOf(document.activeElement);
+    const next = event.key === "Home" ? 0 : event.key === "End" ? options.length - 1 : (index + (event.key === "ArrowUp" ? -1 : 1) + options.length) % options.length;
+    focusPickerOption(options[next]);
+  }
 
   function heatColor(stat) {
     if (stat.rank === null) return "#7b81a5";
@@ -46,8 +131,16 @@
     try { history.replaceState(null, "", url); } catch { /* Some direct-file browsers restrict history. */ }
   }
   function syncControls() {
-    for (const id of ["defenseSelect", "expandedDefense"]) $(id).value = state.team;
-    for (const id of ["venueSelect", "expandedVenue"]) $(id).value = state.venue;
+    for (const root of pickerRoots) {
+      const isTeam = root.dataset.pickerKind === "team", value = isTeam ? state.team : state.venue;
+      const button = $(`${root.id}Btn`);
+      button.querySelector(".teamPicker__left").innerHTML = isTeam ? `${pickerLogo(value)}<span class="teamPicker__code">${value}</span>` : `<span class="venueMenuLabel">${VENUES[value]}</span>`;
+      button.setAttribute("aria-label", isTeam ? `Opponent defense: ${Data.TEAM_NAMES[value]}` : `Defense venue: ${venueLabel()}`);
+      root.querySelectorAll("[data-picker-value]").forEach(option => {
+        const selected = option.dataset.pickerValue === value;
+        option.classList.toggle("is-selected", selected); option.setAttribute("aria-selected", String(selected));
+      });
+    }
     document.querySelectorAll("[data-position]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.position === state.pos)));
     document.documentElement.style.setProperty("--position", COLORS[state.pos]);
   }
@@ -135,12 +228,23 @@
     if (!points.length) { $("comparisonChart").innerHTML = empty("No complete comparisons", "Opponent offense averages must be available for each recorded game."); return; }
     const W = width("comparisonChart"), H = innerWidth <= 620 ? 220 : 226, left = 43, right = W - 16, top = 18, bottom = H - 34;
     const pool = analysis.pools[state.pos];
-    const bounds = ranked ? { low: 0, high: Math.max(2, pool + 1), ticks: [...new Set([1, Math.ceil(pool / 4), Math.ceil(pool / 2), Math.ceil(pool * 3 / 4), pool])] } : scale(points.flatMap(point => [point.x, point.y]));
-    const x = value => left + (value - bounds.low) / (bounds.high - bounds.low) * (right - left);
-    const y = value => bottom - (value - bounds.low) / (bounds.high - bounds.low) * (bottom - top);
-    let content = `<path d="M${left} ${top}H${right}L${left} ${bottom}Z" fill="#75e0b7" fill-opacity=".025"/><path d="M${left} ${bottom}H${right}V${top}Z" fill="#ffb2d8" fill-opacity=".025"/>`;
-    content += bounds.ticks.map(n => `<line class="gridLine" x1="${left}" x2="${right}" y1="${y(n)}" y2="${y(n)}"/><line class="gridLine" x1="${x(n)}" x2="${x(n)}" y1="${top}" y2="${bottom}"/><text x="${left - 7}" y="${y(n) + 3}" text-anchor="end">${tick(n, bounds)}</text><text x="${x(n)}" y="${bottom + 13}" text-anchor="middle">${tick(n, bounds)}</text>`).join("");
-    content += `<line x1="${left}" y1="${bottom}" x2="${right}" y2="${top}" stroke="#9eb0d9" stroke-opacity=".6" stroke-dasharray="4 4"/><text class="zoneLabel" x="${left + 5}" y="${top + 9}">${ranked ? "Higher actual rank" : "Above expected"}</text><text class="zoneLabel" x="${right - 5}" y="${bottom - 6}" text-anchor="end">${ranked ? "Lower actual rank" : "Below expected"}</text><text class="axisTitle" x="${(left + right) / 2}" y="${H - 2}" text-anchor="middle">Expected FPA${ranked ? " rank" : " · total points"}</text><text class="axisTitle" transform="translate(11 ${(top + bottom) / 2}) rotate(-90)" text-anchor="middle">Actual FPA${ranked ? " rank" : " · total points"}</text>`;
+    const rankBounds = { low: 0, high: Math.max(2, pool + 1), ticks: [...new Set([1, Math.ceil(pool / 4), Math.ceil(pool / 2), Math.ceil(pool * 3 / 4), pool])] };
+    const xBounds = ranked ? rankBounds : Charts.pointBounds(points.map(point => point.x));
+    const yBounds = ranked ? rankBounds : Charts.pointBounds(points.map(point => point.y));
+    const x = value => left + (value - xBounds.low) / (xBounds.high - xBounds.low) * (right - left);
+    const y = value => bottom - (value - yBounds.low) / (yBounds.high - yBounds.low) * (bottom - top);
+    const geometry = Charts.comparisonGeometry(xBounds, yBounds);
+    const polygon = (vertices, color) => vertices.length < 3 ? "" : `<polygon points="${vertices.map(([a, b]) => `${x(a)},${y(b)}`).join(" ")}" fill="${color}" fill-opacity=".025"/>`;
+    let content = polygon(geometry.above, "#75e0b7") + polygon(geometry.below, "#ffb2d8");
+    content += yBounds.ticks.map(n => `<line class="gridLine" x1="${left}" x2="${right}" y1="${y(n)}" y2="${y(n)}"/><text x="${left - 7}" y="${y(n) + 3}" text-anchor="end">${tick(n, yBounds)}</text>`).join("");
+    content += xBounds.ticks.map(n => `<line class="gridLine" x1="${x(n)}" x2="${x(n)}" y1="${top}" y2="${bottom}"/><text x="${x(n)}" y="${bottom + 13}" text-anchor="middle">${tick(n, xBounds)}</text>`).join("");
+    if (geometry.equality.length) {
+      const [a, b] = geometry.equality;
+      content += `<line x1="${x(a[0])}" y1="${y(a[1])}" x2="${x(b[0])}" y2="${y(b[1])}" stroke="#9eb0d9" stroke-opacity=".6" stroke-dasharray="4 4"/>`;
+    }
+    if (yBounds.high - 9 / (bottom - top) * (yBounds.high - yBounds.low) > xBounds.low + 5 / (right - left) * (xBounds.high - xBounds.low)) content += `<text class="zoneLabel" x="${left + 5}" y="${top + 9}">${ranked ? "Higher actual rank" : "Above expected"}</text>`;
+    if (yBounds.low + 6 / (bottom - top) * (yBounds.high - yBounds.low) < xBounds.high - 5 / (right - left) * (xBounds.high - xBounds.low)) content += `<text class="zoneLabel" x="${right - 5}" y="${bottom - 6}" text-anchor="end">${ranked ? "Lower actual rank" : "Below expected"}</text>`;
+    content += `<text class="axisTitle" x="${(left + right) / 2}" y="${H - 2}" text-anchor="middle">Expected FPA${ranked ? " rank" : " · total points"}</text><text class="axisTitle" transform="translate(11 ${(top + bottom) / 2}) rotate(-90)" text-anchor="middle">Actual FPA${ranked ? " rank" : " · total points"}</text>`;
     points.sort((a, b) => Number(a.team === state.team) - Number(b.team === state.team)).forEach(point => {
       const c = point.c, selected = point.team === state.team, key = `scatter:${point.team}`;
       tooltips.set(key, `<strong>${esc(Data.TEAM_NAMES[point.team])} · ${state.pos}</strong><br>Expected: ${fmt(c.expectedTotal, 1)} PPR points<br>Actual: ${fmt(c.actual.total)} PPR points<br><span class="${direction(c.delta)}">${signed(c.delta, 2)} points versus expected</span><br><span class="tooltipMuted">${c.games} games${ranked ? ` · Expected rank ${c.expectedRank}, actual rank ${c.actualRank}` : ""}</span>`);
@@ -223,25 +327,33 @@
     renderScatterDetail(target.dataset.chartTeam || state.team);
   }
   function bindEvents() {
-    for (const id of ["defenseSelect", "expandedDefense"]) $(id).addEventListener("change", event => { if (model) choose(event.target.value); });
-    for (const id of ["venueSelect", "expandedVenue"]) $(id).addEventListener("change", event => { if (model) { state.venue = event.target.value; render(); } });
     for (const id of ["playerSearch", "expandedSearch"]) $(id).addEventListener("input", event => { if (model) { state.query = event.target.value; renderPlayers(); } });
     for (const id of ["hideZero", "expandedHideZero"]) $(id).addEventListener("change", event => { if (model) { state.hideZero = event.target.checked; renderPlayers(); } });
     $("expandPlayers").addEventListener("click", () => {
       if (!model) return;
-      hideTooltip(); $("playersDialog").showModal(); document.documentElement.style.overflow = "hidden"; renderPlayers();
+      closePicker(); hideTooltip(); $("playersDialog").showModal(); document.documentElement.style.overflow = "hidden"; renderPlayers();
     });
-    $("playersDialog").addEventListener("close", () => { document.documentElement.style.overflow = ""; });
+    $("playersDialog").addEventListener("close", () => { closePicker(); document.documentElement.style.overflow = ""; });
+    $("playersDialog").addEventListener("cancel", event => { if (openPicker) { event.preventDefault(); closePicker(true); } });
     $("playersDialog").addEventListener("click", event => {
       const dialog = $("playersDialog"), box = dialog.getBoundingClientRect();
       if (event.target === dialog && (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom)) dialog.close();
     });
     document.addEventListener("click", event => {
+      if (openPicker && !openPicker.contains(event.target)) closePicker();
       const target = event.target.closest("button,[data-chart-team]");
       if (!target) return;
       if (target.hasAttribute("data-close-dialog")) { $("playersDialog").close(); return; }
       if (!model) return;
-      if (target.dataset.position) choose(state.team, target.dataset.position);
+      if (target.dataset.pickerToggle) {
+        const root = $(target.dataset.pickerToggle);
+        if (openPicker === root) closePicker(true); else showPicker(root);
+      } else if (target.dataset.pickerValue) {
+        const root = target.closest("[data-picker-kind]"), value = target.dataset.pickerValue;
+        closePicker(true);
+        if (root.dataset.pickerKind === "team") choose(value);
+        else { state.venue = value; render(); }
+      } else if (target.dataset.position) choose(state.team, target.dataset.position);
       else if (target.dataset.team || target.dataset.chartTeam) choose(target.dataset.team || target.dataset.chartTeam, target.dataset.cellPosition || state.pos);
       else if (target.dataset.scatterMode) { state.mode = target.dataset.scatterMode; hideTooltip(); renderScatter(); }
       else if (target.dataset.heatSort) {
@@ -254,6 +366,7 @@
       } else if (target.hasAttribute("data-clear-search")) { state.query = ""; state.hideZero = false; renderPlayers(); }
     });
     document.addEventListener("keydown", event => {
+      pickerKeys(event);
       if (event.key === "Escape") hideTooltip();
       const target = event.target.closest("[data-chart-team]");
       if (model && target && ["Enter", " "].includes(event.key)) { event.preventDefault(); choose(target.dataset.chartTeam); }
@@ -261,9 +374,9 @@
     document.addEventListener("pointerover", event => { const target = event.target.closest("[data-tooltip]"); if (target) showTooltip(target, event); });
     document.addEventListener("pointerout", event => { if (event.target.closest("[data-tooltip]") && !event.relatedTarget?.closest?.("[data-tooltip]")) { hideTooltip(); if (model) renderScatterDetail(state.team); } });
     document.addEventListener("focusin", event => { const target = event.target.closest("[data-tooltip]"); if (target) showTooltip(target); else { hideTooltip(); if (model) renderScatterDetail(state.team); } });
-    document.addEventListener("scroll", hideTooltip, true);
+    document.addEventListener("scroll", event => { hideTooltip(); if (openPicker && !$(`${openPicker.id}Panel`).contains(event.target)) closePicker(); }, true);
     let resizeTimer;
-    window.addEventListener("resize", () => { clearTimeout(resizeTimer); hideTooltip(); resizeTimer = setTimeout(() => { if (model) { renderWeekly(); renderScatter(); } }, 120); });
+    window.addEventListener("resize", () => { clearTimeout(resizeTimer); closePicker(); hideTooltip(); resizeTimer = setTimeout(() => { if (model) { renderWeekly(); renderScatter(); } }, 120); });
     if (document.fonts?.ready) document.fonts.ready.then(() => { if (model) { renderWeekly(); renderScatter(); } });
   }
   function init() {
@@ -274,8 +387,7 @@
       const nextModel = Data.readSource(sources.weekly.csv, { name: sources.weekly.name });
       const nextOffenses = Data.readOffenses(sources.offense.csv, { name: sources.offense.name });
       model = nextModel; offenses = nextOffenses; readURL();
-      const options = model.defenses.map(team => `<option value="${team}">${team} · ${esc(Data.TEAM_NAMES[team])}</option>`).join("");
-      for (const id of ["defenseSelect", "expandedDefense"]) $(id).innerHTML = options;
+      buildPickers();
       const differences = Data.offenseDifferences(model, offenses);
       $("sourceNotes").textContent = `${model.audit.excludedRows} rows without an opposing defense are excluded. ${differences.length ? "Source differences are preserved: " + differences.map(row => `${row.team} ${row.pos} totals are ${fmt(row.weeklyTotal)} in FPAv2 and ${fmt(row.offenseTotal, 1)} in TSUMS`).join("; ") + ". Expected FPA always uses the supplied TSUMS averages." : "Expected FPA uses the supplied TSUMS averages without recalculating them from player results."}`;
       render();

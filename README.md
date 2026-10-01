@@ -5,7 +5,7 @@ The static app lives in `DH-FPA/index.html`. It uses the supplied **FPAv2.csv** 
 ## Current app
 
 - Compact DataHub-style background, gradient accents, glass panels, and Game Logs-style tables.
-- Shared defense, QB/RB/WR/TE/ALL, and defense-venue selection.
+- Shared defense, QB/RB/WR/TE/ALL, and defense-venue selection. The original AFC/NFC division picker with team logos is restored in the main controls and expanded player view; venue menus use the same treatment.
 - Actual and expected scoring summary, weekly positional totals, and the selected matchup's player records immediately below the chart.
 - Search, zero-score visibility, sorting, and an expanded player table. Negative scores remain included. Player-list controls do not change scoring aggregates.
 - Expected-versus-actual scatter with points and ranks modes. Selecting a defense logo updates the matchup; logos also support Enter/Space.
@@ -23,6 +23,8 @@ Actual FPA sums all supplied player points for the selected defense and position
 Expected FPA adds the opposing offense's supplied TSUMS `QBx`, `RBx`, `WRx`, `TEx`, or `ALLx` once per eligible game. ALL uses `ALLx` directly. TSUMS averages are used as supplied, without deriving replacements from player results. Expected and actual comparisons use the same position/game/venue scope. If a required offense average is absent, the full comparison is unavailable.
 
 Both points-mode scatter axes use **totals**. Rank mode ranks expected totals and actual totals separately within the same complete comparison cohort, ascending from lowest to highest with competition ties (1, 1, 3). Heatmap ranks use unrounded FPA/game; with unequal game counts they can differ from scatter total ranks. TSUMS offense ranks are shown separately and retain their supplied direction: 1 is the most offensive points.
+
+Points-mode axes fit their own expected or actual values independently, rounding the minimum down and maximum up to the nearest 10 points. For example, 32.4–76.2 displays as 30–80. Bounds update with position and venue selections. The equality line and comparison shading use actual=expected even when the two axis ranges differ. Rank-mode bounds retain their existing scale.
 
 These are comparisons with opponents' season-to-date scoring averages. Those averages include their results against the selected defense.
 
@@ -48,6 +50,7 @@ To update the repository's defaults, replace `DH-FPA/data/FPAv2.csv` and `DH-FPA
 
 ```sh
 node --test tests/data-model.test.cjs
+node --test tests/chart-utils.test.cjs
 python3 tests/reconcile_source.py
 ```
 
