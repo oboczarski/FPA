@@ -1,55 +1,56 @@
-# Additive amCharts views for 2026 matchups
+# 2026 matchup chart designs
 
-The four charts sit below the existing dashboard. Existing controls, summary, weekly chart, players, scatter, opponent table, and heatmap are preserved. The only change to the existing app renderer publishes its current analysis and selection to the new views. Styles are scoped to `.chartLab`; the original stylesheet and scoring model are unchanged.
+The four amCharts views sit below the original dashboard. The original controls, weekly chart, players, expected-versus-actual scatter, opponent table, heatmap, scoring model, and styles remain in place. New presentation is scoped to `.chartLab`. All views consume the existing analysis and share defense, position, and defense-venue selection.
 
-## Chart choices
+## Scoring-composition sunburst
 
-1. **FPA bubble board:** a category-by-category XY chart shows all 32 defenses across QB, RB, WR, TE, and ALL: 160 cells. Each cell labels actual FPA/game. Bubble area grows with the defense's positional FPA/game rank, so larger means easier. Normalizing size within each position keeps higher-scoring positions from overwhelming the others. The selected defense is highlighted across all five rows. The design follows the official bubble-based heat-map demo, with soft radial fills, position-colored row bands, selected halos, and a persistent numeric readout.
-2. **Position raceways:** five horizontal lanes place every defense logo at its exact FPA/game rank, with toughest on the left. This replaces table scanning with direct positional ordering while keeping all 160 observations. Ties share the same horizontal coordinate and fan vertically; the data never gets jittered into a false rank. The selected team has a halo and abbreviation. The bubble board provides values; the raceways emphasize ordering. Both stay wide enough to retain every team and scroll horizontally on smaller screens.
-3. **Opponent-adjusted toughness:** a quadrant scatter separates schedule difficulty from scoring suppression. The horizontal axis measures opponents' positional offense strength relative to the league. The vertical axis measures how far a defense held its opponents below their supplied expected scoring. The upper-right region contains defenses that held stronger offenses below baseline. Logo tooltips and the selected-defense readout show actual and expected FPA/game as well as both percentages. Three leader chips rank suppression. A native amCharts focus toggle dims other defenses while retaining every observation.
-4. **Matchup orbit:** a polar scatter has 32 team sectors ordered by the existing AFC/NFC division groups. Each observed defense-game is a separate logo bullet. Radius is actual game FPA; clockwise slots within each sector identify weeks without changing the scoring value. All-games mode contains three dots per defense, 96 total, for each selected position. Venue selection filters the games while retaining all 32 sectors. Alternating division washes, dashed radial guides, a selected-team center label, game readout, and focus toggle support exploration. Logo size, circle radius, fill, rank ring, and selected-position ring match the existing scatter.
+A Sunburst hierarchy has 32 ALL parent nodes and 128 QB/RB/WR/TE children. Each child's value is its original FPA/game; each parent is the sum of its four children. ALL is not added again as a fifth leaf. For the provided all/home/away scopes, those four averages reconcile to the original ALL average. The inner ring represents team totals; the outer ring shows the positional contributions to those totals. Larger angular spans mean more scoring allowed.
 
-The category matrix and rank lanes keep the flat team-by-position data visible without suggesting a hierarchy, flow, or additive positional total that the source does not define. RadarLineSeries supplies the polar coordinates, with connecting strokes hidden as in the official polar-scatter example.
+Position colors are consistent across every team and come from the amCharts palette. Team totals use the same palette's team colors. The selected defense has a bright edge on its inner and outer branches and an ALL readout in the center. Tooltips contain exact averages, ranks, expectations, and game counts. Selecting a branch updates the original team/position controls while all 32 teams remain visible; drill-down is disabled. A zero-valued source node remains zero and has no invented angular area. Its value remains available in the team readout and positional profile.
 
-## Source and calculation contract
+## Parallel-coordinate defensive profiles
 
-The new views read the existing analysis of **FPAv2.csv** and **TSUMS.csv**. No new football source, inferred player result, or replacement offense average is introduced. They share the original page's defense, position, and defense-venue selection. Player search and zero-score visibility still affect the player table only. Selecting a bubble or logo updates the original page's team and position controls; changing only the defense updates highlights without recreating chart roots.
+The chart has five vertical positional rank axes: QB, RB, WR, TE, and ALL. A continuous line connects each of the 32 defenses' original FPA/game ranks across those axes. Rank 1 is at the top. All 160 observations retain their exact ranks, including ties; neither ranks nor averages are jittered.
 
-Actual totals, averages, game counts, and positional ranks come directly from the existing analysis. Expected scoring remains the sum of each opposing offense's supplied positional TSUMS average once per eligible game. ALL uses ALLx directly. Incomplete comparisons remain unavailable.
+The selected profile is thicker and shows its rank and FPA/game at every vertex. Hover traces a profile through the other lines; selecting a vertex updates the corresponding team and position. Team logos and labels mark the ALL endpoints, and 32 compact team buttons provide another way to select overlapping profiles. The focus toggle dims other profiles while retaining their data. This view exposes teams whose matchup difficulty differs sharply between positions.
 
-For each selected position and venue:
+## Opponent-adjusted bullet ranking
+
+All 32 complete comparisons are ordered from greatest scoring suppression to least. Each row is a bullet graph: the colored horizontal bar is actual FPA/game; the pale track and white threshold are the expected scoring of the opposing offenses. A dashed vertical guide marks the weighted league offense baseline. The right-hand badges show suppression and offense strength. Actual and expected values, game count, and adjusted rank appear in the tooltip and selected-team readout.
 
 ```
+expected total = sum(each opposing offense's supplied TSUMS positional average once per game)
 league baseline = sum(TSUMS position average × offense games) / sum(offense games)
+suppression (%) = 100 × (1 − actual total / expected total)
 opponent strength (%) = 100 × (expected FPA/game / league baseline − 1)
-suppression (%) = 100 × (1 − actual FPA total / expected FPA total)
 ```
 
-Only finite supplied offense averages with positive game counts enter the league baseline. Toughness comparisons require a positive expected total and league baseline. Higher suppression means opponents scored a smaller fraction of their expected points. Suppression ranks use competition ties: 1, 1, 3. For example, allowing 10 against a 30-point baseline represents more suppression than allowing 5 against a 5-point baseline, despite having a higher raw FPA. Schedule strength remains visible on its own axis rather than being hidden inside an unexplained combined score.
+Rank 1 is the smallest actual-to-expected ratio, with competition ties (1, 1, 3). A defense allowing 10 against a 30-point baseline ranks tougher than one allowing 5 against a 5-point baseline. Stronger opponent scoring produces a longer expectation track and a positive offense-strength badge. Expectations remain position- and venue-specific. ALL uses supplied ALLx directly. Missing or nonpositive baselines remain unavailable. The FPA axis fits the actual and expected values outward to multiples of 10 and includes zero.
 
-This is an opponent-adjusted comparison over the supplied three-week sample. TSUMS averages include the offense's results against the selected defense. It is not an independent estimate of defensive ability. The chart includes this explanation in its own expandable methodology.
+Only the supplied FPAv2 and TSUMS data are used. These are opponent-adjusted comparisons from the three-week sample; TSUMS averages include games against the selected defense. The chart's methodology disclosure makes this limitation explicit.
 
-Each polar dot is a recorded game's actual positional total, including zeros and negatives. There is no averaging of game dots and no radial jitter. Week slots are equally spaced inside each team's sector. The radial axis fits the data outward to multiples of 10 and includes zero. The toughness axes independently fit their data and include the zero reference lines. Existing scatter scales and rank behavior are untouched.
+## Aligned polar matchup scatter
 
-## Presentation and lifecycle
+The chart occupies a full-width panel. Its canvas is 900px tall on desktop and 850px at narrower widths, with an 800px minimum width so the circle retains its size instead of shrinking into a crowded mobile panel. A 98% radar radius uses the available chart area. Smaller markers use 5.2px circles and 8px logos; selection increases these to 6.5px and 9px. Original scatter fills, positional selection colors, and defense-rank ring colors are retained. Week rings are solid, dashed, and dotted.
 
-The added section uses compact glass panels, subtle blue/violet background lighting, gradient edge accents, canvas chart titles, dark tooltips, and numeric readouts. Chart data colors come from amCharts' default palette; polar markers reuse the existing scatter's colors as requested. The charts apply Animated, Dark, and a local neutral UI theme. Reduced-motion preferences disable interpolation. Markers support focus, hover tooltips, and selection. Wide charts expose keyboard-focusable horizontal scroll areas on small screens.
+Category labels, grid spokes, ticks, and every game bullet all use category location **0.5**. Each defense's three games therefore lie on exactly its label's spoke, at the angle `-90 + (team index + 0.5) × 360 / 32`. Week has no effect on angle. Radius is the game's actual positional FPA, including zero and negative values, with no score jitter. Bounds fit the data outward to multiples of 10 and include zero.
 
-Roots initialize when their panels approach the viewport. Existing charts render before the local amCharts scripts bootstrap. Roots persist through selection changes and dispose on page exit; back-forward cache restoration reinitializes them. Each panel catches its own initialization errors. No upload, download, exporting plugin, or new week-range control is added.
+All-games mode contains 96 distinct team-week observations for each selected position. Home/away filtering retains all 32 spokes and includes the 48 matching game observations. Each tooltip identifies the defense, opposing offense, week, actual score, and expected baseline, then lists every recorded game on that spoke. Equal scores occupy the same location truthfully and remain identified in the tooltip/readout. The selected defense has a highlighted spoke and center label.
 
-## Library and documentation
+## Implementation and verification
 
-amCharts **5.20.8** browser bundles are vendored locally, unchanged, with original LICENSE and SHA-256 provenance in `DH-FPA/vendor/amcharts5/`. Built-in amCharts branding is retained. No CDN connection is required to render the new charts after the page loads from this repository.
+Charts initialize near the viewport and keep their roots through selection changes. Roots dispose on page exit and rebuild after back-forward-cache restoration. Panel errors are isolated from the original dashboard. Tooltips and chart titles are rendered through amCharts APIs. Animated and Dark themes are applied, reduced-motion interpolation is disabled, and library attribution remains intact. No exporting, upload, download, or week-range control is introduced.
 
-The supplied [amCharts skill](../.agents/skills/amcharts5-skill-main/amcharts5-skill/SKILL.md) and its XY, radar, hierarchy, flow, timeline, pie, and UI references informed the design selection. Implementation details were checked against these primary sources and the pinned package's class definitions:
+The locally bundled, unchanged amCharts 5.20.8 core, XY, radar, hierarchy, Animated, and Dark files have SHA-256 provenance and the original license in `DH-FPA/vendor/amcharts5/`.
 
-- [Bubble-based heat map demo and source](https://www.amcharts.com/demos/bubble-based-heat-map/)
-- [Polar scatter demo and source](https://www.amcharts.com/demos/polar-scatter/)
-- [Radar chart guide](https://www.amcharts.com/docs/v5/charts/radar-chart/)
-- [Bullets guide](https://www.amcharts.com/docs/v5/concepts/common-elements/bullets/)
-- [Images guide](https://www.amcharts.com/docs/v5/concepts/common-elements/images/)
-- [Axis ranges guide](https://www.amcharts.com/docs/v5/charts/xy-chart/axes/axis-ranges/)
+Nine focused model tests passed, covering all 160 original team-position values, all 32 sunburst totals and 128 leaves, unshifted profile ranks, 96 game dots per position and exact spoke alignment, venue filtering, supplied baselines, opponent-adjusted ordering, competition ties, and unavailable expectations. JavaScript syntax and source preservation are checked separately. Browser interaction and visual checks remain user-owned; no preview was opened.
 
-## Verification boundary
+Primary implementation references:
 
-The seven focused model tests check all 160 cells against the original analysis; 96 unique game dots and their sums for every position; venue scope; weighted TSUMS baselines including ALLx; stronger-opponent suppression ordering; tied ranks; and missing/zero baselines. Syntax and source checks cover the integration, local resources, library provenance, and preservation of the original dashboard. Browser interaction, visual layout, and mobile appearance remain user-owned; no preview was opened.
+- [Supplied amCharts skill](../.agents/skills/amcharts5-skill-main/amcharts5-skill/SKILL.md), particularly hierarchy, XY, and radar references
+- [Official sunburst demo and source](https://www.amcharts.com/demos/sunburst-chart/)
+- [Sunburst configuration](https://www.amcharts.com/docs/v5/charts/hierarchy/sunburst/)
+- [Official bullet chart demo and source](https://www.amcharts.com/demos/bullet-chart/)
+- [Line series](https://www.amcharts.com/docs/v5/charts/xy-chart/series/line-series/)
+- [Radar axes](https://www.amcharts.com/docs/v5/charts/radar-chart/radar-axes/)
+- Pinned package class definitions for category-coordinate placement, hierarchy nodes, labels, and bullet factories

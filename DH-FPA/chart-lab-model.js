@@ -20,22 +20,18 @@
     const teams = [...new Set([...order, ...analysis.rows.map(row => row.team)])].filter(team => analysis.byTeam.has(team));
     const cells = teams.flatMap(team => POSITIONS.map(position => {
       const c = analysis.byTeam.get(team).metrics[position], stat = c.actual;
-      const percentile = stat.rank === null ? null : stat.pool < 2 ? .5 : (stat.rank - 1) / (stat.pool - 1);
       return { team, pos: position, avg: stat.avg, rank: stat.rank, pool: stat.pool, games: stat.games,
-        expectedAvg: c.expectedAvg, percentile, radius: percentile === null ? 3 : Math.sqrt(16 + percentile * 105), laneOffset: 0 };
+        expectedAvg: c.expectedAvg };
     }));
-    // Tied ranks retain their exact x coordinate; small vertical offsets keep
-    // the logos separately selectable without pretending they have different ranks.
-    for (const position of POSITIONS) {
-      const groups = new Map();
-      for (const cell of cells.filter(row => row.pos === position && row.rank !== null)) {
-        if (!groups.has(cell.rank)) groups.set(cell.rank, []);
-        groups.get(cell.rank).push(cell);
-      }
-      for (const tied of groups.values()) tied.forEach((cell, index) => {
-        cell.laneOffset = (index - (tied.length - 1) / 2) * Math.min(14, 36 / Math.max(1, tied.length - 1));
-      });
-    }
+    // ALL is the parent total, never a fifth slice added to QB/RB/WR/TE.
+    // Zero values retain their data node and readout, without fabricated area.
+    const sunburst = { name: "2026", children: teams.map(team => ({
+      ...cells.find(row => row.team === team && row.pos === "ALL"), name: team,
+      children: cells.filter(row => row.team === team && row.pos !== "ALL").map(row => ({
+        ...row, name: row.pos, value: row.avg,
+      })),
+    })) };
+    const profiles = teams.map(team => ({ team, values: cells.filter(row => row.team === team) }));
     const baseline = leagueBaseline(offenses, pos);
     const pressure = teams.flatMap(team => {
       const c = analysis.byTeam.get(team).metrics[pos];
@@ -52,10 +48,10 @@
       row.adjustedRank = rank; previous = row.ratio;
     });
     const weeks = [...new Set(teams.flatMap(team => analysis.byTeam.get(team).metrics[pos].entries.map(entry => entry.week)))].sort((a, b) => a - b);
-    const polar = teams.flatMap(team => analysis.byTeam.get(team).metrics[pos].entries.filter(entry => Number.isFinite(entry.actual)).map(entry => ({
-      ...entry, team, pos, location: weeks.length < 2 ? .5 : .14 + .72 * weeks.indexOf(entry.week) / (weeks.length - 1),
+    const polar = teams.flatMap((team, index) => analysis.byTeam.get(team).metrics[pos].entries.filter(entry => Number.isFinite(entry.actual)).map(entry => ({
+      ...entry, team, pos, location: .5, angle: -90 + (index + .5) * 360 / teams.length,
     })));
-    return { teams, positions: [...POSITIONS], cells, pressure, polar, weeks, baseline, pos };
+    return { teams, positions: [...POSITIONS], cells, sunburst, profiles, pressure, polar, weeks, baseline, pos };
   }
   function extent(values, unit = 5, includeZero = false) {
     const finite = values.filter(Number.isFinite);

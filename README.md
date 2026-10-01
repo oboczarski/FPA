@@ -11,7 +11,7 @@ The static app lives in `DH-FPA/index.html`. It uses the supplied **FPAv2.csv** 
 - Expected-versus-actual scatter with points and ranks modes. Selecting a defense logo updates the matchup; logos also support Enter/Space.
 - Opponent offense table with the supplied TSUMS scoring average/rank, actual points against the selected defense, and the difference.
 - Sortable, selectable league heatmap of FPA/game and defense ranks.
-- Four additive amCharts views: a 160-cell bubble board, five positional rank lanes with every defense, opponent-adjusted toughness, and a polar scatter of every recorded defense-game. The original dashboard and heatmap remain in place. All views share defense, position, and venue selection.
+- Four amCharts views: a scoring-composition sunburst, 32 parallel-coordinate defensive profiles across all five positions, an opponent-adjusted bullet ranking, and a full-width polar scatter of every recorded defense-game. The original dashboard and heatmap remain in place. All views share defense, position, and venue selection.
 
 There are no upload/download/export controls, saved uploaded datasets, week-range controls, recent-form comparisons, or trend panels. The app always starts from the bundled source pair. Matchup selections are reflected in the URL.
 
@@ -58,6 +58,6 @@ python3 tests/reconcile_source.py
 
 The targeted calculation suite covers source controls, opponent/venue interpretation, missing values, zeros/negatives, expected-game counting, supplied ALLx handling, complete rank cohorts, ties, source differences, and snapshot identity. Independent Python CSV/Decimal/Fraction reconciliation checks 2,880 defense-position cases across 18 scopes. Source control totals in the tests should be updated deliberately when the supplied period changes.
 
-The additive chart suite checks all 160 team-position cells, 96 unique game dots per position, venue filtering, the supplied offense baselines, opponent-adjusted ordering, ties, and missing-baseline handling. The new libraries are bundled locally at amCharts 5.20.8; their original license and built-in attribution are retained.
+The nine chart-model checks cover all 160 team-position values, sunburst totals without double-counting ALL, exact profile ranks, 96 unique game dots per position aligned to 32 label spokes, venue filtering, supplied offense baselines, opponent-adjusted ordering, ties, and missing-baseline handling. Libraries are bundled locally at amCharts 5.20.8; their original license and built-in attribution are retained.
 
 Browser and visual checks are user-owned. No preview is opened as part of delivery. The new chart designs, formulas, and library sources are documented in `docs/2026-chart-lab.md`. Earlier implementation notes are in `docs/2026-refinement.md`; `docs/2026-rebuild.md` records the superseded first rebuild.

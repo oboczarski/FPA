@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,slnt,wdth,wght,GRAD,ROND@6..144,-10..0,25..151,1..1000,0..100,0..100&amp;family=MuseoModerno:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=2026.3">
-  <link rel="stylesheet" href="chart-lab.css?v=2026.1">
+  <link rel="stylesheet" href="chart-lab.css?v=2026.2">
   <script defer src="data-model.js?v=2026.2"></script>
   <script defer src="data/2026-weekly.js?v=2026.2"></script>
   <script defer src="chart-utils.js?v=2026.3"></script>
@@ -20,10 +20,11 @@
   <script defer src="vendor/amcharts5/index.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/xy.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/radar.js?v=5.20.8"></script>
+  <script defer src="vendor/amcharts5/hierarchy.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/themes/Animated.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/themes/Dark.js?v=5.20.8"></script>
-  <script defer src="chart-lab-model.js?v=2026.1"></script>
-  <script defer src="chart-lab.js?v=2026.1"></script>
+  <script defer src="chart-lab-model.js?v=2026.2"></script>
+  <script defer src="chart-lab.js?v=2026.2"></script>
 </head>
 <body data-page="matchups">
   <div class="background-orb background-orb--one" aria-hidden="true"></div>
@@ -91,33 +92,34 @@
       </div>
     </div>
     <section class="chartLab" id="chartLab" aria-labelledby="chartLabTitle">
-      <div class="labIntro"><div><span class="fieldLabel">MORE WAYS TO READ THE MATCHUP</span><h2 id="chartLabTitle">The league, in perspective</h2><p>Compare every position. Put the schedule in context. Explore every game.</p></div><span class="labScope" id="labScope" aria-live="polite">2026 · PPR</span></div>
+      <div class="labIntro"><div><span class="fieldLabel">THE SAME MATCHUPS. DIFFERENT PERSPECTIVES.</span><h2 id="chartLabTitle">See the shape of the matchup</h2><p>Scoring composition. Positional profiles. Opponent-adjusted toughness. Every individual game.</p></div><span class="labScope" id="labScope" aria-live="polite">2026 · PPR</span></div>
       <div class="labError" id="labError" role="status" hidden></div>
       <div class="labGrid">
-        <article class="glass-panel labCard labCard--wide" aria-label="FPA bubble board: every team and position">
-          <div class="labCaption"><span class="labNumber">01</span><span>EVERY TEAM × EVERY POSITION</span><span class="labBadge" id="bubbleCoverage">32 defenses · 5 positions</span></div>
-          <div class="labScroll" tabindex="0" aria-label="Scroll horizontally to explore the full FPA bubble board"><div class="labCanvas labCanvas--board" id="labBubble"><p class="labLoading">Preparing the bubble board…</p></div></div>
-          <div class="labReadout" id="bubbleReadout" aria-live="polite"></div>
-          <p class="labFootnote">Labels show FPA/game. Larger bubble area = easier positional rank. Size is normalized within each position. <span class="labScrollHint">Scroll horizontally to see every team.</span></p>
+        <article class="glass-panel labCard labCard--wide labCard--composition" aria-label="Sunburst of scoring allowed by every defense and position">
+          <div class="labCaption"><span class="labNumber">01</span><span>SCORING COMPOSITION / SUNBURST</span><span class="labBadge">32 defenses · every position</span></div>
+          <div class="labScroll" tabindex="0" aria-label="Scroll for the full scoring sunburst"><div class="labCanvas labCanvas--sunburst" id="labSunburst"><p class="labLoading">Preparing the scoring sunburst…</p></div></div>
+          <div class="labReadout" id="compositionReadout" aria-live="polite"></div>
+          <p class="labFootnote">The inner ring shows each defense’s ALL scoring; the outer ring breaks it into QB, RB, WR, and TE. Wider arcs represent more FPA/game. Select a team or position branch to explore it. Zero scores keep their source value and have no artificial slice area.</p>
         </article>
-        <article class="glass-panel labCard labCard--wide" aria-label="Position raceways: all teams ranked at every position">
-          <div class="labCaption"><span class="labNumber">02</span><span>FIVE POSITIONS. FIVE DIFFERENT RACES.</span><span class="labBadge">Toughest ← → Easiest</span></div>
-          <div class="labScroll" tabindex="0" aria-label="Scroll horizontally to explore all positional rank lanes"><div class="labCanvas labCanvas--race" id="labRace"><p class="labLoading">Preparing the position raceways…</p></div></div>
-          <div class="labReadout" id="raceReadout" aria-live="polite"></div>
-          <p class="labFootnote">Each lane contains every defense, ordered by its FPA/game rank. Ties share a rank and fan vertically. Select any logo to explore that team and position. <span class="labScrollHint">Scroll horizontally to see every rank.</span></p>
+        <article class="glass-panel labCard labCard--wide labCard--profiles" aria-label="Parallel coordinates of all 32 defensive profiles across five positions">
+          <div class="labCaption"><span class="labNumber">02</span><span>POSITIONAL PROFILES / PARALLEL COORDINATES</span><span class="labBadge">1 at the top = toughest</span></div>
+          <div class="labScroll" tabindex="0" aria-label="Scroll for all five positional profile axes"><div class="labCanvas labCanvas--profiles" id="labProfiles"><p class="labLoading">Preparing the defensive profiles…</p></div></div>
+          <div class="labReadout" id="profileReadout" aria-live="polite"></div>
+          <div class="labTeamChoices" id="profileTeams" role="group" aria-label="Select any of the 32 defensive profiles"></div>
+          <p class="labFootnote">One connected line per team, crossing QB, RB, WR, TE, and ALL. Its height on each axis is that position’s FPA/game rank. Hover a line to trace it; select a vertex for actual scoring and that position. The selected profile stays highlighted across every axis.</p>
         </article>
-        <article class="glass-panel labCard labCard--pressure" aria-label="Opponent-adjusted toughness by position">
-          <div class="labCaption"><span class="labNumber">03</span><span>SCORING, WITH SCHEDULE CONTEXT</span><span class="labBadge labPosition" data-lab-position>QB</span></div>
-          <div class="labCanvas labCanvas--pressure" id="labPressure"><p class="labLoading">Preparing opponent-adjusted toughness…</p></div>
-          <div class="labReadout" id="pressureReadout" aria-live="polite"></div>
-          <div class="labLeaders" id="pressureLeaders" aria-label="Leaders in opponent-adjusted suppression"></div>
-          <details class="labMethod"><summary>How to read this chart</summary><p>Higher means the defense allowed a smaller share of its opponents’ expected positional scoring. Further right means it faced offenses scoring above the league baseline. Hover a logo for actual and expected FPA/game; select it to explore the matchup.</p><p>Suppression = 100 × (1 − actual total ÷ expected total). Opponent strength = 100 × (opponent expected FPA/game ÷ league offense average − 1). The league baseline weights the supplied TSUMS averages by games. Rank 1 has the most suppression.</p><p>These are comparisons from the supplied three-week sample. The offense baselines include games against the selected defense, so the chart is an opponent-adjusted comparison rather than an independent estimate of defensive ability.</p></details>
+        <article class="glass-panel labCard labCard--wide labCard--toughness" aria-label="Opponent-adjusted bullet ranking of all defenses">
+          <div class="labCaption"><span class="labNumber">03</span><span>OPPONENT CONTEXT / BULLET RANKING</span><span class="labBadge labPosition" data-lab-position>QB</span></div>
+          <div class="labScroll" tabindex="0" aria-label="Scroll for the full opponent-adjusted bullet ranking"><div class="labCanvas labCanvas--toughness" id="labToughness"><p class="labLoading">Preparing the opponent-adjusted rankings…</p></div></div>
+          <div class="labReadout" id="toughnessReadout" aria-live="polite"></div>
+          <p class="labFootnote">The colored bar is actual FPA/game. The pale track and white tick are the expected scoring of the offenses faced. Rank 1 allowed the smallest share of expected points. Right-hand badges show suppression and opponent offense strength; a positive offense percentage means a stronger-than-average schedule.</p>
+          <details class="labMethod"><summary>How opponent-adjusted toughness is calculated</summary><p>Suppression = 100 × (1 − actual total ÷ expected total). Expected scoring adds each opponent’s supplied TSUMS positional average once per game. Higher suppression receives a tougher rank, so low raw FPA against weak offenses does not automatically rank first.</p><p>Opponent offense strength = 100 × (expected FPA/game ÷ league offense average − 1). The league baseline weights the supplied TSUMS positional averages by games. Actual and expected scoring share the selected position and defense venue.</p><p>These are comparisons from the supplied three-week sample. Offense baselines include games against the selected defense. Missing or nonpositive baselines remain unavailable.</p></details>
         </article>
-        <article class="glass-panel labCard labCard--polar" aria-label="Polar scatter of each defense's individual matchups">
-          <div class="labCaption"><span class="labNumber">04</span><span>32 DEFENSES. EVERY RECORDED GAME.</span><span class="labBadge labPosition" data-lab-position>QB</span></div>
-          <div class="labScroll" tabindex="0" aria-label="Scroll horizontally for the full polar scatter"><div class="labCanvas labCanvas--polar" id="labPolar"><p class="labLoading">Preparing the matchup orbit…</p></div></div>
+        <article class="glass-panel labCard labCard--wide labCard--polar" aria-label="Full-width polar scatter with each game's points aligned to its defense">
+          <div class="labCaption"><span class="labNumber">04</span><span>INDIVIDUAL MATCHUPS / POLAR SCATTER</span><span class="labBadge labPosition" data-lab-position>QB</span></div>
+          <div class="labScroll" tabindex="0" aria-label="Scroll for the full-size polar scatter"><div class="labCanvas labCanvas--polar" id="labPolar"><p class="labLoading">Preparing the aligned matchup scatter…</p></div></div>
           <div class="labReadout" id="polarReadout" aria-live="polite"></div>
-          <p class="labFootnote">Distance from the center shows actual FPA in that game. Dots run clockwise by week within each team’s sector. Hover for the week and offense; select a logo to explore its defense. Venue selection filters the games shown.</p>
+          <p class="labFootnote">Each defense label has one spoke. All of its games lie exactly on that spoke; radius shows the actual FPA allowed in that game. Smaller logo markers retain the original scatter’s colors. Hover any dot for its offense, week, score, and the other games on that spoke. Equal scores occupy the same location. <span class="labScrollHint">Scroll horizontally to inspect the full-size chart.</span></p>
         </article>
       </div>
     </section>

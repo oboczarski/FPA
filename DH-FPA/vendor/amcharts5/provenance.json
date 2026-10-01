@@ -21,6 +21,12 @@
       "sha256": "4336f2e2173ecd91d3349f0d96596870f6d75a7ff00781282c55ff27c298e1c5"
     },
     {
+      "file": "hierarchy.js",
+      "source": "https://cdn.amcharts.com/lib/version/5.20.8/hierarchy.js",
+      "bytes": 118189,
+      "sha256": "3b7e9ef9588fff7abca8e425904b72e312af0206a157c2c3ca1603770ef09ab1"
+    },
+    {
       "file": "themes/Animated.js",
       "source": "https://cdn.amcharts.com/lib/version/5.20.8/themes/Animated.js",
       "bytes": 1073,
