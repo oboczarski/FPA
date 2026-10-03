@@ -11,20 +11,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,slnt,wdth,wght,GRAD,ROND@6..144,-10..0,25..151,1..1000,0..100,0..100&amp;family=MuseoModerno:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.3">
-  <link rel="stylesheet" href="chart-lab.css?v=2026.2">
+  <link rel="stylesheet" href="styles.css?v=2026.4">
+  <link rel="stylesheet" href="chart-lab.css?v=2026.3">
   <script defer src="data-model.js?v=2026.2"></script>
   <script defer src="data/2026-weekly.js?v=2026.2"></script>
   <script defer src="chart-utils.js?v=2026.3"></script>
-  <script defer src="app.js?v=2026.4"></script>
+  <script defer src="app.js?v=2026.5"></script>
   <script defer src="vendor/amcharts5/index.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/xy.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/radar.js?v=5.20.8"></script>
-  <script defer src="vendor/amcharts5/hierarchy.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/themes/Animated.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/themes/Dark.js?v=5.20.8"></script>
-  <script defer src="chart-lab-model.js?v=2026.2"></script>
-  <script defer src="chart-lab.js?v=2026.2"></script>
+  <script defer src="chart-lab-model.js?v=2026.3"></script>
+  <script defer src="chart-lab.js?v=2026.3"></script>
 </head>
 <body data-page="matchups">
   <div class="background-orb background-orb--one" aria-hidden="true"></div>
@@ -65,61 +64,60 @@
         <div class="defenseHeader"><div class="defenseLogo" id="defenseLogo"></div><div><span class="fieldLabel">FANTASY POINTS ALLOWED</span><h2 id="defenseTitle">Loading defense…</h2><p id="defenseSubtitle" class="panelSubtitle"></p></div><span class="positionBadge" id="selectedPosition" data-pos="QB">QB</span></div>
         <div class="metricStrip" id="metrics"></div>
         <section class="weeklySection" aria-labelledby="weeklyTitle">
-          <div class="sectionHeading"><h3 id="weeklyTitle">Week by week</h3><div class="chartLegend"><span><i class="legendActual"></i>Actual FPA</span><span><i class="legendExpected"></i>Expected</span></div></div>
+          <div class="sectionHeading chartHeading"><h3 id="weeklyTitle">Week by week</h3><div class="chartHeaderControls"><div class="chartLegend"><span><i class="legendActual"></i>Actual FPA</span><span><i class="legendExpected"></i>Expected</span></div><div class="positionToggle chartPositionToggle" role="group" aria-label="Weekly chart position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div></div>
           <div class="chart weeklyChart" id="weeklyChart"></div>
           <div class="weeklyMatchups" id="weeklyMatchups"></div>
         </section>
         <section class="playersSection" id="players" aria-labelledby="playersTitle">
           <div class="sectionHeading"><h3 id="playersTitle">Players faced</h3><span class="smallMuted" id="playerScope"></span><button type="button" class="iconButton" id="expandPlayers" aria-label="Expand player results" title="Expand player results"><svg class="icon"><use href="#icon-expand"/></svg></button></div>
-          <div class="playerFilters"><label class="searchField"><svg class="icon"><use href="#icon-search"/></svg><input type="search" id="playerSearch" placeholder="Search players or offenses" aria-label="Search player results"></label><label class="checkboxField"><input type="checkbox" id="hideZero">Hide zeros</label></div>
+          <div class="playerFilters"><label class="searchField"><svg class="icon"><use href="#icon-search"/></svg><input type="search" id="playerSearch" placeholder="Search players or offenses" aria-label="Search player results"></label><label class="checkboxField"><input type="checkbox" id="hideZero" checked>Hide zeros</label></div>
           <div class="tableScroll playerTableScroll" tabindex="0" aria-label="Scrollable player results"><table class="playerTable" id="playerTable"></table></div>
           <div class="playerFooter"><span id="playerCount" aria-live="polite"></span><span id="playerTotal"></span></div>
         </section>
       </section>
       <div class="leagueColumn">
         <section class="glass-panel comparisonPanel" aria-labelledby="comparisonTitle">
-          <div class="panelHeader"><div><span class="fieldLabel">OPPONENT OFFENSE CONTEXT</span><h2 id="comparisonTitle">Expected vs. actual</h2></div><div class="smallToggle" role="group" aria-label="Comparison metric"><button type="button" data-scatter-mode="points" aria-pressed="true">Points</button><button type="button" data-scatter-mode="rank" aria-pressed="false">Ranks</button></div></div>
+          <div class="panelHeader"><div><span class="fieldLabel">OPPONENT OFFENSE CONTEXT</span><h2 id="comparisonTitle">Expected vs. actual</h2></div><div class="chartHeaderControls"><div class="smallToggle" role="group" aria-label="Comparison metric"><button type="button" data-scatter-mode="points" aria-pressed="true">Points</button><button type="button" data-scatter-mode="rank" aria-pressed="false">Ranks</button></div><div class="positionToggle chartPositionToggle" role="group" aria-label="Expected vs actual scatter position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div></div>
           <div class="chart comparisonChart" id="comparisonChart"></div>
           <div class="comparisonDetail" id="comparisonDetail" aria-live="polite"></div>
           <p class="chartNote" id="comparisonNote"></p>
           <div class="opponentsSection"><div class="sectionHeading"><h3>Offenses faced</h3><span class="smallMuted" id="opponentsScope"></span></div><div class="tableScroll"><table class="opponentsTable" id="opponentsTable"></table></div></div>
         </section>
         <section class="glass-panel rankingsPanel" id="rankings" aria-labelledby="rankingsTitle">
-          <div class="panelHeader"><h2 id="rankingsTitle">Matchup heatmap</h2><div class="heatLegend"><span>Tougher</span><i></i><span>Easier</span></div></div>
+          <div class="panelHeader"><h2 id="rankingsTitle">Matchup heatmap</h2><div class="chartHeaderControls"><div class="heatLegend"><span>Tougher</span><i></i><span>Easier</span></div><div class="positionToggle chartPositionToggle" role="group" aria-label="Matchup heatmap position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div></div>
           <div class="tableScroll heatTableScroll" tabindex="0" aria-label="Scrollable matchup heatmap"><table class="heatTable" id="heatTable"></table></div>
           <p class="panelFootnote">FPA per game <span class="footnoteDivider">/</span> Rank 1 = fewest points allowed <span class="footnoteDivider">/</span> Select a matchup</p>
         </section>
       </div>
     </div>
     <section class="chartLab" id="chartLab" aria-labelledby="chartLabTitle">
-      <div class="labIntro"><div><span class="fieldLabel">THE SAME MATCHUPS. DIFFERENT PERSPECTIVES.</span><h2 id="chartLabTitle">See the shape of the matchup</h2><p>Scoring composition. Positional profiles. Opponent-adjusted toughness. Every individual game.</p></div><span class="labScope" id="labScope" aria-live="polite">2026 · PPR</span></div>
+      <div class="labIntro"><div><span class="fieldLabel">THE SAME MATCHUPS. DIFFERENT PERSPECTIVES.</span><h2 id="chartLabTitle">See the shape of the matchup</h2><p>Positional scoring. Actual versus expected. Opponent-adjusted toughness. Every individual game.</p></div><span class="labScope" id="labScope" aria-live="polite">2026 · PPR</span></div>
       <div class="labError" id="labError" role="status" hidden></div>
       <div class="labGrid">
-        <article class="glass-panel labCard labCard--wide labCard--composition" aria-label="Sunburst of scoring allowed by every defense and position">
-          <div class="labCaption"><span class="labNumber">01</span><span>SCORING COMPOSITION / SUNBURST</span><span class="labBadge">32 defenses · every position</span></div>
-          <div class="labScroll" tabindex="0" aria-label="Scroll for the full scoring sunburst"><div class="labCanvas labCanvas--sunburst" id="labSunburst"><p class="labLoading">Preparing the scoring sunburst…</p></div></div>
+        <article class="glass-panel labCard labCard--composition" aria-label="Stacked scoring bars for all 32 defenses and positions">
+          <div class="labCaption"><span class="labNumber">01</span><span>POSITIONAL SCORING / STACKED BARS</span><div class="positionToggle chartPositionToggle" role="group" aria-label="Positional scoring chart position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div>
+          <div class="labScroll" tabindex="0" aria-label="Scroll for all 32 positional scoring bars"><div class="labCanvas labCanvas--breakdown" id="labBreakdown"><p class="labLoading">Preparing the positional scoring bars…</p></div></div>
           <div class="labReadout" id="compositionReadout" aria-live="polite"></div>
-          <p class="labFootnote">The inner ring shows each defense’s ALL scoring; the outer ring breaks it into QB, RB, WR, and TE. Wider arcs represent more FPA/game. Select a team or position branch to explore it. Zero scores keep their source value and have no artificial slice area.</p>
+          <p class="labFootnote">ALL stacks QB, RB, WR, and TE to show each defense’s total FPA per game and its positional breakdown. Choose a position to isolate it across all 32 defenses. Longer bars mean more points allowed; teams are ordered from highest to lowest scoring. Select a segment to explore that team and position.</p>
         </article>
-        <article class="glass-panel labCard labCard--wide labCard--profiles" aria-label="Parallel coordinates of all 32 defensive profiles across five positions">
-          <div class="labCaption"><span class="labNumber">02</span><span>POSITIONAL PROFILES / PARALLEL COORDINATES</span><span class="labBadge">1 at the top = toughest</span></div>
-          <div class="labScroll" tabindex="0" aria-label="Scroll for all five positional profile axes"><div class="labCanvas labCanvas--profiles" id="labProfiles"><p class="labLoading">Preparing the defensive profiles…</p></div></div>
-          <div class="labReadout" id="profileReadout" aria-live="polite"></div>
-          <div class="labTeamChoices" id="profileTeams" role="group" aria-label="Select any of the 32 defensive profiles"></div>
-          <p class="labFootnote">One connected line per team, crossing QB, RB, WR, TE, and ALL. Its height on each axis is that position’s FPA/game rank. Hover a line to trace it; select a vertex for actual scoring and that position. The selected profile stays highlighted across every axis.</p>
+        <article class="glass-panel labCard labCard--dumbbell" aria-label="Dumbbell comparison of actual and expected FPA for every defense">
+          <div class="labCaption"><span class="labNumber">02</span><span>ACTUAL VS. EXPECTED / DUMBBELLS</span><div class="positionToggle chartPositionToggle" role="group" aria-label="Actual vs expected dumbbell position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div>
+          <div class="labScroll" tabindex="0" aria-label="Scroll for all 32 actual and expected comparisons"><div class="labCanvas labCanvas--dumbbell" id="labDumbbell"><p class="labLoading">Preparing the actual and expected dumbbells…</p></div></div>
+          <div class="labReadout" id="dumbbellReadout" aria-live="polite"></div>
+          <p class="labFootnote">The hollow ring is expected FPA; the filled dot is actual FPA over the same games. The connector brightens toward actual scoring: blue to the left means below expectation; rose to the right means above. The number at the right is actual minus expected, in points. Teams are ordered from most below expectation to most above.</p>
         </article>
         <article class="glass-panel labCard labCard--wide labCard--toughness" aria-label="Opponent-adjusted bullet ranking of all defenses">
-          <div class="labCaption"><span class="labNumber">03</span><span>OPPONENT CONTEXT / BULLET RANKING</span><span class="labBadge labPosition" data-lab-position>QB</span></div>
+          <div class="labCaption"><span class="labNumber">03</span><span>OPPONENT CONTEXT / BULLET RANKING</span><div class="positionToggle chartPositionToggle" role="group" aria-label="Opponent-adjusted ranking position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div>
           <div class="labScroll" tabindex="0" aria-label="Scroll for the full opponent-adjusted bullet ranking"><div class="labCanvas labCanvas--toughness" id="labToughness"><p class="labLoading">Preparing the opponent-adjusted rankings…</p></div></div>
           <div class="labReadout" id="toughnessReadout" aria-live="polite"></div>
           <p class="labFootnote">The colored bar is actual FPA/game. The pale track and white tick are the expected scoring of the offenses faced. Rank 1 allowed the smallest share of expected points. Right-hand badges show suppression and opponent offense strength; a positive offense percentage means a stronger-than-average schedule.</p>
           <details class="labMethod"><summary>How opponent-adjusted toughness is calculated</summary><p>Suppression = 100 × (1 − actual total ÷ expected total). Expected scoring adds each opponent’s supplied TSUMS positional average once per game. Higher suppression receives a tougher rank, so low raw FPA against weak offenses does not automatically rank first.</p><p>Opponent offense strength = 100 × (expected FPA/game ÷ league offense average − 1). The league baseline weights the supplied TSUMS positional averages by games. Actual and expected scoring share the selected position and defense venue.</p><p>These are comparisons from the supplied three-week sample. Offense baselines include games against the selected defense. Missing or nonpositive baselines remain unavailable.</p></details>
         </article>
-        <article class="glass-panel labCard labCard--wide labCard--polar" aria-label="Full-width polar scatter with each game's points aligned to its defense">
-          <div class="labCaption"><span class="labNumber">04</span><span>INDIVIDUAL MATCHUPS / POLAR SCATTER</span><span class="labBadge labPosition" data-lab-position>QB</span></div>
+        <article class="glass-panel labCard labCard--wide labCard--polar" aria-label="Polar scatter with opposing offense logos aligned to each defense">
+          <div class="labCaption"><span class="labNumber">04</span><span>INDIVIDUAL MATCHUPS / POLAR SCATTER</span><div class="positionToggle chartPositionToggle" role="group" aria-label="Polar scatter position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div>
           <div class="labScroll" tabindex="0" aria-label="Scroll for the full-size polar scatter"><div class="labCanvas labCanvas--polar" id="labPolar"><p class="labLoading">Preparing the aligned matchup scatter…</p></div></div>
           <div class="labReadout" id="polarReadout" aria-live="polite"></div>
-          <p class="labFootnote">Each defense label has one spoke. All of its games lie exactly on that spoke; radius shows the actual FPA allowed in that game. Smaller logo markers retain the original scatter’s colors. Hover any dot for its offense, week, score, and the other games on that spoke. Equal scores occupy the same location. <span class="labScrollHint">Scroll horizontally to inspect the full-size chart.</span></p>
+          <p class="labFootnote">Each defense label has one spoke. All of its games lie exactly on that spoke; radius shows the actual FPA allowed in that game. Each small logo identifies the opposing offense that scored those points; its ring retains the original scatter’s colors. Hover any dot for its offense, week, score, and the other games on that spoke. Equal scores occupy the same location. <span class="labScrollHint">Scroll horizontally to inspect the full-size chart.</span></p>
         </article>
       </div>
     </section>
@@ -139,7 +137,7 @@
         <div class="positionToggle" role="group" aria-label="Expanded position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div>
         <div class="teamPicker venueMenu" id="modalVenueMenu" data-picker-kind="venue"></div>
       </div>
-      <div class="playerFilters"><label class="searchField"><svg class="icon"><use href="#icon-search"/></svg><input type="search" id="expandedSearch" placeholder="Search players or offenses" aria-label="Search expanded player results"></label><label class="checkboxField"><input type="checkbox" id="expandedHideZero">Hide zeros</label></div>
+      <div class="playerFilters"><label class="searchField"><svg class="icon"><use href="#icon-search"/></svg><input type="search" id="expandedSearch" placeholder="Search players or offenses" aria-label="Search expanded player results"></label><label class="checkboxField"><input type="checkbox" id="expandedHideZero" checked>Hide zeros</label></div>
       <div class="tableScroll expandedTableScroll" tabindex="0" aria-label="Expanded player results"><table class="playerTable" id="expandedTable"></table></div><div class="playerFooter"><span id="expandedCount"></span><span>Selections update the dashboard.</span></div>
     </div>
   </dialog>

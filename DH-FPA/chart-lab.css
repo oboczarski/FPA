@@ -9,15 +9,14 @@
 .chartLab .labCard::before { background:linear-gradient(125deg,#dcf3ff07,transparent 45%); }
 .chartLab .labCard::after { content:""; position:absolute; top:0; left:22px; right:22px; height:1px; pointer-events:none; background:linear-gradient(90deg,transparent,#74dfff70,#b59bff60,transparent); }
 .chartLab .labCard--composition { background:radial-gradient(ellipse at 50% 47%,#6f99f510,transparent 58%),linear-gradient(160deg,#14223bee,#0a1528f2 70%,#15132aed); }
-.chartLab .labCard--profiles { background:radial-gradient(ellipse at 49% 15%,#997cff0c,transparent 68%),linear-gradient(155deg,#142138ef,#091427f0); }
+.chartLab .labCard--dumbbell { background:radial-gradient(ellipse at 0% 45%,#6794ff0c,transparent 65%),radial-gradient(ellipse at 100% 60%,#f18aaf08,transparent 65%),linear-gradient(155deg,#142138ef,#091427f0); }
 .chartLab .labCard--polar { background:radial-gradient(circle at 50% 46%,#4573d90d,transparent 55%),linear-gradient(160deg,#101f34ef,#081223f5 65%,#171429ee); }
-.chartLab .labCaption { display:flex; align-items:center; gap:9px; padding:12px 17px 0; color:#9dafcd; font-size:9px; font-weight:500; letter-spacing:1.2px; }
+.chartLab .labCaption { display:flex; flex-wrap:wrap; align-items:center; gap:9px; padding:12px 17px 0; color:#9dafcd; font-size:9px; font-weight:500; letter-spacing:1.2px; }
 .chartLab .labNumber { display:inline-flex; align-items:center; justify-content:center; width:24px; height:22px; border:1px solid #c1d8ff25; border-radius:7px; background:linear-gradient(145deg,#a9d7ff12,#9388ff0a); color:#c1d4f9; font-size:10px; letter-spacing:0; font-variant-numeric:tabular-nums; }
-.chartLab .labBadge { margin-left:auto; font-size:10px; color:#a5b8d5; letter-spacing:0; white-space:nowrap; }
-.chartLab .labPosition { padding:4px 8px; border-radius:6px; border:1px solid color-mix(in srgb,var(--position) 30%,transparent); background:color-mix(in srgb,var(--position) 7%,transparent); color:var(--position); font-size:10px; }
+.chartLab .labCaption .chartPositionToggle { margin-left:auto; letter-spacing:0; }
 .chartLab .labCanvas { position:relative; width:100%; font-family:var(--font); }
-.chartLab .labCanvas--sunburst {min-width: 592px;height: 690px;max-width: 671px;}
-.chartLab .labCanvas--profiles {min-width: 750px;height: 580px;max-width: 750px;}
+.chartLab .labCanvas--breakdown { min-width:580px; height:860px; }
+.chartLab .labCanvas--dumbbell { min-width:600px; height:860px; }
 .chartLab .labCanvas--toughness {min-width: 960px;height: 1020px;max-width: 800px;zoom: 0.8;}
 .chartLab .labCanvas--polar {min-width: 600px;height: 700px;}
 .chartLab .labScroll { overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; scrollbar-color:#4e5d8080 transparent; }
@@ -31,17 +30,13 @@
 .chartLab .labReadout .labUnavailable { color:#8e9fbd; }
 .chartLab .labFootnote { padding:0 17px 13px; font-size:10px; line-height:1.6; color:#91a5c5; max-width:1120px; }
 .chartLab .labScrollHint { display:none; color:#bbcdeb; }
-.chartLab .labTeamChoices { display:flex; flex-wrap:wrap; gap:4px; padding:2px 17px 10px; }
-.chartLab .labTeamChoice { padding:4px 7px; border:1px solid #a6c5fa1c; border-radius:7px; background:linear-gradient(140deg,#9cc9ff07,#ac9dff05); color:#a4b9d8; }
-.chartLab .labTeamChoice .labTeam { display:inline-flex; align-items:center; gap:3px; font-size:9px; }
-.chartLab .labTeamChoice .labTeam img { width:17px; height:15px; }
-.chartLab .labTeamChoice:hover,.chartLab .labTeamChoice[aria-pressed="true"] { color:#e2eeff; border-color:#a4cbff70; background:#a4cfff13; }
 .chartLab .labMethod { margin:0 17px 13px; padding-top:8px; border-top:1px solid #bcd3ff19; color:#90a5c6; font-size:10px; line-height:1.65; }
 .chartLab .labMethod summary { cursor:pointer; color:#c3d7f5; }
 .chartLab .labMethod p { margin:7px 0 0; max-width:1060px; }
 .chartLab .labLoading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#95abd0; background:radial-gradient(ellipse at center,#7896ff09,transparent 65%); }
 .chartLab .labError { padding:10px 12px; margin-bottom:10px; color:#cad5eb; font-size:11px; border:1px solid #9fc2fc24; border-radius:10px; background:#8aabfb08; }
 @media (max-width:1100px) {
+  .chartLab .labGrid { grid-template-columns:minmax(0,1fr); }
   .chartLab .labScrollHint { display:inline; }
   .chartLab .labCanvas--polar { height:850px; }
 }
@@ -54,10 +49,8 @@
   .chartLab .labGrid { gap:10px; }
   .chartLab .labCard { border-radius:13px; }
   .chartLab .labCaption { padding:10px 11px 0; gap:6px; font-size:7px; letter-spacing:.6px; flex-wrap:wrap; }
-  .chartLab .labBadge { font-size:8px; }
   .chartLab .labReadout { margin-inline:11px; gap:6px 12px; font-size:10px; }
   .chartLab .labFootnote { padding-inline:11px; font-size:10px; }
-  .chartLab .labTeamChoices { padding-inline:11px; }
   .chartLab .labMethod { margin-inline:11px; font-size:10px; }
 }
 @media print { .chartLab .labScroll { overflow:visible; } .chartLab .labMethod { display:none; } }

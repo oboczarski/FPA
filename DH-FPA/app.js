@@ -28,7 +28,7 @@
   };
   const VENUES = { all: "All games", home: "At home", away: "On the road" };
   const pickerRoots = [...document.querySelectorAll("[data-picker-kind]")];
-  const state = { team: "BAL", pos: "QB", venue: "all", mode: "points", query: "", hideZero: false,
+  const state = { team: "BAL", pos: "QB", venue: "all", mode: "points", query: "", hideZero: true,
     heatSort: { pos: "QB", direction: "desc" }, playerSort: { key: "week", direction: "desc" } };
   let model = null, offenses = null, analysis = null, openPicker = null;
   const tooltips = new Map();
@@ -231,7 +231,7 @@
     renderScatterDetail(state.team);
     $("comparisonNote").textContent = ranked ? `Ranks of totals · 1 = lowest · ${points.length} comparable defenses. Select a logo.` : `Above the line = more points allowed than expected. ${points.length} comparable defenses.`;
     if (!points.length) { $("comparisonChart").innerHTML = empty("No complete comparisons", "Opponent offense averages must be available for each recorded game."); return; }
-    const W = width("comparisonChart"), H = innerWidth <= 620 ? 220 : 226, left = 43, right = W - 16, top = 18, bottom = H - 34;
+    const W = width("comparisonChart"), H = innerWidth <= 620 ? 440 : 452, left = 43, right = W - 16, top = 18, bottom = H - 34;
     const pool = analysis.pools[state.pos];
     const rankBounds = { low: 0, high: Math.max(2, pool + 1), ticks: [...new Set([1, Math.ceil(pool / 4), Math.ceil(pool / 2), Math.ceil(pool * 3 / 4), pool])] };
     const xBounds = ranked ? rankBounds : Charts.pointBounds(points.map(point => point.x));

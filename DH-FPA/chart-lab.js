@@ -4,14 +4,15 @@
   const $ = id => document.getElementById(id), Model = window.FPAChartLabData;
   const scenes = new Map(), observed = new Set();
   const definitions = [
-    { id: "labSunburst", title: "Where the points came from", kind: "overview", create: scoringSunburst },
-    { id: "labProfiles", title: "Five positions. One defensive profile.", kind: "overview", create: parallelProfiles },
+    { id: "labBreakdown", title: "Scoring allowed, position by position", kind: "position", create: scoringBreakdown },
+    { id: "labDumbbell", title: "Actual vs. expected, team by team", kind: "position", create: actualExpectedDumbbells },
     { id: "labToughness", title: "Toughness, measured against the opposition", kind: "position", create: toughnessBullets },
     { id: "labPolar", title: "Every game, on its defense’s spoke", kind: "position", create: polarScatter },
   ];
   let current = null, snapshot = null, observer = null;
   const fmt = (n, digits = 1) => Number.isFinite(n) ? n.toFixed(digits) : "—";
   const signed = n => Number.isFinite(n) ? `${n > 0 ? "+" : ""}${fmt(Math.abs(n) < 1e-9 ? 0 : n)}%` : "—";
+  const signedPoints = n => Number.isFinite(n) ? `${n > 0 ? "+" : ""}${fmt(Math.abs(n) < 1e-9 ? 0 : n, 1)}` : "—";
   const color = value => am5.color(value);
   const teamMarkup = team => `<span class="labTeam"><img src="assets/NFL-Tags_webp/${team.toLowerCase()}.webp" alt=""><strong>${team}</strong></span>`;
   const venueText = () => current.venue === "home" ? "Defense at home" : current.venue === "away" ? "Defense away" : "All games";
@@ -29,7 +30,6 @@
     theme.rule("Grid").setAll({ stroke: color(0x9ab6e0), strokeOpacity: .1 });
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
       theme.rule("Component").setAll({ interpolationDuration: 0 });
-      theme.rule("Hierarchy").setAll({ animationDuration: 0 });
     }
     root.setThemes([am5themes_Animated.new(root), am5themes_Dark.new(root), theme]);
     root.numberFormatter.set("numberFormat", "#,###.##");
@@ -93,118 +93,138 @@
     return `[bold]#${row.adjustedRank} ${row.team} · ${row.pos}[/]\nActual: ${fmt(row.actualAvg, 2)} FPA/game\nExpected from opponents: ${fmt(row.expectedAvg, 2)} /game\nSuppression: ${signed(row.suppression)}\nOpponent offense strength: ${signed(row.strength)} vs league\n${row.games} recorded games · select to explore`;
   }
 
-  function scoringSunburst(definition) {
-    const scene = makeScene(definition), root = scene.root;
-    const wrapper = root.container.children.push(am5.SerialChartContainer.new(root, {
-      width: am5.percent(100), height: am5.percent(100), layout: root.verticalLayout }));
-    wrapper.zoomableContainer.setAll({ wheelable: false, pinchZoom: false, minZoomLevel: 1, maxZoomLevel: 1, maxPanOut: 0 });
-    const series = wrapper.series.push(am5hierarchy.Sunburst.new(root, { valueField: "value", categoryField: "name",
-      childDataField: "children", fillField: "tint", topDepth: 1, downDepth: 2, initialDepth: 3, singleBranchOnly: false,
-      radius: am5.percent(94), innerRadius: am5.percent(28), startAngle: -90, endAngle: 270 }));
-    // Every team stays visible: slice clicks select the dashboard, never drill down.
-    series.nodes.template.setAll({ toggleKey: "none", interactive: true });
-    series.slices.template.setAll({ stroke: color(0x0b162b), strokeWidth: 1.3, fillOpacity: .7 });
-    series.labels.template.setAll({ text: "{name}", textType: "circular", fontSize: 10, fill: color(0xd9e7ff),
-      oversizedBehavior: "hide", paddingTop: 0, paddingBottom: 0 });
-    series.labels.template.adapters.add("text", (text, target) => {
-      const row = target.dataItem?.dataContext;
-      return row?.pos === "ALL" ? row.team : row?.pos || "";
-    });
-    const center = series.nodesContainer.children.push(am5.Label.new(root, { text: "", isMeasured: false,
-      centerX: am5.percent(50), centerY: am5.percent(50), textAlign: "center", fontFamily: '"MuseoModerno", sans-serif',
-      fontSize: 13, fill: color(0xc7daf9), lineHeight: am5.percent(135) }));
-    series.events.on("datavalidated", () => {
-      scene.markers.clear();
-      series.slices.each(slice => {
-        const row = slice.dataItem?.dataContext; if (!row?.team) return;
-        const node = slice.dataItem.get("node"); node.set("tooltipText", cellTooltip(row));
-        register(scene, row, node, selected => slice.setAll({ fillOpacity: selected ? .98 : row.pos === "ALL" ? .42 : .63,
-          stroke: selected ? color(0xd9eaff) : color(0x0b162b),
-          strokeWidth: selected && (row.pos === current.pos || row.pos === "ALL") ? 2.4 : selected ? 1.5 : 1.3 }));
+  function scoringBreakdown(definition) {
+    const scene = makeScene(definition), root = scene.root, palette = am5.ColorSet.new(root, {});
+    const positions = Model.POSITIONS.slice(0, 4);
+    const key = root.container.children.push(am5.Container.new(root, { width: am5.percent(100),
+      layout: root.horizontalLayout, paddingLeft: 17, paddingBottom: 6 }));
+    const keys = new Map(positions.map((pos, index) => [pos, key.children.push(am5.Label.new(root, {
+      text: `● ${pos}`, fill: palette.getIndex(index), fontSize: 10, fontWeight: "500", paddingRight: 20,
+      paddingTop: 0, paddingBottom: 0 }))]));
+    const chart = xy(scene, { paddingLeft: 9, paddingRight: 57, paddingTop: 4 });
+    const xr = am5xy.AxisRendererX.new(root, { minGridDistance: 65 }), yr = am5xy.AxisRendererY.new(root, { minGridDistance: 1, inversed: true });
+    axisStyle(xr); axisStyle(yr, 11); yr.labels.template.setAll({ paddingTop: 0, paddingBottom: 0, paddingRight: 12 });
+    yr.grid.template.set("forceHidden", true);
+    const xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, { min: 0, strictMinMax: true, renderer: xr }));
+    const yAxis = chart.yAxes.push(am5xy.CategoryAxis.new(root, { categoryField: "team", renderer: yr }));
+    yr.labels.template.adapters.add("fill", (fill, target) => target.dataItem?.dataContext?.team === current.team ? color(0xf1f6ff) : fill);
+    scene.labelRenderers.push(yr);
+    const seriesByPos = new Map();
+    positions.forEach((pos, index) => {
+      const tint = palette.getIndex(index);
+      const gradient = am5.LinearGradient.new(root, { rotation: 0, stops: [
+        { color: tint, opacity: .45 }, { color: tint, opacity: .94 } ] });
+      const series = chart.series.push(am5xy.ColumnSeries.new(root, { name: pos, xAxis, yAxis, baseAxis: yAxis,
+        categoryYField: "team", valueXField: pos, stacked: true, fill: tint, stroke: tint }));
+      series.columns.template.setAll({ height: 14, fillGradient: gradient, strokeOpacity: .15, strokeWidth: .5,
+        cornerRadiusTL: 2, cornerRadiusTR: 2, cornerRadiusBL: 2, cornerRadiusBR: 2 });
+      series.events.on("datavalidated", () => {
+        series.columns.each(column => {
+          const data = column.dataItem?.dataContext; if (!data?.team) return;
+          const row = snapshot.cells.find(cell => cell.team === data.team && cell.pos === pos);
+          column.set("tooltipText", cellTooltip(row));
+          register(scene, row, column, selected => column.setAll({ fillOpacity: selected ? 1 : .77,
+            stroke: selected ? color(0xe2efff) : tint, strokeOpacity: selected ? .85 : .15,
+            strokeWidth: selected ? 1.2 : .5 }));
+        });
+        scene.select();
       });
-      scene.select();
+      seriesByPos.set(pos, series);
     });
-    scene.paint = () => {
-      const row = snapshot.cells.find(cell => cell.team === current.team && cell.pos === "ALL");
-      center.set("text", `[fontSize: 30px]${current.team}[/]\n[fontSize: 21px]${fmt(row?.avg, 2)}[/]\nALL FPA / GAME`);
-    };
-    // The source palette is owned by amCharts; leaves share position colors across teams.
-    const colors = series.get("colors");
-    const palette = root.container.children.push(am5.Container.new(root, { width: am5.percent(100),
-      layout: root.horizontalLayout, paddingLeft: 17, paddingTop: 3, paddingBottom: 25 }));
-    Model.POSITIONS.slice(0, 4).forEach((pos, index) => palette.children.push(am5.Label.new(root, {
-      text: `● ${pos}`, fill: colors.getIndex(index), fontSize: 11, paddingRight: 23, paddingTop: 0, paddingBottom: 0 })));
-    palette.children.push(am5.Label.new(root, { text: "INNER RING = ALL", fill: color(0xa9bddc), fontSize: 10, paddingTop: 1, paddingBottom: 0 }));
+    const totals = chart.series.push(am5xy.LineSeries.new(root, { xAxis, yAxis, categoryYField: "team", valueXField: "avg",
+      minBulletDistance: 0, maskBullets: false }));
+    totals.strokes.template.set("forceHidden", true);
+    totals.bullets.push((root, series, item) => {
+      const row = item.dataContext;
+      const label = am5.Label.new(root, { text: fmt(row.avg, 2), centerY: am5.percent(50), dx: 7,
+        fontSize: 10, paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0, tooltipText: cellTooltip(row) });
+      register(scene, row, label, selected => label.setAll({ fill: selected ? color(0xf1f6ff) : color(0x9db4d7), fontWeight: selected ? "600" : "400" }));
+      return am5.Bullet.new(root, { sprite: label });
+    });
     scene.setData = view => {
-      scene.subtitle.set("text", `${view.teams.length} TEAM TOTALS · 128 POSITION BRANCHES · ANGLE = FPA/GAME · ${venueText().toUpperCase()}`);
-      const data = { ...view.sunburst, children: view.sunburst.children.map((team, index) => ({ ...team,
-        tint: colors.getIndex(index), children: team.children.map((row, p) => ({ ...row, tint: colors.getIndex(p) })) })) };
-      series.data.setAll([data]); series.set("selectedDataItem", series.dataItems[0]);
+      scene.markers.clear();
+      scene.subtitle.set("text", `${view.pos} · FPA PER GAME · 32 DEFENSES · HIGHEST SCORING FIRST · ${venueText().toUpperCase()}`);
+      const rows = [...view.breakdown].sort((a, b) => b.avg - a.avg || a.team.localeCompare(b.team));
+      const active = view.pos === "ALL" ? positions : [view.pos];
+      keys.forEach((label, pos) => label.set("visible", active.includes(pos)));
+      const bounds = Model.extent(rows.map(row => row.avg), 10, true);
+      xAxis.setAll({ min: bounds.min, max: Math.max(10, bounds.max) }); yAxis.data.setAll(rows);
+      seriesByPos.forEach((series, pos) => series.data.setAll(active.includes(pos) ? rows : []));
+      totals.data.setAll(rows);
     };
     return scene;
   }
 
-  function parallelProfiles(definition) {
-    const scene = makeScene(definition), root = scene.root;
-    const chart = xy(scene, { paddingLeft: 12, paddingRight: 87, paddingTop: 30, paddingBottom: 20 }); focusButton(scene);
-    const xr = am5xy.AxisRendererX.new(root, { minGridDistance: 1 }), yr = am5xy.AxisRendererY.new(root, { minGridDistance: 27, inversed: true });
-    axisStyle(xr, 13); axisStyle(yr);
-    xr.labels.template.setAll({ fontWeight: "600", paddingTop: 10 });
-    xr.grid.template.setAll({ location: .5, strokeOpacity: .25, strokeWidth: 1 });
-    yr.grid.template.set("forceHidden", true);
-    const xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, { categoryField: "pos", renderer: xr }));
-    const yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, { min: .5, max: 32.5, strictMinMax: true,
-      maxPrecision: 0, renderer: yr }));
-    const items = new Map(); let hovered = null;
-    snapshot.teams.forEach((team, index) => {
-      const tint = chart.get("colors").getIndex(index);
-      const series = chart.series.push(am5xy.LineSeries.new(root, { name: team, xAxis, yAxis, categoryXField: "pos",
-        valueYField: "rank", minBulletDistance: 0, maskBullets: false, stroke: tint, fill: tint, connect: false }));
-      series.strokes.template.setAll({ strokeWidth: 1.5, strokeOpacity: .3, interactive: true, cursorOverStyle: "pointer" });
-      series.strokes.template.events.on("pointerover", () => { hovered = team; scene.select(); });
-      series.strokes.template.events.on("pointerout", () => { hovered = null; scene.select(); });
-      series.strokes.template.events.on("click", () => current.select(team, current.pos));
-      series.bullets.push((root, series, item) => {
-        const row = item.dataContext;
-        const sprite = am5.Container.new(root, { width: 8, height: 8, centerX: am5.percent(50), centerY: am5.percent(50), tooltipText: cellTooltip(row) });
-        const halo = sprite.children.push(am5.Circle.new(root, { x: am5.percent(50), y: am5.percent(50), radius: 8,
-          fill: tint, fillOpacity: .15, stroke: tint, strokeOpacity: .35, visible: false }));
-        const dot = sprite.children.push(am5.Circle.new(root, { x: am5.percent(50), y: am5.percent(50), radius: 2.2,
-          fill: tint, stroke: tint, strokeWidth: 1 }));
-        const value = sprite.children.push(am5.Label.new(root, { text: `#${row.rank} · ${fmt(row.avg)}`, x: am5.percent(50),
-          centerX: am5.percent(50), y: -31, fontSize: 10, fill: color(0xe0eeff), visible: false,
-          paddingTop: 3, paddingBottom: 3, paddingLeft: 6, paddingRight: 6,
-          background: am5.RoundedRectangle.new(root, { fill: color(0x0b172c), fillOpacity: .95, stroke: tint,
-            strokeOpacity: .4, cornerRadiusTL: 4, cornerRadiusTR: 4, cornerRadiusBL: 4, cornerRadiusBR: 4 }) }));
-        if (row.pos === "ALL") {
-          sprite.children.push(am5.Picture.new(root, { src: `assets/NFL-Tags_webp/${row.team.toLowerCase()}.webp`,
-            width: 11, height: 11, x: 15, y: am5.percent(50), centerY: am5.percent(50) }));
-          sprite.children.push(am5.Label.new(root, { text: row.team, x: 29, y: am5.percent(50), centerY: am5.percent(50),
-            fontSize: 9, paddingTop: 0, paddingBottom: 0, fill: tint }));
-        }
-        register(scene, row, sprite, selected => { dot.setAll({ radius: selected ? 4.2 : 2.2, fillOpacity: selected || hovered === row.team ? 1 : .55 });
-          halo.set("visible", selected && row.pos === current.pos); value.set("visible", selected); });
-        return am5.Bullet.new(root, { sprite });
+  function actualExpectedDumbbells(definition) {
+    const scene = makeScene(definition), root = scene.root, palette = am5.ColorSet.new(root, {});
+    const below = palette.getIndex(0), above = palette.getIndex(8);
+    legend(scene, [{ text: "○ EXPECTED", fill: color(0xd4e4ff) }, { text: "● ACTUAL", fill: color(0xd4e4ff) },
+      { text: "← BELOW", fill: below }, { text: "ABOVE →", fill: above }]);
+    const chart = xy(scene, { paddingLeft: 9, paddingRight: 80, paddingTop: 4 });
+    const xr = am5xy.AxisRendererX.new(root, { minGridDistance: 65 }), yr = am5xy.AxisRendererY.new(root, { minGridDistance: 1, inversed: true });
+    axisStyle(xr); axisStyle(yr, 11); yr.labels.template.setAll({ paddingTop: 0, paddingBottom: 0, paddingRight: 12 });
+    yr.grid.template.setAll({ strokeOpacity: .04, location: .5 });
+    const xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, { strictMinMax: true, renderer: xr }));
+    const yAxis = chart.yAxes.push(am5xy.CategoryAxis.new(root, { categoryField: "team", renderer: yr }));
+    yr.labels.template.adapters.add("fill", (fill, target) => target.dataItem?.dataContext?.team === current.team ? color(0xf1f6ff) : fill);
+    scene.labelRenderers.push(yr);
+    // Geometry always runs low -> high; its gradient runs toward the actual endpoint.
+    const gradients = [am5.LinearGradient.new(root, { rotation: 0, stops: [
+      { color: below, opacity: 1 }, { color: below, opacity: .15 } ] }),
+      am5.LinearGradient.new(root, { rotation: 0, stops: [
+      { color: above, opacity: .15 }, { color: above, opacity: 1 } ] })];
+    const connector = chart.series.push(am5xy.ColumnSeries.new(root, { xAxis, yAxis, baseAxis: yAxis,
+      categoryYField: "team", openValueXField: "lowTotal", valueXField: "highTotal", clustered: false }));
+    connector.columns.template.setAll({ height: 5, strokeOpacity: 0, cornerRadiusTL: 3, cornerRadiusTR: 3,
+      cornerRadiusBL: 3, cornerRadiusBR: 3 });
+    connector.columns.template.adapters.add("fillGradient", (fill, target) => gradients[target.dataItem?.dataContext?.deltaTotal > 0 ? 1 : 0]);
+    connector.events.on("datavalidated", () => {
+      connector.columns.each(column => {
+        const row = column.dataItem?.dataContext; if (!row?.team) return;
+        column.set("tooltipText", dumbbellTooltip(row));
+        register(scene, row, column, selected => column.setAll({ height: selected ? 7 : 5, fillOpacity: selected ? 1 : .72 }));
       });
-      items.set(team, series);
+      scene.select();
     });
-    scene.paint = () => items.forEach((series, team) => {
-      const selected = team === current.team, highlighted = selected || hovered === team;
-      series.strokes.template.setAll({ strokeWidth: highlighted ? 3.2 : 1.4,
-        strokeOpacity: highlighted ? 1 : scene.spotlight || hovered ? .07 : .29 });
-      // Bring the selected path forward without sorting or displacing any rank.
-      if (selected) chart.seriesContainer.children.moveValue(series);
+    for (const expected of [true, false]) {
+      const series = chart.series.push(am5xy.LineSeries.new(root, { xAxis, yAxis, categoryYField: "team",
+        valueXField: expected ? "expectedTotal" : "actualTotal", minBulletDistance: 0, maskBullets: false }));
+      series.strokes.template.set("forceHidden", true);
+      series.bullets.push((root, series, item) => {
+        const row = item.dataContext, tint = row.deltaTotal > 0 ? above : below;
+        const dot = am5.Circle.new(root, { tooltipText: `${expected ? "EXPECTED" : "ACTUAL"}\n${dumbbellTooltip(row)}` });
+        // Equal totals remain concentric: the larger expected ring surrounds the actual dot.
+        register(scene, row, dot, selected => dot.setAll({ radius: expected ? (selected ? 7.3 : 5.8) : (selected ? 5.3 : 4.2),
+          fill: expected ? color(0x0b172c) : tint, stroke: expected ? color(0xd4e4ff) : tint,
+          strokeWidth: expected ? (selected ? 2 : 1.5) : 1, fillOpacity: 1 }));
+        return am5.Bullet.new(root, { sprite: dot });
+      });
+      if (expected) scene.expectedSeries = series; else scene.actualSeries = series;
+    }
+    const deltas = chart.series.push(am5xy.LineSeries.new(root, { xAxis, yAxis, categoryYField: "team", valueXField: "labelX",
+      minBulletDistance: 0, maskBullets: false }));
+    deltas.strokes.template.set("forceHidden", true);
+    deltas.bullets.push((root, series, item) => {
+      const row = item.dataContext;
+      const label = am5.Label.new(root, { text: signedPoints(row.deltaTotal), centerY: am5.percent(50), dx: 13,
+        fontSize: 10, paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0,
+        tooltipText: `ACTUAL − EXPECTED\n${dumbbellTooltip(row)}` });
+      register(scene, row, label, selected => label.setAll({ fill: row.deltaTotal > 0 ? above : below, fontWeight: selected ? "600" : "400" }));
+      return am5.Bullet.new(root, { sprite: label });
     });
     scene.setData = view => {
-      scene.markers.clear(); scene.subtitle.set("text", `32 CONTINUOUS TEAM PROFILES · TOP = TOUGHEST · BOTTOM = EASIEST · ${venueText().toUpperCase()}`);
-      xAxis.data.setAll(view.positions.map(pos => ({ pos }))); yAxis.set("max", view.teams.length + .5);
-      view.profiles.forEach(profile => {
-        const series = items.get(profile.team);
-        series.strokes.template.set("tooltipText", `[bold]${profile.team}[/]\n` + profile.values.map(row => `${row.pos}: #${row.rank ?? "—"} · ${fmt(row.avg, 2)} FPA/game`).join("\n"));
-        series.data.setAll(profile.values);
-      });
+      scene.markers.clear();
+      scene.subtitle.set("text", `${view.pos} · TOTAL PPR POINTS · MOST BELOW EXPECTATION FIRST · ${venueText().toUpperCase()}`);
+      const bounds = Model.extent(view.dumbbell.flatMap(row => [row.actualTotal, row.expectedTotal]), 10);
+      const rows = [...view.dumbbell].sort((a, b) => a.deltaTotal - b.deltaTotal || a.team.localeCompare(b.team)).map(row => ({ ...row, labelX: bounds.max }));
+      xAxis.setAll({ min: bounds.min, max: bounds.max }); yAxis.data.setAll(rows);
+      connector.data.setAll(rows); scene.expectedSeries.data.setAll(rows); scene.actualSeries.data.setAll(rows); deltas.data.setAll(rows);
     };
     return scene;
+  }
+
+  function dumbbellTooltip(row) {
+    return `[bold]${row.team} · ${row.pos}[/]\nActual FPA: ${fmt(row.actualTotal, 2)} points\nExpected from opponents: ${fmt(row.expectedTotal, 2)} points\nActual − expected: ${signedPoints(row.deltaTotal)} points\n${row.games} recorded games · select to explore`;
   }
 
   function toughnessBullets(definition) {
@@ -294,7 +314,7 @@
     const weekIndex = snapshot.weeks.indexOf(row.week);
     const circle = sprite.children.push(am5.Circle.new(root, { x: am5.percent(50), y: am5.percent(50), radius: 5.2,
       fill: color(0x10182b), stroke, strokeWidth: 1, strokeDasharray: weekIndex === 1 ? [2, 1] : weekIndex === 2 ? [1, 1] : undefined }));
-    const logo = sprite.children.push(am5.Picture.new(root, { src: `assets/NFL-Tags_webp/${row.team.toLowerCase()}.webp`,
+    const logo = sprite.children.push(am5.Picture.new(root, { src: row.logoTeam ? `assets/NFL-Tags_webp/${row.logoTeam.toLowerCase()}.webp` : undefined,
       width: 8, height: 8, x: am5.percent(50), y: am5.percent(50), centerX: am5.percent(50), centerY: am5.percent(50) }));
     register(scene, row, sprite, selected => {
       circle.setAll({ radius: selected ? 6.5 : 5.2, strokeWidth: selected ? 1.5 : 1, stroke: selected ? color(current.positionColor) : stroke });
@@ -366,12 +386,10 @@
   function readouts() {
     if (!snapshot || !current) return;
     $("labScope").textContent = `${current.team} · ${current.pos} · ${venueText()}`;
-    document.querySelectorAll("[data-lab-position]").forEach(label => label.textContent = current.pos);
     const selectedCells = snapshot.cells.filter(row => row.team === current.team);
     $("compositionReadout").innerHTML = teamMarkup(current.team) + selectedCells.map(row => `<span class="labValue">${row.pos} <strong>${fmt(row.avg, 2)}</strong><span>/game · #${row.rank ?? "—"}</span></span>`).join("");
-    $("profileReadout").innerHTML = teamMarkup(current.team) + selectedCells.map(row => `<span class="labValue">${row.pos} <strong>#${row.rank ?? "—"}</strong><span>${fmt(row.avg, 2)} /game</span></span>`).join("");
-    if (!$("profileTeams").children.length) $("profileTeams").innerHTML = snapshot.teams.map(team => `<button type="button" class="labTeamChoice" data-lab-team="${team}">${teamMarkup(team)}</button>`).join("");
-    $("profileTeams").querySelectorAll("[data-lab-team]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.labTeam === current.team)));
+    const pair = snapshot.dumbbell.find(row => row.team === current.team);
+    $("dumbbellReadout").innerHTML = teamMarkup(current.team) + (pair ? `<span>Actual <strong>${fmt(pair.actualTotal, 2)}</strong></span><span>Expected <strong>${fmt(pair.expectedTotal, 2)}</strong></span><span>Difference <strong>${signedPoints(pair.deltaTotal)}</strong> points</span><span>${pair.games} games · ${current.pos}</span>` : '<span class="labUnavailable">Complete opponent baselines are needed.</span>');
     const selected = snapshot.pressure.find(row => row.team === current.team);
     $("toughnessReadout").innerHTML = teamMarkup(current.team) + (selected ? `<span>Actual <strong>${fmt(selected.actualAvg, 2)}</strong> /game</span><span>Expected <strong>${fmt(selected.expectedAvg, 2)}</strong> /game</span><span>Suppression <strong>${signed(selected.suppression)}</strong></span><span>Offenses <strong>${signed(selected.strength)}</strong></span><span>Adjusted rank <strong>#${selected.adjustedRank}/${snapshot.pressure.length}</strong></span>` : '<span class="labUnavailable">Complete positive offense baselines are needed.</span>');
     const games = snapshot.polar.filter(row => row.team === current.team);
@@ -405,7 +423,6 @@
       }, { rootMargin: "200px 0px" }); definitions.forEach(definition => observer.observe($(definition.id)));
     } else definitions.forEach(definition => observed.add(definition.id));
   }
-  $("chartLab").addEventListener("click", event => { const button = event.target.closest("[data-lab-team]"); if (button && current) current.select(button.dataset.labTeam, current.pos); });
   window.FPAChartLab = { update, dispose };
   window.addEventListener("pagehide", dispose);
   window.addEventListener("pageshow", event => { if (event.persisted) { observe(); if (current) update(current); } });

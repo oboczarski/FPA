@@ -23,15 +23,20 @@
       return { team, pos: position, avg: stat.avg, rank: stat.rank, pool: stat.pool, games: stat.games,
         expectedAvg: c.expectedAvg };
     }));
-    // ALL is the parent total, never a fifth slice added to QB/RB/WR/TE.
-    // Zero values retain their data node and readout, without fabricated area.
-    const sunburst = { name: "2026", children: teams.map(team => ({
-      ...cells.find(row => row.team === team && row.pos === "ALL"), name: team,
-      children: cells.filter(row => row.team === team && row.pos !== "ALL").map(row => ({
-        ...row, name: row.pos, value: row.avg,
-      })),
-    })) };
-    const profiles = teams.map(team => ({ team, values: cells.filter(row => row.team === team) }));
+    // ALL is the sum of the four positional segments, never a fifth stacked segment.
+    // Keep zero values and the original positional averages without inventing bar area.
+    const breakdown = teams.map(team => ({
+      ...cells.find(row => row.team === team && row.pos === pos),
+      ...Object.fromEntries(cells.filter(row => row.team === team).map(row => [row.pos, row.avg])),
+    }));
+    const dumbbell = teams.flatMap(team => {
+      const c = analysis.byTeam.get(team).metrics[pos];
+      if (!Number.isFinite(c.actual.total) || !Number.isFinite(c.expectedTotal)) return [];
+      return [{ team, pos, actualTotal: c.actual.total, expectedTotal: c.expectedTotal,
+        actualAvg: c.actual.avg, expectedAvg: c.expectedAvg, games: c.games,
+        deltaTotal: c.actual.total - c.expectedTotal,
+        lowTotal: Math.min(c.actual.total, c.expectedTotal), highTotal: Math.max(c.actual.total, c.expectedTotal) }];
+    });
     const baseline = leagueBaseline(offenses, pos);
     const pressure = teams.flatMap(team => {
       const c = analysis.byTeam.get(team).metrics[pos];
@@ -49,9 +54,9 @@
     });
     const weeks = [...new Set(teams.flatMap(team => analysis.byTeam.get(team).metrics[pos].entries.map(entry => entry.week)))].sort((a, b) => a - b);
     const polar = teams.flatMap((team, index) => analysis.byTeam.get(team).metrics[pos].entries.filter(entry => Number.isFinite(entry.actual)).map(entry => ({
-      ...entry, team, pos, location: .5, angle: -90 + (index + .5) * 360 / teams.length,
+      ...entry, team, pos, logoTeam: entry.offense, location: .5, angle: -90 + (index + .5) * 360 / teams.length,
     })));
-    return { teams, positions: [...POSITIONS], cells, sunburst, profiles, pressure, polar, weeks, baseline, pos };
+    return { teams, positions: [...POSITIONS], cells, breakdown, dumbbell, pressure, polar, weeks, baseline, pos };
   }
   function extent(values, unit = 5, includeZero = false) {
     const finite = values.filter(Number.isFinite);

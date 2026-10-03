@@ -7,11 +7,12 @@ The static app lives in `DH-FPA/index.html`. It uses the supplied **FPAv2.csv** 
 - Compact DataHub-style background, gradient accents, glass panels, and Game Logs-style tables.
 - Shared defense, QB/RB/WR/TE/ALL, and defense-venue selection. The original AFC/NFC division picker with team logos is restored in the main controls and expanded player view; venue menus use the same treatment.
 - Actual and expected scoring summary, weekly positional totals, and the selected matchup's player records immediately below the chart.
-- Search, zero-score visibility, sorting, and an expanded player table. Negative scores remain included. Player-list controls do not change scoring aggregates.
-- Expected-versus-actual scatter with points and ranks modes. Selecting a defense logo updates the matchup; logos also support Enter/Space.
+- Search, zero-score visibility (Hide zeros starts checked), sorting, and an expanded player table. Negative scores remain included. Player-list controls do not change scoring aggregates.
+- Expected-versus-actual scatter with points and ranks modes, at twice its previous height (452px desktop / 440px mobile). Selecting a defense logo updates the matchup; logos also support Enter/Space.
 - Opponent offense table with the supplied TSUMS scoring average/rank, actual points against the selected defense, and the difference.
 - Sortable, selectable league heatmap of FPA/game and defense ranks.
-- Four amCharts views: a scoring-composition sunburst, 32 parallel-coordinate defensive profiles across all five positions, an opponent-adjusted bullet ranking, and a full-width polar scatter of every recorded defense-game. The original dashboard and heatmap remain in place. All views share defense, position, and venue selection.
+- Four amCharts views: 32 stacked positional scoring bars, actual-versus-expected dumbbells for every defense, an opponent-adjusted bullet ranking, and a polar scatter whose game markers show opposing offense logos. ALL stacks QB/RB/WR/TE in the scoring bars; an individual position isolates that position. Dumbbells use the same totals as the original scatter, with gradients that brighten toward actual scoring.
+- Every chart has a top-right QB/RB/WR/TE/ALL bar. These controls share the existing dashboard position selection and stay synchronized. The heatmap keeps all five columns and highlights/sorts the selected position. The additional views keep the two-column desktop layout and stack into one column below 1100px.
 
 There are no upload/download/export controls, saved uploaded datasets, week-range controls, recent-form comparisons, or trend panels. The app always starts from the bundled source pair. Matchup selections are reflected in the URL.
 
@@ -58,6 +59,6 @@ python3 tests/reconcile_source.py
 
 The targeted calculation suite covers source controls, opponent/venue interpretation, missing values, zeros/negatives, expected-game counting, supplied ALLx handling, complete rank cohorts, ties, source differences, and snapshot identity. Independent Python CSV/Decimal/Fraction reconciliation checks 2,880 defense-position cases across 18 scopes. Source control totals in the tests should be updated deliberately when the supplied period changes.
 
-The nine chart-model checks cover all 160 team-position values, sunburst totals without double-counting ALL, exact profile ranks, 96 unique game dots per position aligned to 32 label spokes, venue filtering, supplied offense baselines, opponent-adjusted ordering, ties, and missing-baseline handling. Libraries are bundled locally at amCharts 5.20.8; their original license and built-in attribution are retained.
+The ten chart-model checks cover all 160 team-position values, stacked positional averages without double-counting ALL, exact dumbbell totals across all positions and venues, zero/equal/missing expectations, 96 unique game dots per position with opponent logos aligned to 32 defense spokes, venue filtering, supplied offense baselines, opponent-adjusted ordering, ties, and missing-baseline handling. Libraries are bundled locally at amCharts 5.20.8; their original license and built-in attribution are retained.
 
 Browser and visual checks are user-owned. No preview is opened as part of delivery. The new chart designs, formulas, and library sources are documented in `docs/2026-chart-lab.md`. Earlier implementation notes are in `docs/2026-refinement.md`; `docs/2026-rebuild.md` records the superseded first rebuild.

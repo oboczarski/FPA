@@ -9,7 +9,7 @@ const model = Data.readSource(read("FPAv2.csv")), offenses = Data.readOffenses(r
 const analysis = Data.expectedMatchups(model, offenses);
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
 
-test("both alternatives cover all 32 teams and all five positions without changing the analysis", () => {
+test("chart views cover all 32 teams and all five positions without changing the analysis", () => {
   const before = JSON.stringify(analysis.rows), view = Lab.build(analysis, offenses, "QB");
   assert.equal(view.teams.length, 32); assert.equal(view.cells.length, 160);
   for (const team of view.teams) assert.deepEqual(view.cells.filter(row => row.team === team).map(row => row.pos), ["QB", "RB", "WR", "TE", "ALL"]);
@@ -31,33 +31,49 @@ test("each position has 96 distinct game dots and three correctly scored dots pe
       assert.ok(dots.every(row => row.location === .5));
       assert.equal(new Set(dots.map(row => row.angle)).size, 1);
       near(dots[0].angle, -90 + (view.teams.indexOf(team) + .5) * 360 / view.teams.length);
+      for (const dot of dots) {
+        const original = analysis.byTeam.get(team).metrics[pos].entries.find(entry => entry.week === dot.week);
+        assert.equal(dot.logoTeam, original.offense);
+        assert.notEqual(dot.logoTeam, dot.team);
+        assert.ok(fs.existsSync(path.join(__dirname, '../DH-FPA/assets/NFL-Tags_webp', `${dot.logoTeam.toLowerCase()}.webp`)));
+      }
     }
   }
 });
-test("sunburst composition has 32 ALL parents and 128 exact position values without adding ALL twice", () => {
+test("stacked bars preserve every positional average and sum ALL exactly in each venue", () => {
   for (const venue of ["all", "home", "away"]) {
     const scoped = Data.expectedMatchups(model, offenses, { venue });
-    const view = Lab.build(scoped, offenses, "TE");
-    assert.equal(view.sunburst.children.length, 32);
-    assert.equal(view.sunburst.children.flatMap(team => team.children).length, 128);
-    for (const team of view.sunburst.children) {
-      const source = scoped.byTeam.get(team.team).metrics;
-      assert.equal(team.pos, "ALL"); assert.equal(team.avg, source.ALL.actual.avg);
-      assert.equal(team.value, undefined);
-      near(team.children.reduce((sum, row) => sum + row.value, 0), team.avg);
-      assert.deepEqual(team.children.map(row => row.pos), ["QB", "RB", "WR", "TE"]);
-      for (const row of team.children) assert.equal(row.value, source[row.pos].actual.avg);
+    for (const pos of Lab.POSITIONS) {
+      const view = Lab.build(scoped, offenses, pos);
+      assert.equal(view.breakdown.length, 32);
+      for (const row of view.breakdown) {
+        const source = scoped.byTeam.get(row.team).metrics;
+        assert.equal(row.pos, pos); assert.equal(row.avg, source[pos].actual.avg);
+        assert.equal(row.rank, source[pos].actual.rank);
+        for (const p of Lab.POSITIONS) assert.equal(row[p], source[p].actual.avg);
+        near(["QB", "RB", "WR", "TE"].reduce((sum, p) => sum + row[p], 0), row.ALL);
+      }
     }
   }
   const away = Lab.build(Data.expectedMatchups(model, offenses, { venue: "away" }), offenses, "TE");
-  assert.ok(away.sunburst.children.flatMap(team => team.children).some(row => row.value === 0));
+  assert.ok(away.breakdown.some(row => row.TE === 0));
 });
-test("parallel profiles connect all five original ranks per team without offsetting tied ranks", () => {
-  const view = Lab.build(analysis, offenses, "WR");
-  assert.equal(view.profiles.length, 32);
-  for (const profile of view.profiles) {
-    assert.deepEqual(profile.values.map(row => row.pos), ["QB", "RB", "WR", "TE", "ALL"]);
-    for (const row of profile.values) assert.equal(row.rank, analysis.byTeam.get(profile.team).metrics[row.pos].actual.rank);
+test("dumbbells use the original actual and expected totals for all positions and venues", () => {
+  for (const venue of ["all", "home", "away"]) {
+    const scoped = Data.expectedMatchups(model, offenses, { venue });
+    for (const pos of Lab.POSITIONS) {
+      const view = Lab.build(scoped, offenses, pos);
+      assert.equal(view.dumbbell.length, 32);
+      for (const row of view.dumbbell) {
+        const original = scoped.byTeam.get(row.team).metrics[pos];
+        assert.equal(row.actualTotal, original.actual.total);
+        assert.equal(row.expectedTotal, original.expectedTotal);
+        assert.equal(row.games, original.games);
+        near(row.deltaTotal, original.delta);
+        assert.equal(row.lowTotal, Math.min(row.actualTotal, row.expectedTotal));
+        assert.equal(row.highTotal, Math.max(row.actualTotal, row.expectedTotal));
+      }
+    }
   }
 });
 test("venue filters keep the team sectors but only include games at the selected defense venue", () => {
@@ -111,4 +127,17 @@ test("league baselines weight averages by games and ignore missing averages", ()
     { games: 3, metrics: { TE: { avg: null } } }, { games: 0, metrics: { TE: { avg: 999 } } },
   ] }, "TE");
   assert.equal(baseline, 17.5);
+});
+test("dumbbells retain zero expectations and equal endpoints but omit missing baselines", () => {
+  const view = Lab.build(fixture([["BAL", 10, 20], ["PHI", 20, 10], ["KC", 20, 20], ["NE", 0, null], ["BUF", 0, 0]]), baselineFixture, "RB");
+  assert.equal(view.dumbbell.length, 4);
+  assert.equal(view.dumbbell.some(row => row.team === "NE"), false);
+  const below = view.dumbbell.find(row => row.team === "BAL"), above = view.dumbbell.find(row => row.team === "PHI");
+  assert.equal(below.actualTotal, 30); assert.equal(below.expectedTotal, 60); assert.equal(below.deltaTotal, -30);
+  assert.equal(above.actualTotal, 60); assert.equal(above.expectedTotal, 30); assert.equal(above.deltaTotal, 30);
+  for (const team of ["KC", "BUF"]) {
+    const row = view.dumbbell.find(row => row.team === team);
+    assert.equal(row.actualTotal, row.expectedTotal);
+    assert.equal(row.lowTotal, row.highTotal); assert.equal(row.deltaTotal, 0);
+  }
 });
