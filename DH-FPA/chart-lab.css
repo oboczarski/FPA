@@ -15,9 +15,9 @@
 .chartLab .labNumber { display:inline-flex; align-items:center; justify-content:center; width:24px; height:22px; border:1px solid #c1d8ff25; border-radius:7px; background:linear-gradient(145deg,#a9d7ff12,#9388ff0a); color:#c1d4f9; font-size:10px; letter-spacing:0; font-variant-numeric:tabular-nums; }
 .chartLab .labCaption .chartPositionToggle { margin-left:auto; letter-spacing:0; }
 .chartLab .labCanvas { position:relative; width:100%; font-family:var(--font); }
-.chartLab .labCanvas--breakdown { min-width:580px; height:860px; }
-.chartLab .labCanvas--dumbbell { min-width:600px; height:860px; }
-.chartLab .labCanvas--toughness {min-width: 960px;height: 1020px;max-width: 800px;zoom: 0.8;}
+.chartLab .labCanvas--breakdown {min-width: 630px;height: 640px;}
+.chartLab .labCanvas--dumbbell {min-width: 630px;height: 640px;}
+.chartLab .labCanvas--toughness {min-width: 823px;height: 711px;max-width: 700px;zoom: 0.95;}
 .chartLab .labCanvas--polar {min-width: 600px;height: 700px;}
 .chartLab .labScroll { overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; scrollbar-color:#4e5d8080 transparent; }
 .chartLab .labScroll::-webkit-scrollbar { height:6px; }
