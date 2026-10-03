@@ -1,275 +1,147 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>2025 Fantasy Points Against — Matchup Explorer</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050b13">
+  <meta name="description" content="2026 fantasy points allowed, compared with the scoring averages of each defense's opposing offenses.">
+  <title>2026 Matchups · Dynasty Hub</title>
+  <link rel="icon" href="assets/icons/favicon.ico">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,slnt,wdth,wght,GRAD,ROND@6..144,-10..0,25..151,1..1000,0..100,0..100&amp;family=MuseoModerno:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=2026.4">
+  <link rel="stylesheet" href="chart-lab.css?v=2026.3">
+  <script defer src="data-model.js?v=2026.2"></script>
+  <script defer src="data/2026-weekly.js?v=2026.2"></script>
+  <script defer src="chart-utils.js?v=2026.3"></script>
+  <script defer src="app.js?v=2026.5"></script>
+  <script defer src="vendor/amcharts5/index.js?v=5.20.8"></script>
+  <script defer src="vendor/amcharts5/xy.js?v=5.20.8"></script>
+  <script defer src="vendor/amcharts5/radar.js?v=5.20.8"></script>
+  <script defer src="vendor/amcharts5/themes/Animated.js?v=5.20.8"></script>
+  <script defer src="vendor/amcharts5/themes/Dark.js?v=5.20.8"></script>
+  <script defer src="chart-lab-model.js?v=2026.3"></script>
+  <script defer src="chart-lab.js?v=2026.3"></script>
 </head>
-<body>
-  <canvas id="stars" aria-hidden="true"></canvas>
-
-  <header class="topbar">
-    <div class="topbar__left">
-      <div class="badge">FPA</div>
-      <div>
-        <div class="title">2025 Fantasy Points Against</div>
-        <div class="subtitle">Matchup Explorer • Season vs Weeks 9–15 • Player-level drilldowns</div>
+<body data-page="matchups">
+  <div class="background-orb background-orb--one" aria-hidden="true"></div>
+  <div class="background-orb background-orb--two" aria-hidden="true"></div>
+  <svg class="iconSprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 3v17h17M8 14l4-5 4 2 5-7"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="icon-expand" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m6 0h6v-6"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
+  </svg>
+  <a class="skipLink" href="#analysis">Skip to matchup analysis</a>
+  <main class="app-shell">
+    <header class="pageHeader">
+      <a class="brand" href="https://dynastyhub.netlify.app/" aria-label="Dynasty Hub home">
+        <img src="assets/welcome/welcome-logo-256.png" width="34" height="34" alt="">
+        <span>Dynasty<span class="brandAccent">Hub</span><small>FANTASY MATCHUPS</small></span>
+      </a>
+      <div class="pageIdentity"><h1>Matchups</h1><span class="seasonTag">2026</span></div>
+      <p class="coverage" id="coverage">Loading matchup data…</p>
+    </header>
+    <div class="loadError" id="loadError" role="alert" hidden></div>
+    <section class="toolbar glass-panel" aria-label="Matchup selection">
+      <div class="defensePicker"><span class="fieldLabel">DEFENSE</span><div class="teamPicker" id="teamPicker" data-picker-kind="team"></div></div>
+      <div class="positionToggle" id="positionToggle" role="group" aria-label="Analysis position">
+        <button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button>
+        <button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button>
+        <button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button>
+        <button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button>
+        <button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button>
+      </div>
+      <div class="venuePicker"><span class="fieldLabel">DEFENSE VENUE</span><div class="teamPicker venueMenu" id="venueMenu" data-picker-kind="venue"></div></div>
+      <span class="toolbarNote" id="scopeNote"></span>
+    </section>
+    <div class="matchupLayout" id="analysis" aria-busy="true">
+      <!-- Selected matchup: the player records follow the weekly scoring chart. -->
+      <section class="glass-panel defensePanel" aria-labelledby="defenseTitle">
+        <div class="defenseHeader"><div class="defenseLogo" id="defenseLogo"></div><div><span class="fieldLabel">FANTASY POINTS ALLOWED</span><h2 id="defenseTitle">Loading defense…</h2><p id="defenseSubtitle" class="panelSubtitle"></p></div><span class="positionBadge" id="selectedPosition" data-pos="QB">QB</span></div>
+        <div class="metricStrip" id="metrics"></div>
+        <section class="weeklySection" aria-labelledby="weeklyTitle">
+          <div class="sectionHeading chartHeading"><h3 id="weeklyTitle">Week by week</h3><div class="chartHeaderControls"><div class="chartLegend"><span><i class="legendActual"></i>Actual FPA</span><span><i class="legendExpected"></i>Expected</span></div><div class="positionToggle chartPositionToggle" role="group" aria-label="Weekly chart position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div></div>
+          <div class="chart weeklyChart" id="weeklyChart"></div>
+          <div class="weeklyMatchups" id="weeklyMatchups"></div>
+        </section>
+        <section class="playersSection" id="players" aria-labelledby="playersTitle">
+          <div class="sectionHeading"><h3 id="playersTitle">Players faced</h3><span class="smallMuted" id="playerScope"></span><button type="button" class="iconButton" id="expandPlayers" aria-label="Expand player results" title="Expand player results"><svg class="icon"><use href="#icon-expand"/></svg></button></div>
+          <div class="playerFilters"><label class="searchField"><svg class="icon"><use href="#icon-search"/></svg><input type="search" id="playerSearch" placeholder="Search players or offenses" aria-label="Search player results"></label><label class="checkboxField"><input type="checkbox" id="hideZero" checked>Hide zeros</label></div>
+          <div class="tableScroll playerTableScroll" tabindex="0" aria-label="Scrollable player results"><table class="playerTable" id="playerTable"></table></div>
+          <div class="playerFooter"><span id="playerCount" aria-live="polite"></span><span id="playerTotal"></span></div>
+        </section>
+      </section>
+      <div class="leagueColumn">
+        <section class="glass-panel comparisonPanel" aria-labelledby="comparisonTitle">
+          <div class="panelHeader"><div><span class="fieldLabel">OPPONENT OFFENSE CONTEXT</span><h2 id="comparisonTitle">Expected vs. actual</h2></div><div class="chartHeaderControls"><div class="smallToggle" role="group" aria-label="Comparison metric"><button type="button" data-scatter-mode="points" aria-pressed="true">Points</button><button type="button" data-scatter-mode="rank" aria-pressed="false">Ranks</button></div><div class="positionToggle chartPositionToggle" role="group" aria-label="Expected vs actual scatter position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div></div>
+          <div class="chart comparisonChart" id="comparisonChart"></div>
+          <div class="comparisonDetail" id="comparisonDetail" aria-live="polite"></div>
+          <p class="chartNote" id="comparisonNote"></p>
+          <div class="opponentsSection"><div class="sectionHeading"><h3>Offenses faced</h3><span class="smallMuted" id="opponentsScope"></span></div><div class="tableScroll"><table class="opponentsTable" id="opponentsTable"></table></div></div>
+        </section>
+        <section class="glass-panel rankingsPanel" id="rankings" aria-labelledby="rankingsTitle">
+          <div class="panelHeader"><h2 id="rankingsTitle">Matchup heatmap</h2><div class="chartHeaderControls"><div class="heatLegend"><span>Tougher</span><i></i><span>Easier</span></div><div class="positionToggle chartPositionToggle" role="group" aria-label="Matchup heatmap position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div></div>
+          <div class="tableScroll heatTableScroll" tabindex="0" aria-label="Scrollable matchup heatmap"><table class="heatTable" id="heatTable"></table></div>
+          <p class="panelFootnote">FPA per game <span class="footnoteDivider">/</span> Rank 1 = fewest points allowed <span class="footnoteDivider">/</span> Select a matchup</p>
+        </section>
       </div>
     </div>
-
-    <div class="topbar__right">
-      <div class="segmented" role="tablist" aria-label="Dataset selector">
-        <button id="btnSeason" class="segmented__btn is-active" role="tab" aria-selected="true">Season</button>
-        <button id="btnRecent" class="segmented__btn" role="tab" aria-selected="false">Weeks 9–15</button>
-      </div>
-
-      <div class="pill" id="loadStatus" title="Data load status">
-        <span class="dot is-warn"></span>
-        <span>Loading CSVs…</span>
-      </div>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <section class="panel hero">
-      <div class="hero__grid">
-        <div class="hero__left">
-          <h2>Quick Matchup Finder</h2>
-          <p class="muted">
-            Pick a position + opponent defense to instantly see how targetable that defense is for that position —
-            comparing full-season trends vs recent (Weeks 9–15).
-          </p>
-
-          <div class="controls">
-            <label class="field">
-              <span>Position</span>
-              <div class="pos-toggle" role="group" aria-label="Position toggle">
-                <button class="pos-btn is-active" data-pos="QB">QB</button>
-                <button class="pos-btn" data-pos="RB">RB</button>
-                <button class="pos-btn" data-pos="WR">WR</button>
-                <button class="pos-btn" data-pos="TE">TE</button>
-              </div>
-            </label>
-
-            <label class="field">
-              <span>Opponent Defense</span>
-              <select id="teamSelect" class="select"></select>
-            </label>
-          </div>
-
-          <div class="cards" id="quickCards">
-            <!-- populated by JS -->
-          </div>
-        </div>
-
-        <div class="hero__right">
-          <h2>Landscape</h2>
-          <p class="muted">
-            Scatter = defenses by FPA (Season vs Recent). Above the diagonal → trending easier.
-          </p>
-
-          <div class="chartCard">
-            <div class="chartTitleRow">
-              <div class="chartTitle">
-                <span id="scatterTitle">QB</span> — Season vs Weeks 9–15
-              </div>
-              <div class="smallToggle">
-                <button class="smallToggle__btn is-active" data-scatmode="avg">Avg</button>
-                <button class="smallToggle__btn" data-scatmode="rank">Rank</button>
-              </div>
-            </div>
-
-            <!-- IMPORTANT: fixed-height parent prevents "expanding forever" resize loops in some hosts -->
-            <div class="canvasBox canvasBox--scatter">
-              <canvas id="scatterChart"></canvas>
-            </div>
-
-            <div class="chartHint">
-              Tip: hover points for details • click a point to open drilldown
-            </div>
-          </div>
-        </div>
-
-        <!-- Full-width row to avoid the left-column “dead space” you saw in published views -->
-        <div class="hero__mini">
-          <div class="miniCard">
-            <div class="miniCard__title">Easiest (Season)</div>
-            <div class="miniCard__body" id="topSeason"></div>
-          </div>
-          <div class="miniCard">
-            <div class="miniCard__title">Easiest (Weeks 9–15)</div>
-            <div class="miniCard__body" id="topRecent"></div>
-          </div>
-          <div class="miniCard">
-            <div class="miniCard__title">Biggest Trend: Easier</div>
-            <div class="miniCard__body" id="trendUp"></div>
-          </div>
-          <div class="miniCard">
-            <div class="miniCard__title">Biggest Trend: Tougher</div>
-            <div class="miniCard__body" id="trendDown"></div>
-          </div>
-        </div>
+    <section class="chartLab" id="chartLab" aria-labelledby="chartLabTitle">
+      <div class="labIntro"><div><span class="fieldLabel">THE SAME MATCHUPS. DIFFERENT PERSPECTIVES.</span><h2 id="chartLabTitle">See the shape of the matchup</h2><p>Positional scoring. Actual versus expected. Opponent-adjusted toughness. Every individual game.</p></div><span class="labScope" id="labScope" aria-live="polite">2026 · PPR</span></div>
+      <div class="labError" id="labError" role="status" hidden></div>
+      <div class="labGrid">
+        <article class="glass-panel labCard labCard--composition" aria-label="Stacked scoring bars for all 32 defenses and positions">
+          <div class="labCaption"><span class="labNumber">01</span><span>POSITIONAL SCORING / STACKED BARS</span><div class="positionToggle chartPositionToggle" role="group" aria-label="Positional scoring chart position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div>
+          <div class="labScroll" tabindex="0" aria-label="Scroll for all 32 positional scoring bars"><div class="labCanvas labCanvas--breakdown" id="labBreakdown"><p class="labLoading">Preparing the positional scoring bars…</p></div></div>
+          <div class="labReadout" id="compositionReadout" aria-live="polite"></div>
+          <p class="labFootnote">ALL stacks QB, RB, WR, and TE to show each defense’s total FPA per game and its positional breakdown. Choose a position to isolate it across all 32 defenses. Longer bars mean more points allowed; teams are ordered from highest to lowest scoring. Select a segment to explore that team and position.</p>
+        </article>
+        <article class="glass-panel labCard labCard--dumbbell" aria-label="Dumbbell comparison of actual and expected FPA for every defense">
+          <div class="labCaption"><span class="labNumber">02</span><span>ACTUAL VS. EXPECTED / DUMBBELLS</span><div class="positionToggle chartPositionToggle" role="group" aria-label="Actual vs expected dumbbell position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div>
+          <div class="labScroll" tabindex="0" aria-label="Scroll for all 32 actual and expected comparisons"><div class="labCanvas labCanvas--dumbbell" id="labDumbbell"><p class="labLoading">Preparing the actual and expected dumbbells…</p></div></div>
+          <div class="labReadout" id="dumbbellReadout" aria-live="polite"></div>
+          <p class="labFootnote">The hollow ring is expected FPA; the filled dot is actual FPA over the same games. The connector brightens toward actual scoring: blue to the left means below expectation; rose to the right means above. The number at the right is actual minus expected, in points. Teams are ordered from most below expectation to most above.</p>
+        </article>
+        <article class="glass-panel labCard labCard--wide labCard--toughness" aria-label="Opponent-adjusted bullet ranking of all defenses">
+          <div class="labCaption"><span class="labNumber">03</span><span>OPPONENT CONTEXT / BULLET RANKING</span><div class="positionToggle chartPositionToggle" role="group" aria-label="Opponent-adjusted ranking position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div>
+          <div class="labScroll" tabindex="0" aria-label="Scroll for the full opponent-adjusted bullet ranking"><div class="labCanvas labCanvas--toughness" id="labToughness"><p class="labLoading">Preparing the opponent-adjusted rankings…</p></div></div>
+          <div class="labReadout" id="toughnessReadout" aria-live="polite"></div>
+          <p class="labFootnote">The colored bar is actual FPA/game. The pale track and white tick are the expected scoring of the offenses faced. Rank 1 allowed the smallest share of expected points. Right-hand badges show suppression and opponent offense strength; a positive offense percentage means a stronger-than-average schedule.</p>
+          <details class="labMethod"><summary>How opponent-adjusted toughness is calculated</summary><p>Suppression = 100 × (1 − actual total ÷ expected total). Expected scoring adds each opponent’s supplied TSUMS positional average once per game. Higher suppression receives a tougher rank, so low raw FPA against weak offenses does not automatically rank first.</p><p>Opponent offense strength = 100 × (expected FPA/game ÷ league offense average − 1). The league baseline weights the supplied TSUMS positional averages by games. Actual and expected scoring share the selected position and defense venue.</p><p>These are comparisons from the supplied three-week sample. Offense baselines include games against the selected defense. Missing or nonpositive baselines remain unavailable.</p></details>
+        </article>
+        <article class="glass-panel labCard labCard--wide labCard--polar" aria-label="Polar scatter with opposing offense logos aligned to each defense">
+          <div class="labCaption"><span class="labNumber">04</span><span>INDIVIDUAL MATCHUPS / POLAR SCATTER</span><div class="positionToggle chartPositionToggle" role="group" aria-label="Polar scatter position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div>
+          <div class="labScroll" tabindex="0" aria-label="Scroll for the full-size polar scatter"><div class="labCanvas labCanvas--polar" id="labPolar"><p class="labLoading">Preparing the aligned matchup scatter…</p></div></div>
+          <div class="labReadout" id="polarReadout" aria-live="polite"></div>
+          <p class="labFootnote">Each defense label has one spoke. All of its games lie exactly on that spoke; radius shows the actual FPA allowed in that game. Each small logo identifies the opposing offense that scored those points; its ring retains the original scatter’s colors. Hover any dot for its offense, week, score, and the other games on that spoke. Equal scores occupy the same location. <span class="labScrollHint">Scroll horizontally to inspect the full-size chart.</span></p>
+        </article>
       </div>
     </section>
-
-    <section class="grid2">
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <h2>Heatmap Table</h2>
-            <div class="muted">Click any cell to drill into weekly players + weekly totals.</div>
-          </div>
-
-          <div class="panelHeader__right">
-            <label class="field small">
-              <span>Sort by</span>
-              <select id="sortSelect" class="select">
-                <option value="Total_Rk">Total (rank)</option>
-                <option value="QB_Rk">QB (rank)</option>
-                <option value="RB_Rk">RB (rank)</option>
-                <option value="WR_Rk">WR (rank)</option>
-                <option value="TE_Rk">TE (rank)</option>
-                <option value="Total Avg">Total (avg)</option>
-                <option value="QB_Avg">QB (avg)</option>
-                <option value="RB_Avg">RB (avg)</option>
-                <option value="WR_Avg">WR (avg)</option>
-                <option value="TE_Avg">TE (avg)</option>
-              </select>
-            </label>
-
-            <label class="field small">
-              <span>Direction</span>
-              <select id="dirSelect" class="select">
-                <option value="desc">Easiest → Toughest</option>
-                <option value="asc">Toughest → Easiest</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div class="tableWrap">
-          <table class="heat" id="heatTable">
-            <!-- populated by JS -->
-          </table>
-        </div>
-        <div class="footnote">
-          Ranks: 1 = toughest (fewest points allowed) • 32 = easiest (most allowed)
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <h2>Defense Profile</h2>
-            <div class="muted">Select a team from the table or scatter to compare season vs recent.</div>
-          </div>
-          <div class="pill" id="profilePill"><span class="dot"></span><span>No team selected</span></div>
-        </div>
-
-        <div class="profileGrid">
-          <div class="profileCard">
-            <div class="profileCard__title">Season vs Weeks 9–15 (Ranks)</div>
-            <div class="canvasBox canvasBox--radar">
-              <canvas id="radarChart"></canvas>
-            </div>
-            <div class="chartHint">Higher rank = easier matchup</div>
-          </div>
-
-          <div class="profileCard">
-            <div class="profileCard__title">Weekly Totals vs Selected Position</div>
-            <div class="muted smallLine" id="weeklySub">Select a position + team to populate.</div>
-            <div class="canvasBox canvasBox--weekly">
-              <canvas id="weeklyChart"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="profileFooter">
-          <div class="muted smallLine">
-            Drilldowns use <strong>WKLY-DEF_vs_POS_by_Player.csv</strong> to show which players drove each week’s FPA.
-          </div>
-        </div>
-      </section>
-    </section>
-
-    <section class="panel uploader" id="uploader">
-      <h2>CSV Loader (only if auto-load fails)</h2>
-      <p class="muted">
-        If you opened this page directly as a file (<code>file://</code>), browsers often block CSV fetches.
-        Easiest fix: run a tiny local server (example: <code>python -m http.server</code>) or upload these files below.
-      </p>
-
-      <div class="uploadRow">
-        <input id="fileInput" class="file" type="file" accept=".csv" multiple />
-        <div class="muted smallLine">
-          Select exactly these 3 files: <strong>WKLY-DEF_vs_POS_by_Player.csv</strong>, <strong>Season_FPA_Summary.csv</strong>, <strong>WK9-15_FPA_Summary.csv</strong>
-        </div>
-      </div>
-    </section>
+    <details class="methodology"><summary><svg class="icon"><use href="#icon-info"/></svg>How expected FPA works</summary><div class="methodologyContent">
+      <p><strong>Expected:</strong> we add the TSUMS position average of each opponent offense once per observed game. ALL uses the supplied ALLx average. <strong>Actual:</strong> we add the player points scored against the defense in FPAv2, including zero and negative results.</p>
+      <p>Both scatter axes use totals over the same games. The rank view ranks those totals from lowest (1) to highest. Offense ranks in the opponent table come directly from TSUMS, where 1 means the most offensive points. The baseline includes the offenses’ results against the selected defense.</p>
+      <p>Venue describes the defense: a player’s <code>vs TB</code> puts TB away; <code>@ NYG</code> puts NYG at home. Missing opponent baselines remain unavailable. Player search and hiding zeros affect the player list only.</p>
+      <p id="sourceNotes"></p>
+    </div></details>
+    <footer class="pageFooter"><span>DYNASTY HUB <span>/</span> MATCHUPS</span><span id="footerCoverage">2026 · PPR scoring</span></footer>
   </main>
-
-  <!-- Drilldown modal -->
-  <div class="modal" id="modal" aria-hidden="true">
-    <div class="modal__backdrop" data-close="1"></div>
-    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal__head">
-        <div>
-          <div class="modal__kicker">Drilldown</div>
-          <div id="modalTitle" class="modal__title">—</div>
-        </div>
-        <button class="iconBtn" data-close="1" aria-label="Close">✕</button>
+  <dialog class="expandedDialog glass-panel" id="playersDialog" aria-labelledby="expandedTitle">
+    <div class="dialogHeader"><div><span class="fieldLabel">RECORDED PLAYER SCORES</span><h2 id="expandedTitle">Players faced</h2><p class="panelSubtitle" id="expandedSubtitle"></p></div><button type="button" class="iconButton" data-close-dialog aria-label="Close expanded player results"><svg class="icon"><use href="#icon-close"/></svg></button></div>
+    <div class="dialogBody">
+      <div class="expandedControls">
+        <div class="teamPicker" id="modalTeamPicker" data-picker-kind="team"></div>
+        <div class="positionToggle" role="group" aria-label="Expanded position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div>
+        <div class="teamPicker venueMenu" id="modalVenueMenu" data-picker-kind="venue"></div>
       </div>
-
-      <div class="modal__body">
-        <div class="modalCards" id="modalCards"></div>
-
-        <div class="modalSplit">
-          <div class="modalSection">
-            <div class="modalSection__title">Weekly Totals</div>
-            <div class="canvasBox canvasBox--modalWeekly">
-              <canvas id="modalWeeklyChart"></canvas>
-            </div>
-            <div class="chartHint">Bars = total FPA allowed to that position each week</div>
-          </div>
-
-          <div class="modalSection">
-            <div class="modalSection__title">Players (click headers to sort)</div>
-            <div class="modalFilters">
-              <label class="field small">
-                <span>Weeks</span>
-                <select id="weekRange" class="select">
-                  <option value="all">All (1–15)</option>
-                  <option value="recent">Weeks 9–15</option>
-                  <option value="1-8">Weeks 1–8</option>
-                  <option value="9-12">Weeks 9–12</option>
-                  <option value="13-15">Weeks 13–15</option>
-                </select>
-              </label>
-
-              <label class="field small">
-                <span>Search</span>
-                <input id="playerSearch" class="input" type="text" placeholder="Player or team…" />
-              </label>
-            </div>
-
-            <div class="tableWrap modalTableWrap">
-              <table class="list" id="playerTable"></table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal__foot">
-        <button class="btn" data-close="1">Close</button>
-      </div>
+      <div class="playerFilters"><label class="searchField"><svg class="icon"><use href="#icon-search"/></svg><input type="search" id="expandedSearch" placeholder="Search players or offenses" aria-label="Search expanded player results"></label><label class="checkboxField"><input type="checkbox" id="expandedHideZero" checked>Hide zeros</label></div>
+      <div class="tableScroll expandedTableScroll" tabindex="0" aria-label="Expanded player results"><table class="playerTable" id="expandedTable"></table></div><div class="playerFooter"><span id="expandedCount"></span><span>Selections update the dashboard.</span></div>
     </div>
-  </div>
-
-  <!-- Libraries (CDN). If you prefer offline, download these and point to local files. -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="app.js"></script>
+  </dialog>
+  <div class="chartTooltip" id="chartTooltip" role="status" hidden></div>
+  <noscript><p class="noscript">Enable JavaScript to view the 2026 matchups.</p></noscript>
 </body>
 </html>
