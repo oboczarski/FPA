@@ -4,7 +4,7 @@
 .chartLab .labIntro h2 { font:500 23px/1.2 "MuseoModerno",var(--font); letter-spacing:-.5px; margin:5px 0; background:var(--accent-gradient); background-clip:text; -webkit-background-clip:text; color:transparent; }
 .chartLab .labIntro p { color:var(--lab-muted); font-size:11px; }
 .chartLab .labScope { color:#bac9ec; font-size:10px; white-space:nowrap; padding:6px 10px; border-radius:9px; border:1px solid #99bfff25; background:linear-gradient(125deg,#77cfff0c,#b791ff0c); }
-.chartLab .labGrid { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; }
+.chartLab .labGrid {display:grid;grid-template-columns: minmax(0,1fr) minmax(0,1fr);gap:14px;}
 .chartLab .labCard { overflow:hidden; border-radius:18px; border-color:#b1c5ff29; background:radial-gradient(750px 400px at 0% 0%,#569fff0c,transparent 75%),radial-gradient(650px 400px at 100% 100%,#a266f50b,transparent 75%),linear-gradient(160deg,#122139ed,#081222f2 65%,#0e132af0); box-shadow:0 16px 42px #02051344,inset 0 1px 0 #d3e5ff0d; }
 .chartLab .labCard::before { background:linear-gradient(125deg,#dcf3ff07,transparent 45%); }
 .chartLab .labCard::after { content:""; position:absolute; top:0; left:22px; right:22px; height:1px; pointer-events:none; background:linear-gradient(90deg,transparent,#74dfff70,#b59bff60,transparent); }
@@ -16,10 +16,10 @@
 .chartLab .labBadge { margin-left:auto; font-size:10px; color:#a5b8d5; letter-spacing:0; white-space:nowrap; }
 .chartLab .labPosition { padding:4px 8px; border-radius:6px; border:1px solid color-mix(in srgb,var(--position) 30%,transparent); background:color-mix(in srgb,var(--position) 7%,transparent); color:var(--position); font-size:10px; }
 .chartLab .labCanvas { position:relative; width:100%; font-family:var(--font); }
-.chartLab .labCanvas--sunburst { min-width:760px; height:790px; }
-.chartLab .labCanvas--profiles { min-width:940px; height:650px; }
-.chartLab .labCanvas--toughness { min-width:760px; height:920px; }
-.chartLab .labCanvas--polar { min-width:800px; height:900px; }
+.chartLab .labCanvas--sunburst {min-width: 592px;height: 690px;max-width: 671px;}
+.chartLab .labCanvas--profiles {min-width: 750px;height: 580px;max-width: 750px;}
+.chartLab .labCanvas--toughness {min-width: 960px;height: 1020px;max-width: 800px;zoom: 0.8;}
+.chartLab .labCanvas--polar {min-width: 600px;height: 700px;}
 .chartLab .labScroll { overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; scrollbar-color:#4e5d8080 transparent; }
 .chartLab .labScroll::-webkit-scrollbar { height:6px; }
 .chartLab .labScroll::-webkit-scrollbar-thumb { background:#4e5d8080; border-radius:9px; }
