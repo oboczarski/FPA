@@ -64,6 +64,13 @@ test("dumbbells use the original actual and expected totals for all positions an
     for (const pos of Lab.POSITIONS) {
       const view = Lab.build(scoped, offenses, pos);
       assert.equal(view.dumbbell.length, 32);
+      for (const band of ["highest", "upper", "lower", "lowest"]) {
+        assert.equal(view.dumbbell.filter(row => row.gradientKey === band).length, 8);
+      }
+      const totals = view.dumbbell.flatMap(row => [row.actualTotal, row.expectedTotal]);
+      const bounds = Lab.dumbbellBounds(view.dumbbell);
+      near(bounds.min, Math.min(...totals) - 15);
+      near(bounds.max, Math.max(...totals) + 20);
       for (const row of view.dumbbell) {
         const original = scoped.byTeam.get(row.team).metrics[pos];
         assert.equal(row.actualTotal, original.actual.total);
@@ -104,19 +111,25 @@ test("dumbbells retain zero expectations and equal endpoints but omit missing ba
     assert.equal(row.lowTotal, row.highTotal); assert.equal(row.deltaTotal, 0);
   }
 });
-test("dumbbells sort by actual FPA and choose four gradients with labels on the correct sides", () => {
+test("dumbbell gradients follow actual-FPA order independently of expectation and retain endpoint sides", () => {
   const view = Lab.build(fixture([["BAL", 18, 20], ["PHI", 10, 20], ["KC", 22, 20], ["BUF", 30, 20], ["NE", 20, 20]]), offenses, "QB");
   assert.deepEqual(view.dumbbell.map(row => row.team), ["BUF", "KC", "NE", "BAL", "PHI"]);
   const byTeam = new Map(view.dumbbell.map(row => [row.team, row]));
-  assert.equal(byTeam.get("BAL").gradientKey, "belowSoft");
-  assert.equal(byTeam.get("PHI").gradientKey, "belowStrong");
-  assert.equal(byTeam.get("KC").gradientKey, "aboveSoft");
-  assert.equal(byTeam.get("BUF").gradientKey, "aboveStrong");
-  assert.equal(byTeam.get("NE").gradientKey, "belowSoft");
+  assert.deepEqual(view.dumbbell.map(row => row.gradientKey), ["highest", "highest", "upper", "lower", "lowest"]);
+  const changedExpectations = Lab.build(fixture([["BAL", 18, 0], ["PHI", 10, 1], ["KC", 22, 50], ["BUF", 30, 60], ["NE", 20, 100]]), offenses, "QB");
+  assert.deepEqual(changedExpectations.dumbbell.map(row => [row.team, row.gradientKey]), view.dumbbell.map(row => [row.team, row.gradientKey]));
   for (const row of view.dumbbell) {
     const left = row.expectedOnLeft ? row.expectedTotal : row.actualTotal;
     const right = row.expectedOnLeft ? row.actualTotal : row.expectedTotal;
     assert.ok(left <= right);
   }
   assert.equal(byTeam.get("NE").expectedOnLeft, true);
+});
+test("dumbbell bounds reserve exactly 15 below and 20 above both endpoints, including zero and negative scores", () => {
+  const bounds = Lab.dumbbellBounds([{ actualTotal: 32.4, expectedTotal: 76.2 }]);
+  near(bounds.min, 17.4); near(bounds.max, 96.2);
+  assert.deepEqual(Lab.dumbbellBounds([{ actualTotal: 0, expectedTotal: 0 }]), { min: -15, max: 20 });
+  const negative = Lab.dumbbellBounds([{ actualTotal: -7.2, expectedTotal: 2 }, { actualTotal: NaN, expectedTotal: null }]);
+  near(negative.min, -22.2); near(negative.max, 22);
+  assert.deepEqual(Lab.dumbbellBounds([]), { min: 0, max: 35 });
 });

@@ -154,25 +154,22 @@
 
   function actualExpectedDumbbells(definition) {
     const scene = makeScene(definition), root = scene.root, palette = am5.ColorSet.new(root, {});
-    const specs = {
-      belowSoft: { indices: [1, 0, 0], below: true },
-      belowStrong: { indices: [3, 1, 0], below: true },
-      aboveSoft: { indices: [6, 7, 8], below: false },
-      aboveStrong: { indices: [8, 9, 10], below: false },
-    };
-    const treatments = Object.fromEntries(Object.entries(specs).map(([key, spec]) => {
-      const colors = spec.indices.map(index => palette.getIndex(index));
-      const stops = colors.map((tint, index) => ({ color: tint, offset: index / 2, opacity: spec.below ? [1, .65, .18][index] : [.18, .65, 1][index] }));
-      return [key, { gradient: am5.LinearGradient.new(root, { rotation: 0, stops }),
-        tint: spec.below ? colors[0] : colors[2],
-        css: `linear-gradient(90deg,${colors.map(tint => tint.toCSSHex()).join(",")})` }];
+    const specs = { highest: [8, 7], upper: [5, 3], lower: [2, 0], lowest: [0, 18] };
+    const treatments = Object.fromEntries(Object.entries(specs).map(([key, indices]) => {
+      const colors = [am5.Color.brighten(palette.getIndex(indices[0]), -.3), palette.getIndex(indices[0]),
+        am5.Color.brighten(palette.getIndex(indices[1]), .18)];
+      const stops = colors.map((tint, index) => ({ color: tint, offset: index / 2, opacity: [.72, .95, 1][index] }));
+      return [key, {
+        forward: am5.LinearGradient.new(root, { rotation: 0, stops }),
+        reverse: am5.LinearGradient.new(root, { rotation: 0, stops: [...stops].reverse().map((stop, index) => ({ ...stop, offset: index / 2 })) }),
+        tint: colors[2], css: `linear-gradient(90deg,${colors.map(tint => tint.toCSSHex()).join(",")})` }];
     }));
     legend(scene, [{ text: "EXPECTED", symbol: "○", fill: color(0xd4e4ff) }, { text: "ACTUAL", symbol: "●", fill: color(0xd4e4ff) },
-      { text: "BELOW <25%", gradient: treatments.belowSoft.css }, { text: "BELOW ≥25%", gradient: treatments.belowStrong.css },
-      { text: "ABOVE <25%", gradient: treatments.aboveSoft.css }, { text: "ABOVE ≥25%", gradient: treatments.aboveStrong.css }]);
+      { text: "HIGHEST FPA", gradient: treatments.highest.css }, { text: "UPPER FPA", gradient: treatments.upper.css },
+      { text: "LOWER FPA", gradient: treatments.lower.css }, { text: "LOWEST FPA", gradient: treatments.lowest.css }]);
     const chart = xy(scene, { paddingLeft: 9, paddingRight: 90, paddingTop: 4 });
     const xr = am5xy.AxisRendererX.new(root, { minGridDistance: 65 }), yr = am5xy.AxisRendererY.new(root, { minGridDistance: 1, inversed: true });
-    axisStyle(scene, xr); axisStyle(scene, yr, true); yr.labels.template.setAll({ paddingTop: 0, paddingBottom: 0, paddingRight: 12 });
+    axisStyle(scene, xr); axisStyle(scene, yr, true); yr.labels.template.setAll({ paddingTop: 0, paddingBottom: 0, paddingRight: 28 });
     yr.grid.template.setAll({ strokeOpacity: .04, location: .5 });
     const xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, { strictMinMax: true, renderer: xr }));
     const yAxis = chart.yAxes.push(am5xy.CategoryAxis.new(root, { categoryField: "team", renderer: yr }));
@@ -180,14 +177,18 @@
     scene.labelRenderers.push(yr);
     const connector = chart.series.push(am5xy.ColumnSeries.new(root, { xAxis, yAxis, baseAxis: yAxis,
       categoryYField: "team", openValueXField: "lowTotal", valueXField: "highTotal", clustered: false }));
-    connector.columns.template.setAll({ height: 5, strokeOpacity: 0, cornerRadiusTL: 3, cornerRadiusTR: 3,
+    connector.columns.template.setAll({ height: 4, strokeOpacity: 0, cornerRadiusTL: 3, cornerRadiusTR: 3,
       cornerRadiusBL: 3, cornerRadiusBR: 3 });
-    connector.columns.template.adapters.add("fillGradient", (fill, target) => treatments[target.dataItem?.dataContext?.gradientKey || "belowSoft"].gradient);
+    connector.columns.template.adapters.add("fillGradient", (fill, target) => {
+      const row = target.dataItem?.dataContext;
+      const treatment = treatments[row?.gradientKey || "highest"];
+      return row?.expectedOnLeft ? treatment.forward : treatment.reverse;
+    });
     connector.events.on("datavalidated", () => {
       connector.columns.each(column => {
         const row = column.dataItem?.dataContext; if (!row?.team) return;
         column.set("tooltipText", dumbbellTooltip(row));
-        register(scene, row, column, selected => column.setAll({ height: selected ? 7 : 5, fillOpacity: selected ? 1 : .72 }));
+        register(scene, row, column, selected => column.set("fillOpacity", selected ? 1 : .92));
       });
       scene.select();
     });
@@ -202,9 +203,9 @@
         const sprite = am5.Container.new(root, { width: 12, height: 12, centerX: am5.percent(50), centerY: am5.percent(50),
           tooltipText: `${expected ? "EXPECTED" : "ACTUAL"}\n${dumbbellTooltip(row)}` });
         const dot = sprite.children.push(am5.Circle.new(root, { x: am5.percent(50), y: am5.percent(50) }));
-        const label = sprite.children.push(am5.Label.new(root, { text: fmt(expected ? row.expectedTotal : row.actualTotal, 2),
+        const label = sprite.children.push(am5.Label.new(root, { text: fmt(expected ? row.expectedTotal : row.actualTotal, 1),
           x: am5.percent(50), y: am5.percent(50), centerX: onLeft ? am5.percent(100) : 0, centerY: am5.percent(50),
-          dx: onLeft ? -12 : 12, fontSize: scene.text.labelSize,
+          dx: onLeft ? -10 : 10, fontSize: scene.text.labelSize,
           paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0 }));
         // The smaller endpoint's label goes left, the larger endpoint's label goes right.
         // Equal scores share the same point, with expected labeled left and actual right.
@@ -234,10 +235,7 @@
     scene.setData = view => {
       scene.markers.clear();
       scene.subtitle.textContent = `${view.pos} · TOTAL PPR POINTS · ACTUAL FPA: HIGHEST FIRST · ${venueText().toUpperCase()}`;
-      const bounds = Model.extent(view.dumbbell.flatMap(row => [row.actualTotal, row.expectedTotal]), 10);
-      // Reserve in-plot gutters for the outward labels without moving any endpoint.
-      const gutter = Math.max(10, Math.ceil((bounds.max - bounds.min) * .22 / 10) * 10);
-      const min = bounds.min - gutter, max = bounds.max + gutter;
+      const { min, max } = Model.dumbbellBounds(view.dumbbell);
       const rows = view.dumbbell.map(row => ({ ...row, labelX: max }));
       xAxis.setAll({ min, max }); yAxis.data.setAll(rows);
       connector.data.setAll(rows); endpoints.forEach(series => series.data.setAll(rows)); deltas.data.setAll(rows);
@@ -251,15 +249,15 @@
 
   function gameMarker(scene, row, stroke, text) {
     const root = scene.root;
-    const sprite = am5.Container.new(root, { width: 18, height: 18, centerX: am5.percent(50), centerY: am5.percent(50), tooltipText: text });
+    const sprite = am5.Container.new(root, { width: 20, height: 20, centerX: am5.percent(50), centerY: am5.percent(50), tooltipText: text });
     const weekIndex = snapshot.weeks.indexOf(row.week);
-    const circle = sprite.children.push(am5.Circle.new(root, { x: am5.percent(50), y: am5.percent(50), radius: 6.4,
+    const circle = sprite.children.push(am5.Circle.new(root, { x: am5.percent(50), y: am5.percent(50), radius: 7.3,
       fill: color(0x10182b), stroke, strokeWidth: 1, strokeDasharray: weekIndex === 1 ? [2, 1] : weekIndex === 2 ? [1, 1] : undefined }));
     const logo = sprite.children.push(am5.Picture.new(root, { src: row.logoTeam ? `assets/NFL-Tags_webp/${row.logoTeam.toLowerCase()}.webp` : undefined,
-      width: 10, height: 10, x: am5.percent(50), y: am5.percent(50), centerX: am5.percent(50), centerY: am5.percent(50) }));
+      width: 11.5, height: 11.5, x: am5.percent(50), y: am5.percent(50), centerX: am5.percent(50), centerY: am5.percent(50) }));
     register(scene, row, sprite, selected => {
-      circle.setAll({ radius: selected ? 7.6 : 6.4, strokeWidth: selected ? 1.5 : 1, stroke: selected ? color(current.positionColor) : stroke });
-      logo.setAll({ width: selected ? 11 : 10, height: selected ? 11 : 10 });
+      circle.setAll({ radius: selected ? 8.6 : 7.3, strokeWidth: selected ? 1.5 : 1, stroke: selected ? color(current.positionColor) : stroke });
+      logo.setAll({ width: selected ? 13 : 11.5, height: selected ? 13 : 11.5 });
     });
     return sprite;
   }

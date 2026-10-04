@@ -24,19 +24,24 @@
       const c = analysis.byTeam.get(team).metrics[pos];
       if (!Number.isFinite(c.actual.total) || !Number.isFinite(c.expectedTotal)) return [];
       const deltaTotal = c.actual.total - c.expectedTotal;
-      const strong = Math.abs(deltaTotal) >= Math.abs(c.expectedTotal) * .25 && Math.abs(deltaTotal) > 1e-9;
       return [{ team, pos, expectedOnLeft: c.expectedTotal <= c.actual.total,
-        gradientKey: `${deltaTotal > 0 ? "above" : "below"}${strong ? "Strong" : "Soft"}`, actualTotal: c.actual.total, expectedTotal: c.expectedTotal,
+        actualTotal: c.actual.total, expectedTotal: c.expectedTotal,
         actualAvg: c.actual.avg, expectedAvg: c.expectedAvg, games: c.games,
         deltaTotal,
         lowTotal: Math.min(c.actual.total, c.expectedTotal), highTotal: Math.max(c.actual.total, c.expectedTotal) }];
     });
     dumbbell.sort((a, b) => b.actualTotal - a.actualTotal || a.team.localeCompare(b.team));
+    const bands = ["highest", "upper", "lower", "lowest"];
+    dumbbell.forEach((row, index) => { row.gradientKey = bands[Math.min(3, Math.floor(index * 4 / dumbbell.length))]; });
     const weeks = [...new Set(teams.flatMap(team => analysis.byTeam.get(team).metrics[pos].entries.map(entry => entry.week)))].sort((a, b) => a - b);
     const polar = teams.flatMap((team, index) => analysis.byTeam.get(team).metrics[pos].entries.filter(entry => Number.isFinite(entry.actual)).map(entry => ({
       ...entry, team, pos, logoTeam: entry.offense, location: .5, angle: -90 + (index + .5) * 360 / teams.length,
     })));
     return { teams, positions: [...POSITIONS], cells, breakdown, dumbbell, polar, weeks, pos };
+  }
+  function dumbbellBounds(rows) {
+    const values = rows.flatMap(row => [row.actualTotal, row.expectedTotal]).filter(Number.isFinite);
+    return values.length ? { min: Math.min(...values) - 15, max: Math.max(...values) + 20 } : { min: 0, max: 35 };
   }
   function extent(values, unit = 5, includeZero = false) {
     const finite = values.filter(Number.isFinite);
@@ -46,5 +51,5 @@
     if (min === max) { min -= unit; max += unit; }
     return { min, max };
   }
-  return Object.freeze({ POSITIONS, build, extent });
+  return Object.freeze({ POSITIONS, build, extent, dumbbellBounds });
 });

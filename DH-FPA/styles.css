@@ -209,6 +209,8 @@ th button { color:inherit; font:inherit; border:0; padding:1px 0; width:100%; te
 .opponentsTable th:first-child,.opponentsTable td:first-child { text-align:left; width:35px; color:var(--dim); }
 .opponentsTable th,.opponentsTable td { padding:4px 7px; }
 .opponentsTable .offenseCell { font-size:10px; }
+.opponentsTable .opponentPlaceholder td { color:var(--dim); background:#9cbeff04; }
+.opponentsTable .placeholderLogo { display:inline-block; flex:none; width:17px; height:14px; border:1px dashed #9cbbee45; border-radius:4px; background:linear-gradient(130deg,#88bdff0c,#b38bff0c); }
 .heatLegend { display:flex; align-items:center; gap:5px; color:var(--dim); font-size:8px; white-space:nowrap; }
 .heatLegend i { width:48px; height:3px; border-radius:3px; background:linear-gradient(90deg,#ffb2d8,#ab9bff,#75e0b7); }
 .heatTableScroll {max-height: 710px;margin:0 12px;}

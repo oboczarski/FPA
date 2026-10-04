@@ -266,11 +266,13 @@
   }
   function renderOpponents() {
     const c = comparison();
+    // Layout-only preview row: never add it to the analysis or matchup entries.
+    const placeholder = c.entries.some(entry => entry.week === 4) ? "" : '<tr class="opponentPlaceholder" aria-label="Week 4 layout placeholder; no matchup or scoring data"><td>W4</td><td><span class="offenseCell"><i class="placeholderLogo" aria-hidden="true"></i>Placeholder</span></td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
     $("opponentsScope").textContent = `${state.team} · ${state.pos}`;
     $("opponentsTable").innerHTML = `<caption class="srOnly">${state.team} opposing offenses and their supplied ${state.pos} scoring averages</caption><thead><tr><th>Wk</th><th>Offense</th><th title="TSUMS offense position rank; 1 is the most points scored">Off. rank</th><th title="Supplied TSUMS average, counted once for this game">Expected</th><th>Actual</th><th>Δ FPA</th></tr></thead><tbody>${c.entries.length ? c.entries.map(entry => {
       const delta = entry.actual !== null && entry.expected !== null ? entry.actual - entry.expected : null;
       return `<tr><td>W${entry.week}</td><td><span class="offenseCell" title="${esc(Data.TEAM_NAMES[entry.offense] || "Offense unavailable")}">${logo(entry.offense)}${entry.offense || "—"}</span></td><td>${entry.offenseRank === null ? "—" : `#${entry.offenseRank}`}</td><td>${fmt(entry.expected, 1)}</td><td>${fmt(entry.actual)}</td><td class="${direction(delta)}">${signed(delta)}</td></tr>`;
-    }).join("") : '<tr><td colspan="6">No recorded games in this venue.</td></tr>'}</tbody>`;
+    }).join("") : '<tr><td colspan="6">No recorded games in this venue.</td></tr>'}${placeholder}</tbody>`;
   }
   function renderHeatmap() {
     const sorted = [...analysis.actual.rows].sort((a, b) => {
