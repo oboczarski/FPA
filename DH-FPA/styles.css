@@ -147,7 +147,6 @@ svg { display:block; }
 .chartSortLabel { font-size:8px; color:var(--dim); letter-spacing:.3px; }
 .chartHeaderControls .chartLegend { margin-left:0; white-space:nowrap; }
 .legendActual { width:7px; height:7px; border-radius:2px; background:var(--position); box-shadow:0 0 6px color-mix(in srgb,var(--position) 25%,transparent); }
-.legendExpected { width:14px; border-top:2px dashed #aabaff; }
 .chart { min-width:0; }
 .chart svg { display:block; width:100%; height:auto; overflow:visible; }
 .chart svg text { font:9px var(--font); fill:var(--dim); }
@@ -156,7 +155,6 @@ svg { display:block; }
 .chart svg .zoneLabel { fill:#9199bd; font-size:8px; }
 .gridLine { stroke:#aabbff; stroke-opacity:.09; stroke-width:1; }
 .zeroLine { stroke:#aabbff; stroke-opacity:.3; }
-.expectedLine { fill:none; stroke:#aabaff; stroke-width:1.7; stroke-dasharray:4 4; }
 .chartPoint { cursor:pointer; outline:none; }
 .chartPoint:focus-visible circle,.chartPoint:focus-visible rect { stroke:#fff; stroke-width:2; }
 .weeklyMatchups { display:grid; grid-template-columns:repeat(auto-fit,minmax(80px,1fr)); gap:5px; margin:4px 0 10px; }

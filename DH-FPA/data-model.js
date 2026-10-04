@@ -112,11 +112,16 @@
   }
 
   function readSource(text, { name = "FPAv2.csv", season = 2026 } = {}) {
-    const parsed = parseCSV(text);
+    const parsed = parseCSV(text, REQUIRED_COLUMNS.filter(column => column !== "WEEK"));
+    if (!parsed.headers.includes("WEEK") && !parsed.headers.includes("WK")) throw new Error("Missing required columns: WEEK or WK.");
     const results = [], excluded = [], seen = new Set(), gamesByKey = new Map();
     for (const { values: row, line } of parsed.records) {
-      const week = Number(row.WEEK);
-      if (!/^\d+$/.test(row.WEEK) || !Number.isInteger(week) || week < 1 || week > 22) {
+      if (parsed.headers.includes("WEEK") && parsed.headers.includes("WK") && row.WEEK !== row.WK) {
+        throw new Error(`Line ${line}: WEEK and WK disagree.`);
+      }
+      const weekText = parsed.headers.includes("WEEK") ? row.WEEK : row.WK;
+      const week = Number(weekText);
+      if (!/^\d+$/.test(weekText) || !Number.isInteger(week) || week < 1 || week > 22) {
         throw new Error(`Line ${line}: WEEK must be an integer from 1 to 22.`);
       }
       const player = row["PLAYER NAME"];
@@ -206,7 +211,7 @@
     return game.week >= from && game.week <= to && (venue === "all" || game.venue === venue);
   }
 
-  function emptyMetric() { return { total: null, avg: null, games: 0, rank: null, pool: 0 }; }
+  function emptyMetric() { return { total: null, avg: null, games: 0, rank: null, pool: 0, rankOrder: "ascending" }; }
 
   function assignRanks(rows, metric) {
     const ranked = rows.filter(row => row.metrics[metric].avg !== null)
@@ -282,100 +287,98 @@
     };
   }
 
-  // TSUMS is the independent offense baseline. Preserve its published averages
-  // and ranks; never substitute averages recalculated from weekly player data.
-  function readOffenses(text, { name = "TSUMS.csv" } = {}) {
+  // FPF publishes season-to-date matchup summaries. Every one of its six
+  // positional fields is authoritative, including rounded averages and ranks.
+  function readFPF(text, { name = "FPF.csv" } = {}) {
     const positions = [...POSITIONS, "ALL"];
-    const columns = ["TM", "G", ...positions.flatMap(pos => [pos, `${pos}RK`, `${pos}X`])];
+    const columns = ["TM", ...positions.flatMap(pos => [pos, `${pos}X`, `${pos}RK`, `${pos}VS`, `${pos}VX`, `${pos}VRK`])];
     const parsed = parseCSV(text, columns), rows = [], byTeam = new Map();
+    const weekColumns = parsed.headers.filter(header => /^W[1-9]\d*$/.test(header));
+    const weeks = weekColumns.map(header => Number(header.slice(1))).sort((a, b) => a - b);
     for (const { values: row, line } of parsed.records) {
       const team = canonicalTeam(row.TM);
-      if (!TEAMS.includes(team)) throw new Error(`Line ${line}: unknown TSUMS offense “${row.TM}”.`);
-      if (byTeam.has(team)) throw new Error(`Line ${line}: duplicate TSUMS offense ${team}.`);
-      if (!/^\d+$/.test(row.G)) throw new Error(`Line ${line}: TSUMS G must be a nonnegative integer.`);
-      const games = Number(row.G);
-      if (!Number.isSafeInteger(games)) throw new Error(`Line ${line}: TSUMS G is outside the supported numeric range.`);
-      const metrics = Object.fromEntries(positions.map(pos => {
-        const optionalPoints = column => row[column] === "" ? null : pointCents(row[column], line, column);
-        const totalCents = optionalPoints(pos), averageCents = optionalPoints(`${pos}X`);
-        const rankText = row[`${pos}RK`];
-        if (rankText !== "" && (!/^\d+$/.test(rankText) || Number(rankText) < 1 || Number(rankText) > 32)) {
-          throw new Error(`Line ${line}: ${pos}RK must be a rank from 1 to 32, or blank.`);
+      if (!TEAMS.includes(team)) throw new Error(`Line ${line}: unknown FPF team “${row.TM}”.`);
+      if (byTeam.has(team)) throw new Error(`Line ${line}: duplicate FPF team ${team}.`);
+      const points = column => row[column] === "" ? null : pointCents(row[column], line, column) / 100;
+      const rank = column => {
+        const value = row[column];
+        if (value !== "" && (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 32)) {
+          throw new Error(`Line ${line}: ${column} must be a rank from 1 to 32, or blank.`);
         }
-        return [pos, { total: totalCents === null ? null : totalCents / 100, totalCents,
-          avg: averageCents === null || !games ? null : averageCents / 100,
-          averageCents: games ? averageCents : null, rank: rankText === "" ? null : Number(rankText) }];
-      }));
-      const offense = { team, name: TEAM_NAMES[team], games, metrics };
-      rows.push(offense); byTeam.set(team, offense);
+        return value === "" ? null : Number(value);
+      };
+      const opponents = weekColumns.flatMap(column => {
+        if (!row[column] || row[column].toUpperCase() === "NA") return [];
+        const offense = canonicalTeam(row[column]);
+        if (!TEAMS.includes(offense)) throw new Error(`Line ${line}: unknown FPF opponent “${row[column]}” in ${column}.`);
+        return [{ week: Number(column.slice(1)), offense }];
+      }).sort((a, b) => a.week - b.week);
+      const metrics = Object.fromEntries(positions.map(pos => [pos, {
+        total: points(pos), avg: points(`${pos}X`), rank: rank(`${pos}RK`),
+        expectedTotal: points(`${pos}VS`), expectedAvg: points(`${pos}VX`), expectedRank: rank(`${pos}VRK`),
+      }]));
+      const summary = { team, metrics, opponents };
+      rows.push(summary); byTeam.set(team, summary);
     }
-    return { name, rawCSV: text, rows, byTeam };
+    return { name, rawCSV: text, headers: parsed.headers, rows, byTeam, weeks };
   }
 
-  // Each defense-week contributes the opponent's position average exactly once.
-  // Expected and actual totals use the same eligible games and venue scope.
-  // An unknown opponent/baseline makes the full comparison unavailable, not zero.
-  function expectedMatchups(model, offenses, scope = {}) {
-    const actual = summarize(model, scope), positions = [...POSITIONS, "ALL"];
+  function matchupAnalysis(model, summary, scope = {}) {
+    const positions = [...POSITIONS, "ALL"], weekly = summarize(model, scope);
+    const period = summary.weeks.length ? summary.weeks : model.weeks;
+    const summaryAvailable = (scope.venue || "all") === "all" &&
+      (scope.from ?? 1) <= period[0] && (scope.to ?? Infinity) >= period.at(-1);
+    const unavailableReason = summaryAvailable ? "FPF summary values are missing for this matchup." :
+      "FPF supplies season totals only; expected FPA is unavailable for venue or partial-week selections.";
+    const teams = [...new Set([...model.defenses, ...summary.byTeam.keys()])].sort();
+    const actualRows = teams.map(team => {
+      const source = summary.byTeam.get(team), recorded = weekly.byTeam.get(team);
+      const games = source?.opponents.length || recorded?.games || 0;
+      return { team, games: summaryAvailable ? games : recorded?.games || 0,
+        metrics: Object.fromEntries(positions.map(pos => {
+          const supplied = source?.metrics[pos];
+          return [pos, summaryAvailable ? { total: supplied?.total ?? null, avg: supplied?.avg ?? null,
+            rank: supplied?.rank ?? null, pool: 0, games, rankOrder: "descending" } :
+            { ...(recorded?.metrics[pos] ?? emptyMetric()) }];
+        })) };
+    });
+    const actualPools = Object.fromEntries(positions.map(pos => [pos, summaryAvailable ? TEAMS.length : actualRows.filter(row => row.metrics[pos].rank !== null).length]));
+    actualRows.forEach(row => positions.forEach(pos => { row.metrics[pos].pool = row.metrics[pos].rank === null ? 0 : actualPools[pos]; }));
+    const actual = { rows: actualRows, byTeam: new Map(actualRows.map(row => [row.team, row])),
+      pools: actualPools, games: weekly.games, scope, source: summaryAvailable ? summary.name : model.name };
     const rows = actual.rows.map(row => {
-      const games = actual.games.filter(game => game.def === row.team);
-      const metrics = Object.fromEntries(positions.map(pos => {
-        const stat = row.metrics[pos];
+      const games = weekly.games.filter(game => game.def === row.team);
+      return { team: row.team, metrics: Object.fromEntries(positions.map(pos => {
+        const stat = row.metrics[pos], supplied = summaryAvailable ? summary.byTeam.get(row.team)?.metrics[pos] : null;
+        const expectedTotal = supplied?.expectedTotal ?? null;
+        const complete = stat.total !== null && expectedTotal !== null;
+        const delta = complete ? (Math.round(stat.total * 100) - Math.round(expectedTotal * 100)) / 100 : null;
         const entries = games.map(game => {
           const cents = pos === "ALL" ? game.totalCents : game.positionCents[pos];
-          const baseline = offenses.byTeam.get(game.offense)?.metrics[pos];
-          return { week: game.week, offense: game.offense, venue: game.venue,
-            actual: cents === null ? null : cents / 100,
-            expected: baseline?.avg ?? null, expectedCents: baseline?.averageCents ?? null,
-            offenseRank: baseline?.rank ?? null };
+          return { week: game.week, offense: game.offense, venue: game.venue, actual: cents === null ? null : cents / 100 };
         });
-        const eligible = entries.filter(entry => entry.actual !== null);
-        const baselineGames = eligible.filter(entry => entry.expectedCents !== null).length;
-        const complete = stat.games > 0 && baselineGames === stat.games;
-        const expectedCents = complete ? eligible.reduce((sum, entry) => sum + entry.expectedCents, 0) : null;
-        const expectedTotal = expectedCents === null ? null : expectedCents / 100;
-        const delta = complete ? (Math.round(stat.total * 100) - expectedCents) / 100 : null;
-        return [pos, { actual: stat, expectedTotal, expectedAvg: complete ? expectedTotal / stat.games : null,
+        return [pos, { actual: stat, expectedTotal, expectedAvg: supplied?.expectedAvg ?? null,
+          actualRank: stat.rank, expectedRank: supplied?.expectedRank ?? null,
           delta, deltaPct: complete && expectedTotal !== 0 ? delta / Math.abs(expectedTotal) * 100 : null,
-          expectedRank: null, actualRank: null, pool: 0, baselineGames, games: stat.games, entries }];
-      }));
-      return { team: row.team, metrics };
+          pool: 0, games: stat.games, entries }];
+      })) };
     });
-    const pools = {};
-    for (const pos of positions) {
-      const comparable = rows.filter(row => row.metrics[pos].expectedTotal !== null && row.metrics[pos].actual.total !== null);
-      pools[pos] = comparable.length;
-      for (const [field, target] of [["expectedTotal", "expectedRank"], ["actual", "actualRank"]]) {
-        const sorted = [...comparable].sort((a, b) => {
-          const value = row => field === "actual" ? row.metrics[pos].actual.total : row.metrics[pos][field];
-          return value(a) - value(b) || a.team.localeCompare(b.team);
-        });
-        let previous = null, rank = 0;
-        sorted.forEach((row, index) => {
-          const value = field === "actual" ? row.metrics[pos].actual.total : row.metrics[pos][field];
-          if (previous === null || Math.abs(value - previous) > 1e-9) rank = index + 1;
-          row.metrics[pos][target] = rank; row.metrics[pos].pool = comparable.length; previous = value;
-        });
-      }
-    }
-    return { actual, rows, byTeam: new Map(rows.map(row => [row.team, row])), pools };
+    const pools = Object.fromEntries(positions.map(pos => [pos, rows.filter(row => {
+      const c = row.metrics[pos]; return c.actual.total !== null && c.expectedTotal !== null;
+    }).length]));
+    rows.forEach(row => positions.forEach(pos => { row.metrics[pos].pool = pools[pos]; }));
+    return { actual, rows, byTeam: new Map(rows.map(row => [row.team, row])), pools, summaryAvailable, unavailableReason };
   }
 
-  // Surface source disagreements for documentation without altering either file.
-  function offenseDifferences(model, offenses) {
-    const sums = new Map();
-    for (const row of model.results) {
-      if (!row.playerTeam) continue;
-      for (const pos of [row.pos, "ALL"]) {
-        const key = `${row.playerTeam}|${pos}`; sums.set(key, (sums.get(key) || 0) + row.cents);
-      }
-    }
-    return offenses.rows.flatMap(row => [...POSITIONS, "ALL"].flatMap(pos => {
-      const weekly = sums.get(`${row.team}|${pos}`), supplied = row.metrics[pos].totalCents;
-      return weekly !== undefined && supplied !== null && Math.abs(weekly - supplied) > 5
-        ? [{ team: row.team, pos, weeklyTotal: weekly / 100, offenseTotal: supplied / 100 }] : [];
+  // Audit disagreements without adjusting either supplied source.
+  function summaryDifferences(model, summary) {
+    const weekly = summarize(model);
+    return summary.rows.flatMap(row => [...POSITIONS, "ALL"].flatMap(pos => {
+      const total = weekly.byTeam.get(row.team)?.metrics[pos].total, supplied = row.metrics[pos].total;
+      return total !== null && total !== undefined && supplied !== null && Math.abs(Math.round(total * 100) - Math.round(supplied * 100)) > 5
+        ? [{ team: row.team, pos, weeklyTotal: total, summaryTotal: supplied }] : [];
     }));
   }
 
-  return Object.freeze({ POSITIONS, TEAM_NAMES, TEAMS, REQUIRED_COLUMNS, canonicalTeam, parseOpponent, parseCSV, readSource, recentSpan, summarize, selectResults, compare, inScope, readOffenses, expectedMatchups, offenseDifferences });
+  return Object.freeze({ POSITIONS, TEAM_NAMES, TEAMS, REQUIRED_COLUMNS, canonicalTeam, parseOpponent, parseCSV, readSource, recentSpan, summarize, selectResults, compare, inScope, readFPF, matchupAnalysis, summaryDifferences });
 });

@@ -12,20 +12,20 @@ const fixture = rows => Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS\n" + ro
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} != ${expected}`);
 
 test("supplied file: all source rows, exclusions, signs and matchup counts reconcile", () => {
-  assert.equal(source.audit.sourceRows, 1250);
-  assert.equal(source.audit.usedRows, 1228);
+  assert.equal(source.audit.sourceRows, 1255);
+  assert.equal(source.audit.usedRows, 1233);
   assert.equal(source.audit.excludedRows, 22);
   assert.equal(source.audit.zeroResults, 471);
   assert.equal(source.audit.negativeResults, 12);
   assert.equal(source.audit.defenseGames, 96);
   assert.equal(source.audit.matchups, 48);
-  assert.equal(source.audit.totalPoints, 7621.62);
+  assert.equal(source.audit.totalPoints, 7677.18);
   assert.deepEqual(source.weeks, [1, 2, 3]);
   assert.equal(source.defenses.length, 32);
   assert.deepEqual(source.diagnostics, { missingPositions: [], unpairedGames: [] });
 });
 test("supplied file: weekly totals independently specified by the source audit", () => {
-  assert.deepEqual([1, 2, 3].map(week => Data.summarize(source, { from: week, to: week }).league.ALL.total), [2600.76, 2410.46, 2610.40]);
+  assert.deepEqual([1, 2, 3].map(week => Data.summarize(source, { from: week, to: week }).league.ALL.total), [2624.88, 2420.90, 2631.40]);
 });
 test("VS identifies the defense, not the player's TM or source player rank", () => {
   const gibbs = source.results.find(row => row.week === 1 && row.player === "Jahmyr Gibbs");
@@ -107,7 +107,7 @@ test("venue filters affect summaries, player results and recent comparisons cons
   assert.equal(away.byTeam.get("BAL").metrics.QB.avg, 14.49);
   assert.equal(away.byTeam.get("BAL").metrics.QB.games, 2);
   assert.ok(Data.selectResults(source, { team: "BAL", venue: "home" }).every(row => row.vs === "@ BAL"));
-  near(home.league.ALL.total + away.league.ALL.total, 7621.62);
+  near(home.league.ALL.total + away.league.ALL.total, 7677.18);
 });
 test("recent windows derive from the actual latest week and support a single week", () => {
   assert.deepEqual(Data.recentSpan(source, 2), { from: 2, to: 3 });
@@ -118,7 +118,7 @@ test("recent windows derive from the actual latest week and support a single wee
 });
 test("no matching game is unavailable rather than zero or a rank", () => {
   const stat = Data.summarize(source, { from: 4, to: 4 }).byTeam.get("TB").metrics.QB;
-  assert.deepEqual(stat, { total: null, avg: null, games: 0, rank: null, pool: 0 });
+  assert.deepEqual(stat, { total: null, avg: null, games: 0, rank: null, pool: 0, rankOrder: "ascending" });
 });
 test("rank changes are unavailable when comparison cohorts differ", () => {
   const model = fixture(["1,A,QB,10,vs TB", "2,A,QB,20,vs TB", "1,B,QB,30,@ NYG"]);
@@ -165,7 +165,7 @@ test("bundled source pair exactly matches both provided CSVs and their checksums
   const context = { window: {} };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../DH-FPA/data/2026-weekly.js"), "utf8"), context);
   const snapshot = context.window.FPA_SOURCE;
-  for (const [key, name] of [["weekly", "FPAv2.csv"], ["offense", "TSUMS.csv"]]) {
+  for (const [key, name] of [["weekly", "FPAv2.csv"], ["summary", "FPF.csv"]]) {
     const bytes = fs.readFileSync(path.join(__dirname, "../DH-FPA/data", name));
     assert.equal(snapshot[key].csv, bytes.toString("utf8"));
     assert.equal(snapshot[key].sha256, crypto.createHash("sha256").update(bytes).digest("hex"));
@@ -174,71 +174,98 @@ test("bundled source pair exactly matches both provided CSVs and their checksums
   assert.equal(snapshot.season, 2026);
 });
 
-const offenseCSV = fs.readFileSync(path.join(__dirname, "../DH-FPA/data/TSUMS.csv"), "utf8");
-const offenses = Data.readOffenses(offenseCSV);
-const expectations = Data.expectedMatchups(source, offenses);
-const offenseFixture = teams => {
-  const positions = [...Data.POSITIONS, "ALL"];
-  const header = ["TM", "G", ...positions.flatMap(pos => [pos, `${pos}RK`, `${pos}x`])];
-  const records = teams.map(([team, averages]) => [team, 3, ...positions.flatMap(pos => {
-    const avg = averages[pos] ?? null;
-    return [avg === null ? "" : (avg * 3).toFixed(2), 1, avg === null ? "" : avg];
-  })].join(","));
-  return Data.readOffenses([header.join(","), ...records].join("\n"));
-};
+const summaryCSV = fs.readFileSync(path.join(__dirname, "../DH-FPA/data/FPF.csv"), "utf8");
+const summary = Data.readFPF(summaryCSV);
+const expectations = Data.matchupAnalysis(source, summary);
+const positions = [...Data.POSITIONS, "ALL"];
+function summaryFixture(team, values) {
+  const headers = ["TM", ...positions.flatMap(pos => [pos, `${pos}x`, `${pos}rk`, `${pos}vs`, `${pos}vX`, `${pos}vRK`])];
+  const row = [team, ...positions.flatMap(pos => values[pos] || ["", "", "", "", "", ""])];
+  return { csv: headers.join(",") + "\n" + row.join(","), headers, row };
+}
 
-test("FPAv2 restores Case Keenum's Week 3 score against PHI in every actual total", () => {
+test("all 960 supplied FPF values are used directly, including averages and ranks", () => {
+  assert.equal(summary.rows.length, 32); assert.deepEqual(summary.weeks, [1, 2, 3]);
+  const raw = Data.parseCSV(summaryCSV, []).records;
+  for (const { values: row } of raw) for (const pos of positions) {
+    const c = expectations.byTeam.get(row.TM).metrics[pos];
+    for (const [value, field] of [[c.actual.total, pos], [c.actual.avg, pos + "X"], [c.actualRank, pos + "RK"],
+      [c.expectedTotal, pos + "VS"], [c.expectedAvg, pos + "VX"], [c.expectedRank, pos + "VRK"]]) {
+      assert.equal(value, Number(row[field]), `${row.TM} ${field}`);
+    }
+    assert.equal(c.actual.rank, c.actualRank); assert.equal(c.actual.rankOrder, "descending");
+  }
+});
+test("season totals retain FPF rounding while weekly games retain exact player points", () => {
+  const c = expectations.byTeam.get("BAL").metrics.QB;
+  assert.equal(c.expectedTotal, 55.9); assert.equal(c.actual.total, 51.4);
+  assert.equal(c.actual.avg, 17.1); assert.equal(c.expectedAvg, 18.6);
+  assert.equal(c.actualRank, 21); assert.equal(c.expectedRank, 12);
+  assert.equal(c.delta, -4.5); assert.equal(c.games, 3); assert.equal(c.pool, 32);
+  assert.deepEqual(c.entries.map(e => [e.offense, e.actual]), [["IND", 10.04], ["NO", 22.38], ["DAL", 18.94]]);
+  assert.ok(c.entries.every(entry => !("expected" in entry) && !("offenseRank" in entry)));
   const added = Data.selectResults(source, { team: "PHI", pos: "QB", from: 3, to: 3 }).find(row => row.player === "Case Keenum");
   assert.equal(added.pts, 24.48); assert.equal(added.defenseVenue, "away");
-  assert.equal(expectations.byTeam.get("PHI").metrics.QB.actual.total, 62.16);
+  assert.equal(expectations.byTeam.get("PHI").metrics.QB.actual.total, 62.2);
 });
-test("expected QB FPA uses the three supplied opponent averages without weekly recomputation", () => {
-  const c = expectations.byTeam.get("BAL").metrics.QB;
-  assert.equal(c.expectedTotal, 55.9); assert.equal(c.actual.total, 51.36);
-  assert.equal(c.delta, -4.54); assert.equal(c.games, 3);
-  assert.deepEqual(c.entries.map(e => [e.offense, e.expected]), [["IND", 10.4], ["NO", 24.1], ["DAL", 21.4]]);
-  assert.equal(c.expectedRank, 21); assert.equal(c.actualRank, 12); assert.equal(c.pool, 32);
-});
-test("multiple player records count the opponent baseline only once per game", () => {
-  const m = Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS,TM\n1,A,QB,10,vs TB,CIN\n1,B,QB,5,vs TB,CIN\n1,C,QB,0,vs TB,CIN\n2,A,QB,8,vs TB,CIN");
-  const c = Data.expectedMatchups(m, offenseFixture([["CIN", { QB: 12.5 }]])).byTeam.get("TB").metrics.QB;
-  assert.equal(c.expectedTotal, 25); assert.equal(c.actual.total, 23); assert.equal(c.delta, -2);
-});
-test("ALL expected scoring uses ALLx directly, not a sum of rounded position averages", () => {
+test("ALL summaries use all six supplied fields without summing rounded positional values", () => {
   const c = expectations.byTeam.get("BAL").metrics.ALL;
-  assert.deepEqual(c.entries.map(e => e.expected), [70.6, 109.7, 95.1]);
-  assert.equal(c.expectedTotal, 275.4); assert.equal(c.actual.total, 255.86);
-  assert.equal(Data.selectResults(source, { team: "BAL", pos: "ALL" }).length, Data.selectResults(source, { team: "BAL" }).length);
-  const m = Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS,TM\n" + Data.POSITIONS.map(p => `1,${p},${p},1,vs TB,CIN`).join("\n"));
-  const fake = offenseFixture([["CIN", { QB: 1.1, RB: 1.1, WR: 1.1, TE: 1.1, ALL: 4.3 }]]);
-  assert.equal(Data.expectedMatchups(m, fake).byTeam.get("TB").metrics.ALL.expectedTotal, 4.3);
+  assert.equal(c.expectedTotal, 275.5); assert.equal(c.actual.total, 255.9);
+  const kc = expectations.byTeam.get("KC").metrics;
+  assert.equal(kc.ALL.actual.avg, summary.byTeam.get("KC").metrics.ALL.avg);
+  assert.notEqual(kc.ALL.actual.avg, Data.POSITIONS.reduce((sum, pos) => sum + kc[pos].actual.avg, 0));
 });
-test("venue filters apply to both expected and actual FPA over the same games", () => {
-  const home = Data.expectedMatchups(source, offenses, { venue: "home" }).byTeam.get("TB").metrics.QB;
-  const away = Data.expectedMatchups(source, offenses, { venue: "away" }).byTeam.get("TB").metrics.QB;
-  assert.equal(home.expectedTotal, 30.8); assert.equal(home.actual.total, 31.14); assert.equal(home.games, 2);
-  assert.equal(away.expectedTotal, 18); assert.equal(away.actual.total, 15.16); assert.equal(away.games, 1);
+test("home/away and partial weeks use weekly actuals without allocating FPF expectations", () => {
+  for (const scope of [{ venue: "home" }, { venue: "away" }, { from: 2, to: 3 }, { from: 1, to: 1 }]) {
+    const scoped = Data.matchupAnalysis(source, summary, scope), weekly = Data.summarize(source, scope);
+    assert.equal(scoped.summaryAvailable, false);
+    for (const row of scoped.rows) for (const pos of positions) {
+      const c = row.metrics[pos];
+      assert.deepEqual(c.actual, weekly.byTeam.get(row.team).metrics[pos]);
+      assert.equal(c.expectedTotal, null); assert.equal(c.expectedAvg, null); assert.equal(c.expectedRank, null);
+      assert.equal(c.delta, null); assert.equal(c.deltaPct, null); assert.equal(c.pool, 0);
+    }
+  }
+  assert.equal(Data.matchupAnalysis(source, summary, { from: 1, to: 3 }).summaryAvailable, true);
 });
-test("missing opponent averages stay unavailable and both ranks use one complete cohort", () => {
-  const m = Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS,TM\n1,A,QB,0,vs TB,CIN\n1,B,QB,2,vs NYG,MIN");
-  const c = Data.expectedMatchups(m, offenseFixture([["CIN", { QB: 0 }]]));
-  const complete = c.byTeam.get("TB").metrics.QB, missing = c.byTeam.get("NYG").metrics.QB;
-  assert.equal(complete.expectedTotal, 0); assert.equal(complete.delta, 0); assert.equal(complete.deltaPct, null);
-  assert.equal(complete.actualRank, 1); assert.equal(complete.expectedRank, 1); assert.equal(complete.pool, 1);
-  assert.equal(missing.actual.total, 2); assert.equal(missing.expectedTotal, null); assert.equal(missing.delta, null);
-  assert.equal(missing.actualRank, null); assert.equal(missing.expectedRank, null);
+test("FPF zero, blank, independent averages, and supplied tied ranks are preserved", () => {
+  const file = summaryFixture("TB", { QB: [0, 5, 9, 0, 8, 17], RB: [50, 1, 21, "", "", ""] });
+  const fake = Data.readFPF(file.csv);
+  const m = fixture(["1,A,QB,25,vs TB"]), c = Data.matchupAnalysis(m, fake).byTeam.get("TB").metrics;
+  assert.equal(c.QB.actual.total, 0); assert.equal(c.QB.actual.avg, 5);
+  assert.equal(c.QB.actualRank, 9); assert.equal(c.QB.expectedTotal, 0); assert.equal(c.QB.expectedAvg, 8);
+  assert.equal(c.QB.expectedRank, 17); assert.equal(c.QB.delta, 0); assert.equal(c.QB.deltaPct, null);
+  assert.equal(c.RB.actual.total, 50); assert.equal(c.RB.expectedTotal, null); assert.equal(c.RB.delta, null);
+  assert.equal(c.WR.actual.total, null); assert.equal(c.WR.expectedTotal, null);
+  // This supplied tie order cannot be inferred from displayed rounded totals.
+  assert.equal(expectations.byTeam.get("LAC").metrics.RB.actualRank, summary.byTeam.get("LAC").metrics.RB.rank);
 });
-test("scatter totals rank unrounded values with competition ties independently on each axis", () => {
-  const m = Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS,TM\n1,A,QB,5,vs TB,CIN\n1,B,QB,5,vs NYG,MIN\n1,C,QB,6,vs SEA,CLE");
-  const c = Data.expectedMatchups(m, offenseFixture([["CIN", { QB: 10.11 }], ["MIN", { QB: 10.11 }], ["CLE", { QB: 10.12 }]]));
-  assert.deepEqual(["TB", "NYG", "SEA"].map(t => c.byTeam.get(t).metrics.QB.expectedRank), [1, 1, 3]);
-  assert.deepEqual(["TB", "NYG", "SEA"].map(t => c.byTeam.get(t).metrics.QB.actualRank), [1, 1, 3]);
+test("FPF rejects missing fields, duplicate/unknown teams, invalid numbers and invalid ranks", () => {
+  assert.throws(() => Data.readFPF("TM,QB\nTB,0"), /Missing required columns/);
+  const file = summaryFixture("TB", { QB: [1, 1, 1, 1, 1, 1] });
+  assert.throws(() => Data.readFPF(file.csv + "\n" + file.row.join(",")), /duplicate FPF team/);
+  assert.throws(() => Data.readFPF(file.csv.replace("\nTB,", "\nZZZ,")), /unknown FPF team/);
+  for (const column of ["QB", "QBx", "QBvs", "QBvX"]) {
+    const row = [...file.row]; row[file.headers.indexOf(column)] = "NA";
+    assert.throws(() => Data.readFPF(file.headers.join(",") + "\n" + row.join(",")), /must be a number/);
+  }
+  for (const column of ["QBrk", "QBvRK"]) for (const bad of [0, 33, 1.5]) {
+    const row = [...file.row]; row[file.headers.indexOf(column)] = bad;
+    assert.throws(() => Data.readFPF(file.headers.join(",") + "\n" + row.join(",")), /rank from 1 to 32/);
+  }
 });
-test("JAX source differences are disclosed while published WRx and ALLx stay unchanged", () => {
-  assert.equal(offenses.byTeam.get("JAX").metrics.WR.avg, 34.1);
-  assert.equal(offenses.byTeam.get("JAX").metrics.ALL.avg, 77.9);
-  assert.deepEqual(Data.offenseDifferences(source, offenses), [
-    { team: "JAX", pos: "WR", weeklyTotal: 110.6, offenseTotal: 102.4 },
-    { team: "JAX", pos: "ALL", weeklyTotal: 242.04, offenseTotal: 233.8 },
-  ]);
+test("updated player source reconciles to FPF within published rounding; repeated WR expectations remain supplied", () => {
+  assert.deepEqual(Data.summaryDifferences(source, summary), []);
+  for (const row of summary.rows) {
+    const rb = row.metrics.RB, wr = row.metrics.WR;
+    assert.equal(wr.expectedTotal, rb.expectedTotal);
+    assert.equal(wr.expectedAvg, rb.expectedAvg); assert.equal(wr.expectedRank, rb.expectedRank);
+    for (const opponent of row.opponents) assert.equal(source.gamesByKey.get(`${row.team}|${opponent.week}`).offense, opponent.offense);
+  }
+});
+test("weekly reader accepts supplied WK and legacy WEEK, rejecting conflicting aliases", () => {
+  const body = "1,A,QB,12,vs TB";
+  assert.equal(Data.readSource("WK,PLAYER NAME,POS,FPT_PPR,VS\n" + body).results[0].week, 1);
+  assert.equal(Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS\n" + body).results[0].week, 1);
+  assert.throws(() => Data.readSource("WK,WEEK,PLAYER NAME,POS,FPT_PPR,VS\n1,2,A,QB,12,vs TB"), /WEEK and WK disagree/);
 });

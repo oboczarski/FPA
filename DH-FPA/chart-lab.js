@@ -98,7 +98,7 @@
     scene.paint?.();
   }
   function cellTooltip(row) {
-    return `[bold]${row.team} · ${row.pos}[/]\n${fmt(row.avg, 2)} FPA/game · rank ${row.rank ?? "—"} of ${row.pool}\nOpponent baseline: ${fmt(row.expectedAvg, 2)} /game\n${row.games} recorded games\nSelect to explore this defense and position`;
+    return `[bold]${row.team} · ${row.pos}[/]\n${fmt(row.avg, 2)} FPA/game · rank ${row.rank ?? "—"} of ${row.pool}\nExpected FPA: ${fmt(row.expectedAvg, 2)} /game (FPF)\n${row.games} recorded games\nSelect to explore this defense and position`;
   }
   function scoringBreakdown(definition) {
     const scene = makeScene(definition), root = scene.root, palette = am5.ColorSet.new(root, {});
@@ -252,7 +252,7 @@
   }
 
   function dumbbellTooltip(row) {
-    return `[bold]${row.team} · ${row.pos}[/]\nActual FPA: ${fmt(row.actualTotal, 2)} points\nExpected from opponents: ${fmt(row.expectedTotal, 2)} points\nActual − expected: ${signedPoints(row.deltaTotal)} points\n${row.games} recorded games · select to explore`;
+    return `[bold]${row.team} · ${row.pos}[/]\nActual FPA: ${fmt(row.actualTotal, 2)} points\nExpected FPA (FPF): ${fmt(row.expectedTotal, 2)} points\nActual − expected: ${signedPoints(row.deltaTotal)} points\n${row.games} recorded games · select to explore`;
   }
 
   function gameMarker(scene, row, stroke, text) {
@@ -308,7 +308,7 @@
       series.bullets.push((root, series, item) => {
         const row = item.dataContext, stat = current.analysis.byTeam.get(row.team).metrics[row.pos].actual;
         const games = snapshot.polar.filter(game => game.team === row.team);
-        const text = `[bold]${row.team} DEFENSE · ${row.pos} · W${row.week}[/]\n${row.venue === "home" ? "vs" : "@"} ${row.offense || "Unknown offense"}\nActual: ${fmt(row.actual, 2)} PPR points\nOpponent baseline: ${fmt(row.expected, 2)} points\n\n[bold]All games on this spoke[/]\n` +
+        const text = `[bold]${row.team} DEFENSE · ${row.pos} · W${row.week}[/]\n${row.venue === "home" ? "vs" : "@"} ${row.offense || "Unknown offense"}\nActual: ${fmt(row.actual, 2)} PPR points\n\n[bold]All games on this spoke[/]\n` +
           games.map(game => `W${game.week} ${game.venue === "home" ? "vs" : "@"} ${game.offense || "—"}: ${fmt(game.actual, 2)}`).join("\n");
         return am5.Bullet.new(root, { locationX: row.location, sprite: gameMarker(scene, row, color(current.heatColor(stat)), text) });
       });
@@ -335,12 +335,20 @@
     const selectedCells = snapshot.cells.filter(row => row.team === current.team);
     $("compositionReadout").innerHTML = teamMarkup(current.team) + selectedCells.map(row => `<span class="labValue">${row.pos} <strong>${fmt(row.avg, 2)}</strong><span>/game · #${row.rank ?? "—"}</span></span>`).join("");
     const pair = snapshot.dumbbell.find(row => row.team === current.team);
-    $("dumbbellReadout").innerHTML = teamMarkup(current.team) + (pair ? `<span>Actual <strong>${fmt(pair.actualTotal, 2)}</strong></span><span>Expected <strong>${fmt(pair.expectedTotal, 2)}</strong></span><span>Difference <strong>${signedPoints(pair.deltaTotal)}</strong> points</span><span>${pair.games} games · ${current.pos}</span>` : '<span class="labUnavailable">Complete opponent baselines are needed.</span>');
+    $("dumbbellReadout").innerHTML = teamMarkup(current.team) + (pair ? `<span>Actual <strong>${fmt(pair.actualTotal, 2)}</strong></span><span>Expected <strong>${fmt(pair.expectedTotal, 2)}</strong></span><span>Difference <strong>${signedPoints(pair.deltaTotal)}</strong> points</span><span>${pair.games} games · ${current.pos}</span>` : '<span class="labUnavailable">Expected FPA is unavailable for this scope.</span>');
     const games = snapshot.polar.filter(row => row.team === current.team);
     $("polarReadout").innerHTML = teamMarkup(current.team) + games.map(row => `<span>W${row.week} <strong>${fmt(row.actual, 2)}</strong> <span>${row.venue === "home" ? "vs" : "@"} ${row.offense || "—"}</span></span>`).join("") + `<span>${snapshot.polar.length} total game dots</span>`;
   }
   function refresh(definition) {
     if (!snapshot || !observed.has(definition.id)) return;
+    if (definition.id === "labDumbbell" && !snapshot.dumbbell.length) {
+      scenes.get(definition.id)?.root.dispose(); scenes.delete(definition.id);
+      const message = document.createElement("p"); message.className = "labLoading";
+      message.textContent = current.analysis.unavailableReason;
+      $(definition.id).replaceChildren(message);
+      $(`${definition.id}Subtitle`).textContent = `${current.pos} · EXPECTED COMPARISON UNAVAILABLE · ${venueText().toUpperCase()}`;
+      return;
+    }
     try {
       if (!window.am5 || !window.am5xy || !window.am5radar || !window.am5themes_Dark || !window.am5themes_Animated) throw new Error("The local amCharts library could not load.");
       let scene = scenes.get(definition.id);
@@ -358,7 +366,7 @@
   }
   function update(context) {
     try {
-      current = context; snapshot = Model.build(context.analysis, context.offenses, context.pos, context.divisions.flatMap(division => division.teams));
+      current = context; snapshot = Model.build(context.analysis, context.pos, context.divisions.flatMap(division => division.teams));
       readouts(); definitions.forEach(refresh); $("labError").hidden = true;
     } catch (error) { $("labError").textContent = `Additional chart views could not update: ${error.message}`; $("labError").hidden = false; }
   }

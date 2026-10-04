@@ -1,5 +1,6 @@
 # October 1 refinement
 
+Historical implementation record: its TSUMS data contract is superseded by [the FPF migration](2026-fpf-migration.md).
 ## Scope and reference
 
 Rebuild the current three-week experience on F-39 after the user's spacing/style/layout feedback. Read the user's padding commit (`2fe9801`) before editing. Reference the live DataHub page shell and Game Logs modal in DH-P3: page background at `DH_P2.53/styles/DataHub.css` lines 327–484, and modal/table treatments around lines 8958–9060 and 10790–11065. Read the corresponding `datahub.html` font and background structure. Keep all implementation in FPA; DH-P3 is a read-only reference.

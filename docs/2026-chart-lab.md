@@ -51,7 +51,7 @@ The page detects inline style/class changes on chart panels, page-level class ch
 
 ## Always-ALL positional stacks
 
-All 32 defenses have one horizontal bar. Four segments preserve their QB/RB/WR/TE FPA per game and reconcile to ALL for every supplied venue scope. ALL is never added as a fifth segment. The view always shows all four positions, regardless of the dashboard position. A QB/RB/WR/TE/ALL sort-by bar sits to the right of the legend in its existing 30px row (28.5px on mobile). It only reorders the bars by the chosen position's FPA/game, highest first, without hiding segments or changing the dashboard selection. This sort choice persists through defense, venue, position, and CSS changes. It still follows defense venue, highlights the selected defense, and allows a segment to select its team and position in the rest of the dashboard.
+All 32 defenses have one horizontal bar. Four segments preserve their QB/RB/WR/TE FPA per game and retain the supplied ALL average as the total label; independent one-decimal rounding may differ from the segment sum by 0.1. ALL is never added as a fifth segment. The view always shows all four positions, regardless of the dashboard position. A QB/RB/WR/TE/ALL sort-by bar sits to the right of the legend in its existing 30px row (28.5px on mobile). It only reorders the bars by the chosen position's FPA/game, highest first, without hiding segments or changing the dashboard selection. This sort choice persists through defense, venue, position, and CSS changes. It still follows defense venue, highlights the selected defense, and allows a segment to select its team and position in the rest of the dashboard.
 
 Teams default to sorting by ALL FPA/game from highest to lowest, with alphabetical ties and unavailable values last. End labels continue to show ALL scoring to two decimals for every sort choice. Tooltips preserve each position's exact average, original rank, opponent expectation, and game count. Zero values keep their real zero length. No source or scoring aggregate changes.
 
@@ -59,9 +59,9 @@ The heatmap's Tougher/Easier scale is aligned with the title on the left; its la
 
 ## Dumbbells
 
-Each team pairs actual FPA total with expected FPA total over the same selected position/game/venue scope, exactly matching the original scatter values. The hollow ring is expected; the filled dot is actual. Teams sort by actual FPA from highest to lowest, with alphabetical ties.
+Each team pairs actual FPA total with expected FPA total from FPF for the selected position, exactly matching the original scatter values. The hollow ring is expected; the filled dot is actual. Teams sort by actual FPA from highest to lowest, with alphabetical ties.
 
-Both endpoints have a scoring label: the lower value's label sits to its left, the higher value's label to its right. Equal values remain concentric, with expected labeled left and actual right. Endpoint and Δ labels default to 8px, controlled by --am-label-font-size on #labDumbbellPanel, and round to one decimal place. Axis bounds include both endpoint values: minimum is the lowest minus 15 points, maximum is the highest plus 20 points, with no additional rounding or proportional gutter. For endpoints spanning 32.4–76.2, the domain is 17.4–96.2. Bounds update with position and venue. The Δ column shows actual minus expected; full endpoint values remain in tooltips and the selected-team readout.
+Both endpoints have a scoring label: the lower value's label sits to its left, the higher value's label to its right. Equal values remain concentric, with expected labeled left and actual right. Endpoint and Δ labels default to 8px, controlled by --am-label-font-size on #labDumbbellPanel, and round to one decimal place. Axis bounds include both endpoint values: minimum is the lowest minus 15 points, maximum is the highest plus 20 points, with no additional rounding or proportional gutter. For endpoints spanning 32.4–76.2, the domain is 17.4–96.2. Bounds update with position. FPF has no venue splits, so venue-filtered expected comparisons show an unavailable state. The Δ column shows actual minus expected; full endpoint values remain in tooltips and the selected-team readout.
 
 Four distinct native-palette gradients follow actual-FPA order:
 
@@ -70,7 +70,7 @@ Four distinct native-palette gradients follow actual-FPA order:
 - Third quarter: blue to sky.
 - Lowest quarter: sky to mint.
 
-Each quarter covers eight rows with the current 32-team cohort, giving two treatments in each half of the chart for every position/venue. Classification is based on descending actual-FPA order, with alphabetical ties; a tie can cross a band boundary. Changing an expectation without changing actual scoring does not change the band. Each treatment has three stops derived from the native palette, with darkened and brightened endpoint colors and stronger opacity. Gradient direction reverses when actual is the left endpoint, so it always brightens toward actual scoring. Connectors stay 4px thick; selection changes opacity, never thickness. Zero/equal endpoints stay valid; missing expectations remain unavailable. Endpoint series are explicitly bound to actualTotal and expectedTotal, so their meanings never swap with direction.
+Each quarter covers eight rows with the current 32-team cohort, giving two treatments in each half of the chart for every position in the full-season view. Classification is based on descending actual-FPA order, with alphabetical ties; a tie can cross a band boundary. Changing an expectation without changing actual scoring does not change the band. Each treatment has three stops derived from the native palette, with darkened and brightened endpoint colors and stronger opacity. Gradient direction reverses when actual is the left endpoint, so it always brightens toward actual scoring. Connectors stay 4px thick; selection changes opacity, never thickness. Zero/equal endpoints stay valid; missing expectations remain unavailable. Endpoint series are explicitly bound to actualTotal and expectedTotal, so their meanings never swap with direction.
 
 ## Polar matchup scatter
 
@@ -82,15 +82,15 @@ Markers are slightly larger: normal circle radius 7.3px with 11.5px opponent log
 
 The weekly chart is 196px tall, up from 156px. The original scatter is reduced from 452/440px to 330px desktop / 320px mobile; independent data-driven axis bounds and points/ranks modes remain intact.
 
-Offenses faced appends a W4 layout placeholder with a neutral logo outline and dashes for rank/expected/actual/difference. It uses the existing row sizing and is omitted if the selected scope has a real Week 4 entry. This row exists only in the table's HTML: no fabricated game, offense, or score enters the source, aggregates, charts, ranks, or week controls.
+Offenses faced appends a W4 layout placeholder with a neutral logo outline and a dash for actual scoring. It uses the existing row sizing and is omitted if the selected scope has a real Week 4 entry. This row exists only in the table's HTML: no fabricated game, offense, or score enters the source, aggregates, charts, ranks, or week controls.
 
 Hide <1 point starts checked in both Players faced views. It excludes zero, fractional, and negative scores below one PPR point, retaining exactly 1.00 and above. Unchecking restores the full recorded player list. Filtering uses integer cents and never changes actual FPA, expected FPA, ranks, or game counts.
 
 ## Implementation and verification
 
-Only the supplied FPAv2 and TSUMS data are used. Expectations add each opposing offense's supplied positional average once per observed game. The bundled amCharts 5.20.8 core, XY, radar, Animated, and Dark libraries retain their original license, attribution, and SHA-256 provenance. Charts initialize near the viewport, dispose on page exit, and rebuild after back-forward-cache restoration. No upload, export, or week-range controls are introduced.
+Only the supplied FPAv2 and FPF data are used. FPF supplies actual/expected totals, averages, and ranks directly; FPAv2 supplies individual weekly games and players. FPF ranks retain their supplied descending order (1 = highest), while the heat colors still show lower FPA as tougher. Venue actuals use FPAv2 and cannot be compared to an invented FPF split. The bundled amCharts 5.20.8 core, XY, radar, Animated, and Dark libraries retain their original license, attribution, and SHA-256 provenance. Charts initialize near the viewport, dispose on page exit, and rebuild after back-forward-cache restoration. No upload, export, or week-range controls are introduced.
 
-Eight focused chart-model tests cover source preservation, all team/position values, invariant ALL stacks, exact actual/expected totals and 15/20-point bounds across all positions and venues, four actual-FPA bands independent of expectation, descending actual-FPA ordering, endpoint sides including ties, zero/missing expectations, opponent logos, and spoke alignment. The separate player-filter check was unchanged in this refinement. Browser and visual checks remain user-owned; no preview was opened.
+Eight focused chart-model tests cover source preservation, all team/position values, preserved ALL labels with source rounding, exact actual/expected totals and 15/20-point bounds across all positions plus unavailable venue expectations, four actual-FPA bands independent of expectation, descending actual-FPA ordering, endpoint sides including ties, zero/missing expectations, opponent logos, and spoke alignment. The separate player-filter check was unchanged in this refinement. Browser and visual checks remain user-owned; no preview was opened.
 
 Primary implementation references:
 

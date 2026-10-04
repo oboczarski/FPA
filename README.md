@@ -1,15 +1,15 @@
 # 2026 Matchups
 
-The static app lives in `DH-FPA/index.html`. It uses the supplied **FPAv2.csv** for actual player scoring and **TSUMS.csv** for opponent offense baselines. Both files currently cover three games per team in Weeks 1–3. Historical CSVs remain inactive.
+The static app lives in `DH-FPA/index.html`. It uses the supplied **FPF.csv** for season actual/expected totals, averages, and ranks, and **FPAv2.csv** for player scores and individual games. The updated `2026-Wkly - FPA (2).csv` replaces FPAv2.csv under the existing filename, byte for byte. Both files currently cover three games per team in Weeks 1–3. Historical CSVs remain inactive.
 
 ## Current app
 
 - Compact DataHub-style background, gradient accents, glass panels, and Game Logs-style tables.
 - Shared defense, QB/RB/WR/TE/ALL, and defense-venue selection. The original AFC/NFC division picker with team logos is restored in the main controls and expanded player view; venue menus use the same treatment.
-- Actual and expected scoring summary, a 196px weekly chart, and the selected matchup's player records immediately below it.
+- Actual and expected scoring summary, a 196px actual weekly chart, and the selected matchup's player records immediately below it.
 - Search, sorting, and an expanded player table. Hide <1 point starts checked in both player views and hides all scores below one PPR point, including zero and negative scores; unchecking shows them again. Player-list controls never change scoring aggregates, which retain every valid score.
 - Expected-versus-actual scatter with points and ranks modes, at 330px desktop / 320px mobile. Selecting a defense logo updates the matchup; logos also support Enter/Space.
-- Opponent offense table with the supplied TSUMS scoring average/rank, actual points against the selected defense, and the difference. A display-only W4 placeholder with blank scoring lets the fourth-row size be judged; it is omitted when that scope has a real Week 4 entry.
+- Opponent offense table with each week, offense, and actual FPAv2 game score. FPF has no per-game expectations or offense ranks, so the obsolete columns and weekly expected line are removed. The display-only W4 placeholder remains and is omitted when that scope has a real Week 4 entry.
 - Sortable, selectable league heatmap of FPA/game and defense ranks.
 - Three amCharts views: stacked positional scoring bars that always show QB/RB/WR/TE together, actual-versus-expected dumbbells sorted by actual FPA from highest to lowest, and a polar scatter whose markers show opposing offense logos. The former bullet ranking and its calculation/rendering code are removed.
 - Dumbbells use four gradients in descending actual-FPA order: rose and violet for the top half, blue and mint for the bottom half. Each band covers eight of the 32 teams. Connectors stay 4px thick for every team, including selection. Endpoint and Δ labels are 8px with one decimal place; equal values keep the expected label on the left and actual on the right. Axis bounds are exactly 15 points below the lowest actual/expected endpoint and 20 above the highest.
@@ -21,25 +21,38 @@ There are no upload/download/export controls, saved uploaded datasets, week-rang
 
 ## Calculation contract
 
-`VS` identifies the defense. `TM` identifies the offense. A player's `vs TB` means TB's defense was away; `@ NYG` means NYG's defense was home.
+In FPAv2, `VS` identifies the defense and `TM` identifies the offense. A player's `vs TB` means TB's defense was away; `@ NYG` means NYG's defense was home.
 
-Actual FPA sums all supplied player points for the selected defense and position. Multiple players in one defense-week count as one game. FPA/game divides by games with records for that position. A zero is a recorded value; missing data stays unavailable. ALL requires all four positions in a game.
+Season-to-date summaries use all six FPF fields directly for QB/RB/WR/TE/ALL:
 
-Expected FPA adds the opposing offense's supplied TSUMS `QBx`, `RBx`, `WRx`, `TEx`, or `ALLx` once per eligible game. ALL uses `ALLx` directly. TSUMS averages are used as supplied, without deriving replacements from player results. Expected and actual comparisons use the same position/game/venue scope. If a required offense average is absent, the full comparison is unavailable.
+| Column | Meaning |
+| --- | --- |
+| Position (QB, RB, WR, TE, ALL) | Actual FPA total |
+| x | Actual FPA average |
+| rk | Actual FPA rank |
+| vs | Expected FPA total |
+| vX | Expected FPA average |
+| vRK | Expected FPA rank |
 
-Both points-mode scatter axes use **totals**. Rank mode ranks expected totals and actual totals separately within the same complete comparison cohort, ascending from lowest to highest with competition ties (1, 1, 3). Heatmap ranks use unrounded FPA/game; with unequal game counts they can differ from scatter total ranks. TSUMS offense ranks are shown separately and retain their supplied direction: 1 is the most offensive points.
+`TM` identifies the defense in FPF. Expected totals already contain the sum of opponent scoring averages; the app does not recalculate or redistribute them. Published averages and ranks are also preserved independently of totals. Both scatter axes and dumbbell endpoints use FPF totals. Scatter rank mode uses the supplied `rk` and `vRK` fields, where **1 means the highest FPA**. Colors keep lower FPA tougher and higher FPA easier. No ranking is inferred from rounded source totals.
 
-Points-mode axes fit their own expected or actual values independently, rounding the minimum down and maximum up to the nearest 10 points. For example, 32.4–76.2 displays as 30–80. Bounds update with position and venue selections. The equality line and comparison shading use actual=expected even when the two axis ranges differ. Rank-mode bounds retain their existing scale.
+Weekly charts, players, and polar game dots use FPAv2. Both `WK` and legacy `WEEK` are supported; conflicting aliases are rejected. `VS` remains the opponent and venue authority. Individual game FPA sums all player points, including zeros and negatives. Multiple players in one defense-week count as one game. Missing position data remains unavailable. ALL requires all four positions in a game.
+
+FPF supplies no home/away splits, per-game expectations, or individual offense ranks. Venue-filtered actual summaries use FPAv2; expected comparisons are explicitly unavailable for venue or partial-week scopes. Venue actual ranks use the existing ascending competition order (1 = fewest points allowed), and the heatmap note follows the active source. All-games season ranks retain FPF's descending order.
+
+Stacked segments use supplied positional averages; their ALL labels use the independent supplied ALL average. A one-decimal rounding difference of 0.1 can occur between the segment sum and the label.
+
+Points-mode axes fit their own expected or actual values independently, rounding the minimum down and maximum up to the nearest 10 points. For example, 32.4–76.2 displays as 30–80. Bounds update with position selection; venue scopes without FPF expectations show an unavailable state. The equality line and comparison shading use actual=expected even when the two axis ranges differ. Rank-mode bounds retain their existing scale.
 
 These are comparisons with opponents' season-to-date scoring averages. Those averages include their results against the selected defense.
 
 ## Source audit
 
-FPAv2 contains 1,250 rows: 1,228 assigned results and 22 with no opponent. All 32 defenses have four-position coverage in each supplied week. The assigned scores include 471 zeros and 12 negatives, totaling **7,621.62** PPR points across 96 defense-game observations and 48 matchups.
+The replacement FPAv2 contains 1,255 rows: 1,233 assigned results and 22 with no opponent. All 32 defenses have four-position coverage in each supplied week. Assigned scores include 471 zeros and 12 negatives, totaling **7,677.18** PPR points across 96 defense-game observations and 48 matchups. Weekly totals are 2,624.88 / 2,420.90 / 2,631.40.
 
-The updated row is Case Keenum, Week 3, CHI, `vs PHI`, 24.48 points. No previous player rows changed.
+FPF has 32 unique teams, 30 numeric metric columns, and three opponent columns. Every opponent link agrees with the updated weekly source, and all 160 actual totals agree within one-decimal rounding. FPF currently repeats RB's expected total, average, and rank in the WR expected fields for every team. These values remain exactly as supplied; no correction is inferred.
 
-The source files differ for JAX WR and ALL: weekly totals are 110.60 WR / 242.04 ALL, while TSUMS reports 102.4 WR / 233.8 ALL. Both files are preserved unchanged. Actual scoring uses FPAv2; expectations use the supplied TSUMS averages of 34.1 WR / 77.9 ALL. The app explains this in its methodology disclosure.
+See [the migration receipt](docs/2026-fpf-migration.md) for source ownership and reproducible checks.
 
 ## Local use and data maintenance
 
@@ -49,7 +62,7 @@ python3 -m http.server 8765 --bind 127.0.0.1 --directory DH-FPA
 
 Open `http://127.0.0.1:8765`. The generated source pair also supplies the data for direct-file use. Fonts use the same Google Sans Flex and MuseoModerno families as the DataHub reference, with system-font fallbacks; scoring data and charts are local.
 
-To update the repository's defaults, replace `DH-FPA/data/FPAv2.csv` and `DH-FPA/data/TSUMS.csv`, then run `node scripts/sync-data.cjs`. This validates and bundles both CSVs with their SHA-256 checksums in `DH-FPA/data/2026-weekly.js`. Update asset query versions when publishing new data/code.
+To update the repository's defaults, replace `DH-FPA/data/FPAv2.csv` and `DH-FPA/data/FPF.csv`, then run `node scripts/sync-data.cjs`. This validates and bundles both CSVs with their SHA-256 checksums in `DH-FPA/data/2026-weekly.js`. Update asset query versions when publishing new data/code.
 
 ## Verification
 
@@ -60,8 +73,8 @@ node --test tests/chart-lab-model.test.cjs
 python3 tests/reconcile_source.py
 ```
 
-The targeted calculation suite covers source controls, opponent/venue interpretation, missing values, zeros/negatives, expected-game counting, supplied ALLx handling, complete rank cohorts, ties, source differences, and snapshot identity. Independent Python CSV/Decimal/Fraction reconciliation checks 2,880 defense-position cases across 18 scopes. Source control totals in the tests should be updated deliberately when the supplied period changes.
+The targeted suites cover CSV integrity, opponent/venue interpretation, zero/negative scores, WK/WEEK compatibility, all six FPF fields, supplied ranks/averages, missing values, unavailable filtered expectations, and snapshot checksums. Independent Python CSV/Decimal/Fraction reconciliation checks 2,880 weekly defense-position cases across 18 scopes, all 960 FPF values, and 96 opponent links. Source control totals should be updated deliberately when the supplied period changes.
 
-The eight active chart-model checks cover all 160 team-position values, always-ALL positional stacks without double-counting, exact dumbbell totals and bounds across all positions and venues, sorting, four actual-FPA bands independent of expectations, endpoint-label sides, zero/equal/missing expectations, 96 unique game dots per position with opponent logos aligned to 32 defense spokes, and venue filtering. A separate player-filter check covers the one-point boundary and unchanged scoring totals. Libraries are bundled locally at amCharts 5.20.8; their original license and built-in attribution are retained.
+Chart-model checks preserve the 160 team-position values, positional stacks and independent ALL labels, dumbbell sorting/gradients/endpoints/bounds, and 96 correctly scored game dots per position with opposing offense logos aligned to 32 defense spokes. Libraries are bundled locally at amCharts 5.20.8; their original license and built-in attribution are retained.
 
 Browser and visual checks are user-owned. No preview is opened as part of delivery. The new chart designs, formulas, and library sources are documented in `docs/2026-chart-lab.md`. Earlier implementation notes are in `docs/2026-refinement.md`; `docs/2026-rebuild.md` records the superseded first rebuild.

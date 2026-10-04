@@ -1,4 +1,4 @@
-/* Read-only views of FPAv2 actuals and the supplied TSUMS offense baselines. */
+/* Read-only views of FPF season summaries and FPAv2 individual games. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
@@ -7,14 +7,15 @@
   "use strict";
   const POSITIONS = Object.freeze(["QB", "RB", "WR", "TE", "ALL"]);
 
-  function build(analysis, offenses, pos, order = []) {
+  function build(analysis, pos, order = []) {
     const teams = [...new Set([...order, ...analysis.rows.map(row => row.team)])].filter(team => analysis.byTeam.has(team));
     const cells = teams.flatMap(team => POSITIONS.map(position => {
       const c = analysis.byTeam.get(team).metrics[position], stat = c.actual;
       return { team, pos: position, avg: stat.avg, rank: stat.rank, pool: stat.pool, games: stat.games,
-        expectedAvg: c.expectedAvg };
+        rankOrder: stat.rankOrder, expectedAvg: c.expectedAvg };
     }));
-    // ALL is the sum of the four positional segments, never a fifth stacked segment.
+    // ALL labels retain the supplied average; independently rounded positional
+    // averages can sum 0.1 differently. ALL is never a fifth stacked segment.
     // Keep zero values and the original positional averages without inventing bar area.
     const breakdown = teams.map(team => ({
       ...cells.find(row => row.team === team && row.pos === "ALL"),

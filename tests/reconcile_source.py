@@ -1,4 +1,4 @@
-"""Compare every supplied-data summary with independent CSV/Fraction calculations."""
+"""Independently verify weekly arithmetic and direct FPF field preservation."""
 import csv
 import json
 import os
@@ -10,15 +10,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 POSITIONS = ["QB", "RB", "WR", "TE", "ALL"]
-rows = list(csv.DictReader((ROOT / "DH-FPA/data/FPAv2.csv").open(encoding="utf-8-sig", newline="")))
-offenses = {row['TM']: {pos: Decimal(row[pos + 'x']) if row[pos + 'x'] else None for pos in POSITIONS}
-            for row in csv.DictReader((ROOT / "DH-FPA/data/TSUMS.csv").open(encoding="utf-8-sig", newline=""))}
+with (ROOT / "DH-FPA/data/FPAv2.csv").open(encoding="utf-8-sig", newline="") as file:
+    rows = list(csv.DictReader(file))
+with (ROOT / "DH-FPA/data/FPF.csv").open(encoding="utf-8-sig", newline="") as file:
+    supplied = list(csv.DictReader(file))
+assert len(supplied) == len({row["TM"] for row in supplied}) == 32
+summaries = {row["TM"]: row for row in supplied}
 games = defaultdict(lambda: {"points": {}, "venue": None})
 for row in rows:
     if row["VS"] == "NA":
         continue
     defense = row["VS"].split()[-1]
-    key = (defense, int(row["WEEK"]))
+    key = (defense, int(row.get("WEEK", row.get("WK"))))
     game = games[key]
     game["offense"] = row["TM"]
     game["venue"] = "home" if row["VS"].startswith("@") else "away"
@@ -28,14 +31,24 @@ for game in games.values():
 
 scopes = [{"from": start, "to": end, "venue": venue} for start, end in [(1, 3), (2, 3), (1, 1), (2, 2), (3, 3), (1, 2)] for venue in ["all", "home", "away"]]
 node = os.environ.get("FPA_NODE", "node")
-program = "const fs=require('node:fs');const D=require('./DH-FPA/data-model.js');const m=D.readSource(fs.readFileSync('./DH-FPA/data/FPAv2.csv','utf8'));const o=D.readOffenses(fs.readFileSync('./DH-FPA/data/TSUMS.csv','utf8'));const scopes=JSON.parse(process.argv[1]);console.log(JSON.stringify(scopes.map(s=>{const c=D.expectedMatchups(m,o,s),a=c.actual;return {rows:a.rows,league:a.league,pools:a.pools,expected:c.rows}})));"
-actual = json.loads(subprocess.check_output([node, "-e", program, json.dumps(scopes)], cwd=ROOT, text=True))
+program = """
+const fs = require('node:fs'), D = require('./DH-FPA/data-model.js');
+const m = D.readSource(fs.readFileSync('./DH-FPA/data/FPAv2.csv','utf8'));
+const s = D.readFPF(fs.readFileSync('./DH-FPA/data/FPF.csv','utf8'));
+const scopes = JSON.parse(process.argv[1]);
+console.log(JSON.stringify(scopes.map(scope => ({
+  weekly: D.summarize(m, scope), comparison: D.matchupAnalysis(m, s, scope)
+}))));
+"""
+outputs = json.loads(subprocess.check_output([node, "-e", program, json.dumps(scopes)], cwd=ROOT, text=True))
 defenses = sorted({defense for defense, week in games})
-checked = 0
-for scope, output in zip(scopes, actual):
+checked = supplied_fields = opponent_links = 0
+for scope, output in zip(scopes, outputs):
     selected = {(defense, week): game for (defense, week), game in games.items() if scope["from"] <= week <= scope["to"] and (scope["venue"] == "all" or game["venue"] == scope["venue"])}
-    by_team = {row["team"]: row for row in output["rows"]}
-    comparisons = {row["team"]: row for row in output["expected"]}
+    by_team = {row["team"]: row for row in output["weekly"]["rows"]}
+    comparisons = {row["team"]: row for row in output["comparison"]["rows"]}
+    full_season = scope == {"from": 1, "to": 3, "venue": "all"}
+    assert output["comparison"]["summaryAvailable"] == full_season
     for pos in POSITIONS:
         expectations = {}
         for defense in defenses:
@@ -43,16 +56,9 @@ for scope, output in zip(scopes, actual):
             expectations[defense] = (sum(eligible), len(eligible), Fraction(sum(eligible), 100 * len(eligible)) if eligible else None)
         ranked = sorted((avg, defense) for defense, (total, sample, avg) in expectations.items() if avg is not None)
         ranks = {defense: 1 + sum(other < avg for other, team in ranked) for avg, defense in ranked}
-        expected_totals = {}
-        for defense in defenses:
-            eligible = [game for (team, week), game in selected.items() if team == defense and game["points"].get(pos) is not None]
-            baselines = [offenses.get(game['offense'], {}).get(pos) for game in eligible]
-            expected_totals[defense] = sum(baselines, Decimal(0)) if baselines and all(value is not None for value in baselines) else None
-        comparable = {team: total for team, total in expected_totals.items() if total is not None}
         for defense, (total, sample, avg) in expectations.items():
             result = by_team[defense]["metrics"][pos]
-            assert result["games"] == sample, (scope, defense, pos, "games")
-            assert result["rank"] == ranks.get(defense), (scope, defense, pos, "rank")
+            assert result["games"] == sample and result["rank"] == ranks.get(defense), (scope, defense, pos)
             if avg is None:
                 assert result["avg"] is None and result["total"] is None
             else:
@@ -60,21 +66,34 @@ for scope, output in zip(scopes, actual):
                 assert abs(result["total"] - total / 100) < 1e-9, (scope, defense, pos, "total")
             checked += 1
             comparison = comparisons[defense]["metrics"][pos]
-            expected_total = expected_totals[defense]
-            assert comparison['games'] == sample
-            if expected_total is None:
-                assert comparison['expectedTotal'] is None and comparison['expectedRank'] is None and comparison['actualRank'] is None
+            if full_season:
+                raw = summaries[defense]
+                fields = [(comparison["actual"]["total"], pos), (comparison["actual"]["avg"], pos + "x"),
+                          (comparison["actualRank"], pos + "rk"), (comparison["expectedTotal"], pos + "vs"),
+                          (comparison["expectedAvg"], pos + "vX"), (comparison["expectedRank"], pos + "vRK")]
+                for value, field in fields:
+                    assert value == float(Decimal(raw[field])), (defense, field, value, raw[field])
+                    supplied_fields += 1
+                assert abs(comparison["delta"] - float(Decimal(raw[pos]) - Decimal(raw[pos + "vs"]))) < 1e-9
+                assert abs(Decimal(raw[pos]) - Decimal(total) / 100) <= Decimal(".05"), (defense, pos, "source rounding")
+                assert comparison["actual"]["rankOrder"] == "descending"
             else:
-                assert abs(comparison['expectedTotal'] - float(expected_total)) < 1e-9
-                assert abs(comparison['expectedAvg'] - float(expected_total) / sample) < 1e-9
-                assert abs(comparison['delta'] - float(Decimal(total) / 100 - expected_total)) < 1e-9
-                assert comparison['expectedRank'] == 1 + sum(other < expected_total for other in comparable.values())
-                assert comparison['actualRank'] == 1 + sum(expectations[team][0] < total for team in comparable)
-                assert comparison['pool'] == len(comparable)
+                assert comparison["actual"] == result
+                for field in ["expectedTotal", "expectedAvg", "expectedRank", "delta", "deltaPct"]:
+                    assert comparison[field] is None, (scope, defense, pos, field)
+            for entry in comparison["entries"]:
+                original = selected[(defense, entry["week"])]
+                assert entry["offense"] == original["offense"] and entry["venue"] == original["venue"]
+                assert entry["actual"] == original["points"][pos] / 100
+                assert "expected" not in entry and "offenseRank" not in entry
         league_games = sum(sample for total, sample, avg in expectations.values())
         league_total = sum(total for total, sample, avg in expectations.values())
-        assert output["league"][pos]["games"] == league_games
+        assert output["weekly"]["league"][pos]["games"] == league_games
         expected_avg = league_total / 100 / league_games if league_games else None
-        assert expected_avg is None and output["league"][pos]["avg"] is None or expected_avg is not None and abs(output["league"][pos]["avg"] - expected_avg) < 1e-9
-        assert output["pools"][pos] == len(ranked)
-print(f"Reconciled {checked:,} defense-position cases across {len(scopes)} scopes: actual totals/averages/ranks, expected totals/averages/ranks, comparison deltas, common rank cohorts, and weighted league averages.")
+        assert expected_avg is None and output["weekly"]["league"][pos]["avg"] is None or expected_avg is not None and abs(output["weekly"]["league"][pos]["avg"] - expected_avg) < 1e-9
+        assert output["weekly"]["pools"][pos] == len(ranked)
+for team, row in summaries.items():
+    for week in [1, 2, 3]:
+        assert games[(team, week)]["offense"] == row[f"w{week}"]
+        opponent_links += 1
+print(f"Reconciled {checked:,} weekly defense-position cases across {len(scopes)} scopes, {supplied_fields} supplied FPF values, and {opponent_links} opponent links. All season totals agree within FPF rounding; filtered expectations remain unavailable.")

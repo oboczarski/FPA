@@ -5,12 +5,12 @@ const path = require("node:path");
 const Data = require("../DH-FPA/data-model.js");
 const Lab = require("../DH-FPA/chart-lab-model.js");
 const read = name => fs.readFileSync(path.join(__dirname, "../DH-FPA/data", name), "utf8");
-const model = Data.readSource(read("FPAv2.csv")), offenses = Data.readOffenses(read("TSUMS.csv"));
-const analysis = Data.expectedMatchups(model, offenses);
+const model = Data.readSource(read("FPAv2.csv")), summary = Data.readFPF(read("FPF.csv"));
+const analysis = Data.matchupAnalysis(model, summary);
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
 
 test("chart views cover all 32 teams and all five positions without changing the analysis", () => {
-  const before = JSON.stringify(analysis.rows), view = Lab.build(analysis, offenses, "QB");
+  const before = JSON.stringify(analysis.rows), view = Lab.build(analysis, "QB");
   assert.equal(view.teams.length, 32); assert.equal(view.cells.length, 160);
   for (const team of view.teams) assert.deepEqual(view.cells.filter(row => row.team === team).map(row => row.pos), ["QB", "RB", "WR", "TE", "ALL"]);
   for (const row of view.cells) {
@@ -21,13 +21,13 @@ test("chart views cover all 32 teams and all five positions without changing the
 });
 test("each position has 96 distinct game dots and three correctly scored dots per defense", () => {
   for (const pos of Lab.POSITIONS) {
-    const view = Lab.build(analysis, offenses, pos);
+    const view = Lab.build(analysis, pos);
     assert.equal(view.polar.length, 96);
     assert.equal(new Set(view.polar.map(row => `${row.team}:${row.week}`)).size, 96);
     for (const team of view.teams) {
       const dots = view.polar.filter(row => row.team === team);
       assert.equal(dots.length, 3); assert.deepEqual(dots.map(row => row.week), [1, 2, 3]);
-      near(dots.reduce((sum, row) => sum + row.actual, 0), analysis.byTeam.get(team).metrics[pos].actual.total);
+      near(dots.reduce((sum, row) => sum + row.actual, 0), Data.summarize(model).byTeam.get(team).metrics[pos].total);
       assert.ok(dots.every(row => row.location === .5));
       assert.equal(new Set(dots.map(row => row.angle)).size, 1);
       near(dots[0].angle, -90 + (view.teams.indexOf(team) + .5) * 360 / view.teams.length);
@@ -40,30 +40,31 @@ test("each position has 96 distinct game dots and three correctly scored dots pe
     }
   }
 });
-test("stacked bars preserve every positional average and sum ALL exactly in each venue", () => {
+test("stacked bars preserve positional and ALL averages, allowing supplied rounding", () => {
   for (const venue of ["all", "home", "away"]) {
-    const scoped = Data.expectedMatchups(model, offenses, { venue });
+    const scoped = Data.matchupAnalysis(model, summary, { venue });
     for (const pos of Lab.POSITIONS) {
-      const view = Lab.build(scoped, offenses, pos);
+      const view = Lab.build(scoped, pos);
       assert.equal(view.breakdown.length, 32);
       for (const row of view.breakdown) {
         const source = scoped.byTeam.get(row.team).metrics;
         assert.equal(row.pos, "ALL"); assert.equal(row.avg, source.ALL.actual.avg);
         assert.equal(row.rank, source.ALL.actual.rank);
         for (const p of Lab.POSITIONS) assert.equal(row[p], source[p].actual.avg);
-        near(["QB", "RB", "WR", "TE"].reduce((sum, p) => sum + row[p], 0), row.ALL);
+        assert.ok(Math.abs(["QB", "RB", "WR", "TE"].reduce((sum, p) => sum + row[p], 0) - row.ALL) < .11);
       }
     }
   }
-  const away = Lab.build(Data.expectedMatchups(model, offenses, { venue: "away" }), offenses, "TE");
+  const away = Lab.build(Data.matchupAnalysis(model, summary, { venue: "away" }), "TE");
   assert.ok(away.breakdown.some(row => row.TE === 0));
 });
-test("dumbbells use the original actual and expected totals for all positions and venues", () => {
+test("dumbbells use supplied FPF totals and omit unavailable venue comparisons", () => {
   for (const venue of ["all", "home", "away"]) {
-    const scoped = Data.expectedMatchups(model, offenses, { venue });
+    const scoped = Data.matchupAnalysis(model, summary, { venue });
     for (const pos of Lab.POSITIONS) {
-      const view = Lab.build(scoped, offenses, pos);
-      assert.equal(view.dumbbell.length, 32);
+      const view = Lab.build(scoped, pos);
+      assert.equal(view.dumbbell.length, venue === "all" ? 32 : 0);
+      if (venue !== "all") continue;
       for (const band of ["highest", "upper", "lower", "lowest"]) {
         assert.equal(view.dumbbell.filter(row => row.gradientKey === band).length, 8);
       }
@@ -85,8 +86,8 @@ test("dumbbells use the original actual and expected totals for all positions an
 });
 test("venue filters keep the team sectors but only include games at the selected defense venue", () => {
   for (const venue of ["home", "away"]) {
-    const scoped = Data.expectedMatchups(model, offenses, { venue });
-    const view = Lab.build(scoped, offenses, "WR");
+    const scoped = Data.matchupAnalysis(model, summary, { venue });
+    const view = Lab.build(scoped, "WR");
     assert.equal(view.teams.length, 32); assert.equal(view.cells.length, 160); assert.equal(view.polar.length, 48);
     assert.ok(view.polar.every(row => row.venue === venue));
   }
@@ -99,7 +100,7 @@ function fixture(entries) {
   return { rows, byTeam: new Map(rows.map(row => [row.team, row])) };
 }
 test("dumbbells retain zero expectations and equal endpoints but omit missing baselines", () => {
-  const view = Lab.build(fixture([["BAL", 10, 20], ["PHI", 20, 10], ["KC", 20, 20], ["NE", 0, null], ["BUF", 0, 0]]), offenses, "RB");
+  const view = Lab.build(fixture([["BAL", 10, 20], ["PHI", 20, 10], ["KC", 20, 20], ["NE", 0, null], ["BUF", 0, 0]]), "RB");
   assert.equal(view.dumbbell.length, 4);
   assert.equal(view.dumbbell.some(row => row.team === "NE"), false);
   const below = view.dumbbell.find(row => row.team === "BAL"), above = view.dumbbell.find(row => row.team === "PHI");
@@ -112,11 +113,11 @@ test("dumbbells retain zero expectations and equal endpoints but omit missing ba
   }
 });
 test("dumbbell gradients follow actual-FPA order independently of expectation and retain endpoint sides", () => {
-  const view = Lab.build(fixture([["BAL", 18, 20], ["PHI", 10, 20], ["KC", 22, 20], ["BUF", 30, 20], ["NE", 20, 20]]), offenses, "QB");
+  const view = Lab.build(fixture([["BAL", 18, 20], ["PHI", 10, 20], ["KC", 22, 20], ["BUF", 30, 20], ["NE", 20, 20]]), "QB");
   assert.deepEqual(view.dumbbell.map(row => row.team), ["BUF", "KC", "NE", "BAL", "PHI"]);
   const byTeam = new Map(view.dumbbell.map(row => [row.team, row]));
   assert.deepEqual(view.dumbbell.map(row => row.gradientKey), ["highest", "highest", "upper", "lower", "lowest"]);
-  const changedExpectations = Lab.build(fixture([["BAL", 18, 0], ["PHI", 10, 1], ["KC", 22, 50], ["BUF", 30, 60], ["NE", 20, 100]]), offenses, "QB");
+  const changedExpectations = Lab.build(fixture([["BAL", 18, 0], ["PHI", 10, 1], ["KC", 22, 50], ["BUF", 30, 60], ["NE", 20, 100]]), "QB");
   assert.deepEqual(changedExpectations.dumbbell.map(row => [row.team, row.gradientKey]), view.dumbbell.map(row => [row.team, row.gradientKey]));
   for (const row of view.dumbbell) {
     const left = row.expectedOnLeft ? row.expectedTotal : row.actualTotal;

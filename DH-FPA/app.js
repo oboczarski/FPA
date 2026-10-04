@@ -1,4 +1,4 @@
-/* Current-season matchups: FPAv2 actual scoring and TSUMS offense baselines. */
+/* Current-season matchups: FPF season summaries and FPAv2 individual games. */
 (() => {
   "use strict";
   const Data = window.FPAData, Charts = window.FPACharts, $ = id => document.getElementById(id);
@@ -30,7 +30,7 @@
   const pickerRoots = [...document.querySelectorAll("[data-picker-kind]")];
   const state = { team: "BAL", pos: "QB", venue: "all", mode: "points", query: "", hideZero: true,
     heatSort: { pos: "QB", direction: "desc" }, playerSort: { key: "week", direction: "desc" } };
-  let model = null, offenses = null, analysis = null, openPicker = null;
+  let model = null, summary = null, analysis = null, openPicker = null;
   const tooltips = new Map();
 
   const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -107,7 +107,8 @@
 
   function heatColor(stat) {
     if (stat.rank === null) return "#7b81a5";
-    const fraction = stat.pool < 2 ? .5 : (stat.rank - 1) / (stat.pool - 1);
+    const normalized = stat.pool < 2 ? .5 : (stat.rank - 1) / (stat.pool - 1);
+    const fraction = stat.rankOrder === "descending" ? 1 - normalized : normalized;
     const a = fraction <= .5 ? [255, 178, 216] : [171, 155, 255];
     const b = fraction <= .5 ? [171, 155, 255] : [117, 224, 183];
     const t = fraction <= .5 ? fraction * 2 : (fraction - .5) * 2;
@@ -146,7 +147,7 @@
   }
   function render() {
     if (!model) return;
-    analysis = Data.expectedMatchups(model, offenses, { venue: state.venue });
+    analysis = Data.matchupAnalysis(model, summary, { venue: state.venue });
     syncControls(); tooltips.clear(); hideTooltip();
     $("coverage").innerHTML = `<strong>${weekLabel()}</strong> · ${model.defenses.length} defenses · ${model.audit.usedRows.toLocaleString("en-US")} player records`;
     $("scopeNote").textContent = `Season to date · ${weekLabel()}`;
@@ -155,7 +156,7 @@
     $("analysis").setAttribute("aria-busy", "false"); saveURL();
     // Additive chart views consume the current analysis and share its selection.
     // Their deferred library/bootstrap never blocks the existing dashboard render.
-    window.FPAChartContext = { analysis, offenses, team: state.team, pos: state.pos, venue: state.venue,
+    window.FPAChartContext = { analysis, team: state.team, pos: state.pos, venue: state.venue,
       divisions: DIVISIONS, positionColor: COLORS[state.pos], select: choose, heatColor };
     window.FPAChartLab?.update(window.FPAChartContext);
   }
@@ -166,12 +167,12 @@
     $("defenseSubtitle").textContent = `vs. ${LABELS[state.pos]} · ${venueLabel()}`;
     $("selectedPosition").textContent = state.pos; $("selectedPosition").dataset.pos = state.pos;
     const deltaValue = c.deltaPct !== null ? `${signed(c.deltaPct)}%` : signed(c.delta, 2);
-    const baselineNote = c.expectedTotal !== null ? `${fmt(c.expectedAvg, 1)} per game` : `${c.baselineGames}/${c.games} baselines available`;
+    const baselineNote = c.expectedTotal !== null ? `${fmt(c.expectedAvg, 1)} per game` : analysis.summaryAvailable ? "Not supplied in FPF" : "No FPF venue split";
     $("metrics").innerHTML = `
       <div class="metric"><div class="metricLabel">Actual FPA</div><div class="metricValue">${fmt(stat.total)}</div><div class="metricSub">${fmt(stat.avg, 1)} per game</div></div>
       <div class="metric"><div class="metricLabel">Expected FPA</div><div class="metricValue">${fmt(c.expectedTotal, 1)}</div><div class="metricSub">${baselineNote}</div></div>
       <div class="metric"><div class="metricLabel">Vs expected</div><div class="metricValue ${direction(c.delta)}">${deltaValue}</div><div class="metricSub">${c.delta === null ? "Comparison unavailable" : `${signed(c.delta, 2)} points`}</div></div>
-      <div class="metric"><div class="metricLabel">Matchup rank</div><div class="metricValue" style="color:${heatColor(stat)}">${stat.rank ?? "—"}${stat.rank === null ? "" : `<small>/ ${stat.pool}</small>`}</div><div class="metricSub">${stat.games} recorded game${stat.games === 1 ? "" : "s"}</div></div>`;
+      <div class="metric"><div class="metricLabel" title="Rank 1 = ${stat.rankOrder === "descending" ? "most" : "fewest"} points allowed">Matchup rank</div><div class="metricValue" style="color:${heatColor(stat)}">${stat.rank ?? "—"}${stat.rank === null ? "" : `<small>/ ${stat.pool}</small>`}</div><div class="metricSub">${stat.games} recorded game${stat.games === 1 ? "" : "s"}</div></div>`;
   }
   function width(id) {
     const element = $(id), style = getComputedStyle(element);
@@ -191,36 +192,31 @@
   const tick = (value, bounds) => fmt(value, bounds.step ? Math.max(0, -Math.floor(Math.log10(bounds.step))) : 0);
   const frame = (id, W, H, title, content) => `<svg viewBox="0 0 ${W} ${H}" role="group" aria-labelledby="${id}-title"><title id="${id}-title">${esc(title)}</title>${content}</svg>`;
 
-  // Weekly bars show positional game totals. The expected line uses each
-  // opposing offense's TSUMS average for that exact same position and game.
+  // FPAv2 supplies individual weekly totals. FPF has no per-game expectation.
   function renderWeekly() {
     const entries = comparison().entries;
     $("weeklyMatchups").innerHTML = entries.map(entry => `<div class="weekMatchup"><span class="weekNumber">W${entry.week}</span>${logo(entry.offense)}<span>${entry.offense ? `${entry.venue === "home" ? "vs" : "@"} ${entry.offense}` : "Offense unknown"}</span></div>`).join("");
     if (!entries.some(entry => entry.actual !== null)) { $("weeklyChart").innerHTML = empty("No recorded games", "Choose another defense venue or position."); return; }
     const W = width("weeklyChart"), H = 196, left = 31, right = W - 9, top = 22, bottom = H - 19;
-    const bounds = scale(entries.flatMap(entry => [entry.actual, entry.expected]));
+    const bounds = scale(entries.map(entry => entry.actual));
     const y = value => bottom - (value - bounds.low) / (bounds.high - bounds.low) * (bottom - top);
     const slot = (right - left) / entries.length, x = index => left + slot * (index + .5), barWidth = Math.min(49, slot * .4);
     let content = `<defs><linearGradient id="weekly-bar" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${COLORS[state.pos]}" stop-opacity=".83"/><stop offset="1" stop-color="${COLORS[state.pos]}" stop-opacity=".24"/></linearGradient></defs>`;
     content += bounds.ticks.map(n => `<line class="${n === 0 ? "zeroLine" : "gridLine"}" x1="${left}" x2="${right}" y1="${y(n)}" y2="${y(n)}"/><text x="${left - 6}" y="${y(n) + 3}" text-anchor="end">${tick(n, bounds)}</text>`).join("");
-    let segment = [];
-    const finish = () => { if (segment.length > 1) content += `<polyline class="expectedLine" points="${segment.join(" ")}"/>`; segment = []; };
-    entries.forEach((entry, i) => { if (entry.expected === null) finish(); else segment.push(`${x(i)},${y(entry.expected)}`); }); finish();
     entries.forEach((entry, i) => {
       const key = `week:${entry.week}`;
-      tooltips.set(key, `<strong>${state.team} vs. ${state.pos} · Week ${entry.week}</strong><br>Actual: ${fmt(entry.actual)} PPR points<br>Expected: ${fmt(entry.expected, 1)} from ${entry.offense || "unknown offense"}<br><span class="tooltipMuted">${entry.venue === "home" ? "Defense at home" : "Defense away"}${entry.offenseRank === null ? "" : ` · Offense rank ${entry.offenseRank} (1 = most points)`}</span>`);
+      tooltips.set(key, `<strong>${state.team} vs. ${state.pos} · Week ${entry.week}</strong><br>Actual: ${fmt(entry.actual)} PPR points<br><span class="tooltipMuted">${entry.venue === "home" ? "Defense at home" : "Defense away"}</span>`);
       if (entry.actual !== null) {
         const labelY = entry.actual >= 0 ? y(entry.actual) - 7 : Math.min(bottom - 6, y(entry.actual) + 13);
-        content += `<g class="chartPoint" role="img" tabindex="0" data-tooltip="${key}" aria-label="Week ${entry.week}: ${fmt(entry.actual)} actual, ${fmt(entry.expected, 1)} expected ${state.pos} points"><rect x="${x(i) - barWidth / 2}" y="${Math.min(y(0), y(entry.actual))}" width="${barWidth}" height="${Math.max(2, Math.abs(y(entry.actual) - y(0)))}" rx="4" fill="url(#weekly-bar)"/><text class="chartValue" x="${x(i)}" y="${labelY}" text-anchor="middle">${fmt(entry.actual, 1)}</text></g>`;
+        content += `<g class="chartPoint" role="img" tabindex="0" data-tooltip="${key}" aria-label="Week ${entry.week}: ${fmt(entry.actual)} actual ${state.pos} points"><rect x="${x(i) - barWidth / 2}" y="${Math.min(y(0), y(entry.actual))}" width="${barWidth}" height="${Math.max(2, Math.abs(y(entry.actual) - y(0)))}" rx="4" fill="url(#weekly-bar)"/><text class="chartValue" x="${x(i)}" y="${labelY}" text-anchor="middle">${fmt(entry.actual, 1)}</text></g>`;
       }
-      if (entry.expected !== null) content += `<circle class="chartPoint" cx="${x(i)}" cy="${y(entry.expected)}" r="3" fill="#aabaff" tabindex="0" role="img" data-tooltip="${key}" aria-label="${entry.offense || "Opponent"} expected Week ${entry.week} ${state.pos}: ${fmt(entry.expected, 1)} points"/>`;
       if (entries.length <= 10 || i % 2 === 0) content += `<text x="${x(i)}" y="${bottom + 14}" text-anchor="middle">W${entry.week}</text>`;
     });
-    $("weeklyChart").innerHTML = frame("weekly", W, H, `${state.team} ${state.pos}: actual weekly totals versus opposing offense averages`, content);
+    $("weeklyChart").innerHTML = frame("weekly", W, H, `${state.team} ${state.pos}: actual weekly totals from FPAv2`, content);
   }
 
   // Both axes use totals, not individual-player scores or a recent window.
-  // Rank mode uses the same comparable defense cohort for both axes.
+  // Rank mode uses the ranks supplied in FPF without recomputing ties.
   function renderScatter() {
     document.querySelectorAll("[data-scatter-mode]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.scatterMode === state.mode)));
     const ranked = state.mode === "rank";
@@ -229,10 +225,10 @@
       return { team: row.team, c, x: ranked ? c.expectedRank : c.expectedTotal, y: ranked ? c.actualRank : c.actual.total };
     }).filter(point => point.x !== null && point.y !== null);
     renderScatterDetail(state.team);
-    $("comparisonNote").textContent = ranked ? `Ranks of totals · 1 = lowest · ${points.length} comparable defenses. Select a logo.` : `Above the line = more points allowed than expected. ${points.length} comparable defenses.`;
-    if (!points.length) { $("comparisonChart").innerHTML = empty("No complete comparisons", "Opponent offense averages must be available for each recorded game."); return; }
+    $("comparisonNote").textContent = ranked ? `FPF ranks · 1 = highest · ${points.length} comparable defenses. Select a logo.` : `Above the line = more points allowed than expected. ${points.length} comparable defenses.`;
+    if (!points.length) { $("comparisonChart").innerHTML = empty("No complete comparisons", analysis.unavailableReason); return; }
     const W = width("comparisonChart"), H = innerWidth <= 620 ? 320 : 330, left = 43, right = W - 16, top = 18, bottom = H - 34;
-    const pool = analysis.pools[state.pos];
+    const pool = Data.TEAMS.length;
     const rankBounds = { low: 0, high: Math.max(2, pool + 1), ticks: [...new Set([1, Math.ceil(pool / 4), Math.ceil(pool / 2), Math.ceil(pool * 3 / 4), pool])] };
     const xBounds = ranked ? rankBounds : Charts.pointBounds(points.map(point => point.x));
     const yBounds = ranked ? rankBounds : Charts.pointBounds(points.map(point => point.y));
@@ -240,7 +236,7 @@
     const y = value => bottom - (value - yBounds.low) / (yBounds.high - yBounds.low) * (bottom - top);
     const geometry = Charts.comparisonGeometry(xBounds, yBounds);
     const polygon = (vertices, color) => vertices.length < 3 ? "" : `<polygon points="${vertices.map(([a, b]) => `${x(a)},${y(b)}`).join(" ")}" fill="${color}" fill-opacity=".025"/>`;
-    let content = polygon(geometry.above, "#75e0b7") + polygon(geometry.below, "#ffb2d8");
+    let content = polygon(geometry.above, ranked ? "#ffb2d8" : "#75e0b7") + polygon(geometry.below, ranked ? "#75e0b7" : "#ffb2d8");
     content += yBounds.ticks.map(n => `<line class="gridLine" x1="${left}" x2="${right}" y1="${y(n)}" y2="${y(n)}"/><text x="${left - 7}" y="${y(n) + 3}" text-anchor="end">${tick(n, yBounds)}</text>`).join("");
     content += xBounds.ticks.map(n => `<line class="gridLine" x1="${x(n)}" x2="${x(n)}" y1="${top}" y2="${bottom}"/><text x="${x(n)}" y="${bottom + 13}" text-anchor="middle">${tick(n, xBounds)}</text>`).join("");
     if (geometry.equality.length) {
@@ -249,7 +245,7 @@
     }
     if (yBounds.high - 9 / (bottom - top) * (yBounds.high - yBounds.low) > xBounds.low + 5 / (right - left) * (xBounds.high - xBounds.low)) content += `<text class="zoneLabel" x="${left + 5}" y="${top + 9}">${ranked ? "Higher actual rank" : "Above expected"}</text>`;
     if (yBounds.low + 6 / (bottom - top) * (yBounds.high - yBounds.low) < xBounds.high - 5 / (right - left) * (xBounds.high - xBounds.low)) content += `<text class="zoneLabel" x="${right - 5}" y="${bottom - 6}" text-anchor="end">${ranked ? "Lower actual rank" : "Below expected"}</text>`;
-    content += `<text class="axisTitle" x="${(left + right) / 2}" y="${H - 2}" text-anchor="middle">Expected FPA${ranked ? " · Rank" : " · Points | [Opponent Average]"}</text><text class="axisTitle" transform="translate(11 ${(top + bottom) / 2}) rotate(-90)" text-anchor="middle">Actual FPA${ranked ? " rank" : " · total points"}</text>`;
+    content += `<text class="axisTitle" x="${(left + right) / 2}" y="${H - 2}" text-anchor="middle">Expected FPA${ranked ? " · Rank" : " · total points"}</text><text class="axisTitle" transform="translate(11 ${(top + bottom) / 2}) rotate(-90)" text-anchor="middle">Actual FPA${ranked ? " rank" : " · total points"}</text>`;
     points.sort((a, b) => Number(a.team === state.team) - Number(b.team === state.team)).forEach(point => {
       const c = point.c, selected = point.team === state.team, key = `scatter:${point.team}`;
       tooltips.set(key, `<strong>${esc(Data.TEAM_NAMES[point.team])} · ${state.pos}</strong><br>Expected: ${fmt(c.expectedTotal, 1)} PPR points<br>Actual: ${fmt(c.actual.total)} PPR points<br><span class="${direction(c.delta)}">${signed(c.delta, 2)} points versus expected</span><br><span class="tooltipMuted">${c.games} games${ranked ? ` · Expected rank ${c.expectedRank}, actual rank ${c.actualRank}` : ""}</span>`);
@@ -262,19 +258,19 @@
     const expected = ranked ? c.expectedRank === null ? "—" : `#${c.expectedRank}` : fmt(c.expectedTotal, 1);
     const actual = ranked ? c.actualRank === null ? "—" : `#${c.actualRank}` : fmt(c.actual.total);
     const delta = ranked ? c.actualRank === null || c.expectedRank === null ? null : c.actualRank - c.expectedRank : c.delta;
-    $("comparisonDetail").innerHTML = `<span class="comparisonTeam">${logo(team)}<strong>${team}</strong></span><span>Expected <strong>${expected}</strong></span><span>Actual <strong>${actual}</strong></span><span class="${direction(delta)}">${signed(delta, ranked ? 0 : 2)} ${ranked ? "ranks" : "pts"}</span>`;
+    $("comparisonDetail").innerHTML = `<span class="comparisonTeam">${logo(team)}<strong>${team}</strong></span><span>Expected <strong>${expected}</strong></span><span>Actual <strong>${actual}</strong></span><span class="${direction(ranked && delta !== null ? -delta : delta)}">${signed(delta, ranked ? 0 : 2)} ${ranked ? "ranks" : "pts"}</span>`;
   }
   function renderOpponents() {
     const c = comparison();
     // Layout-only preview row: never add it to the analysis or matchup entries.
-    const placeholder = c.entries.some(entry => entry.week === 4) ? "" : '<tr class="opponentPlaceholder" aria-label="Week 4 layout placeholder; no matchup or scoring data"><td>W4</td><td><span class="offenseCell"><i class="placeholderLogo" aria-hidden="true"></i>Placeholder</span></td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
-    $("opponentsScope").textContent = `${state.team} · ${state.pos}`;
-    $("opponentsTable").innerHTML = `<caption class="srOnly">${state.team} opposing offenses and their supplied ${state.pos} scoring averages</caption><thead><tr><th>Wk</th><th>Offense</th><th title="TSUMS offense position rank; 1 is the most points scored">Off. rank</th><th title="Supplied TSUMS average, counted once for this game">Expected</th><th>Actual</th><th>Δ FPA</th></tr></thead><tbody>${c.entries.length ? c.entries.map(entry => {
-      const delta = entry.actual !== null && entry.expected !== null ? entry.actual - entry.expected : null;
-      return `<tr><td>W${entry.week}</td><td><span class="offenseCell" title="${esc(Data.TEAM_NAMES[entry.offense] || "Offense unavailable")}">${logo(entry.offense)}${entry.offense || "—"}</span></td><td>${entry.offenseRank === null ? "—" : `#${entry.offenseRank}`}</td><td>${fmt(entry.expected, 1)}</td><td>${fmt(entry.actual)}</td><td class="${direction(delta)}">${signed(delta)}</td></tr>`;
-    }).join("") : '<tr><td colspan="6">No recorded games in this venue.</td></tr>'}${placeholder}</tbody>`;
+    const placeholder = c.entries.some(entry => entry.week === 4) ? "" : '<tr class="opponentPlaceholder" aria-label="Week 4 layout placeholder; no matchup or scoring data"><td>W4</td><td><span class="offenseCell"><i class="placeholderLogo" aria-hidden="true"></i>Placeholder</span></td><td>—</td></tr>';
+    $("opponentsScope").textContent = `${state.team} · ${state.pos} · weekly actuals`;
+    $("opponentsTable").innerHTML = `<caption class="srOnly">${state.team} opposing offenses and actual ${state.pos} scoring from FPAv2</caption><thead><tr><th>Wk</th><th>Offense</th><th>Actual FPA</th></tr></thead><tbody>${c.entries.length ? c.entries.map(entry =>
+      `<tr><td>W${entry.week}</td><td><span class="offenseCell" title="${esc(Data.TEAM_NAMES[entry.offense] || "Offense unavailable")}">${logo(entry.offense)}${entry.offense || "—"}</span></td><td>${fmt(entry.actual)}</td></tr>`
+    ).join("") : '<tr><td colspan="3">No recorded games in this venue.</td></tr>'}${placeholder}</tbody>`;
   }
   function renderHeatmap() {
+    $("heatRankNote").textContent = `Rank 1 = ${analysis.summaryAvailable ? "most points allowed (FPF)" : "fewest points allowed (venue)"}`;
     document.querySelectorAll("[data-heat-order]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.heatOrder === state.heatSort.pos)));
     const sorted = [...analysis.actual.rows].sort((a, b) => {
       const first = a.metrics[state.heatSort.pos].avg, second = b.metrics[state.heatSort.pos].avg;
@@ -393,13 +389,20 @@
     bindEvents();
     try {
       const sources = window.FPA_SOURCE;
-      if (!Data || sources?.season !== 2026 || !sources.weekly?.csv || !sources.offense?.csv) throw new Error("The 2026 matchup source pair is unavailable.");
+      if (!Data || sources?.season !== 2026 || !sources.weekly?.csv || !sources.summary?.csv) throw new Error("The 2026 matchup source pair is unavailable.");
       const nextModel = Data.readSource(sources.weekly.csv, { name: sources.weekly.name });
-      const nextOffenses = Data.readOffenses(sources.offense.csv, { name: sources.offense.name });
-      model = nextModel; offenses = nextOffenses; readURL();
+      const nextSummary = Data.readFPF(sources.summary.csv, { name: sources.summary.name });
+      model = nextModel; summary = nextSummary; readURL();
       buildPickers();
-      const differences = Data.offenseDifferences(model, offenses);
-      $("sourceNotes").textContent = `${model.audit.excludedRows} rows without an opposing defense are excluded. ${differences.length ? "Source differences are preserved: " + differences.map(row => `${row.team} ${row.pos} totals are ${fmt(row.weeklyTotal)} in FPAv2 and ${fmt(row.offenseTotal, 1)} in TSUMS`).join("; ") + ". Expected FPA always uses the supplied TSUMS averages." : "Expected FPA uses the supplied TSUMS averages without recalculating them from player results."}`;
+      const differences = Data.summaryDifferences(model, summary);
+      const repeatedExpectations = summary.rows.length > 0 && summary.rows.every(row => {
+        const rb = row.metrics.RB, wr = row.metrics.WR;
+        return rb.expectedTotal === wr.expectedTotal && rb.expectedAvg === wr.expectedAvg && rb.expectedRank === wr.expectedRank;
+      });
+      $("sourceNotes").textContent = `${model.audit.excludedRows} rows without an opposing defense are excluded. ` +
+        (differences.length ? "FPF season totals and FPAv2 weekly totals differ beyond rounding for " + [...new Set(differences.map(row => row.team))].join(", ") + ". Each view preserves its source. " : "") +
+        (repeatedExpectations ? "FPF supplies identical RB and WR expected totals, averages, and ranks for every team; these are retained as provided. " : "") +
+        "Published averages and ranks are never recalculated. Rounded positional averages may sum differently from the supplied ALL average.";
       render();
     } catch (error) {
       $("loadError").textContent = `Matchup data could not load: ${error.message}`; $("loadError").hidden = false;
