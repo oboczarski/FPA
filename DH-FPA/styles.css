@@ -342,7 +342,7 @@ dialog::backdrop { background:rgba(0,0,0,.58); backdrop-filter:blur(5px); }
   .heatLegend { font-size:8px; }
   .chartSortControls { gap:4px; }
   .chartSortLabel { font-size:7px; }
-  .chartSortControls .chartPositionToggle button { min-width:22px; padding:2px 3px; font-size:8px; }
+  .chartSortControls .chartPositionToggle button {min-width: 28px;padding: 2px 1px;font-size: 10px;}
   .heatTableScroll {margin-inline:10px;max-height: 700px;}
   .heatCell { font-size:10px; }
   .heatTable th:first-child { width:65px; }
