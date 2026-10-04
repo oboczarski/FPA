@@ -255,8 +255,8 @@
       const [a, b] = geometry.equality;
       content += `<line x1="${x(a[0])}" y1="${y(a[1])}" x2="${x(b[0])}" y2="${y(b[1])}" stroke="#9eb0d9" stroke-opacity=".6" stroke-dasharray="4 4"/>`;
     }
-    if (yBounds.high - 9 / (bottom - top) * (yBounds.high - yBounds.low) > xBounds.low + 5 / (right - left) * (xBounds.high - xBounds.low)) content += `<text class="zoneLabel" x="${left + 5}" y="${top + 9}">${ranked ? "Higher actual rank" : "Above expected"}</text>`;
-    if (yBounds.low + 6 / (bottom - top) * (yBounds.high - yBounds.low) < xBounds.high - 5 / (right - left) * (xBounds.high - xBounds.low)) content += `<text class="zoneLabel" x="${right - 5}" y="${bottom - 6}" text-anchor="end">${ranked ? "Lower actual rank" : "Below expected"}</text>`;
+    if (yBounds.high - 9 / (bottom - top) * (yBounds.high - yBounds.low) > xBounds.low + 5 / (right - left) * (xBounds.high - xBounds.low)) content += `<text class="zoneLabel" x="${left + 5}" y="${top + 9}">${ranked ? "Higher actual rank" : "Points Allowed Above Opponenet Average"}</text>`;
+    if (yBounds.low + 6 / (bottom - top) * (yBounds.high - yBounds.low) < xBounds.high - 5 / (right - left) * (xBounds.high - xBounds.low)) content += `<text class="zoneLabel" x="${right - 5}" y="${bottom - 6}" text-anchor="end">${ranked ? "Lower actual rank" : "Points Allowed Below Opponent Average"}</text>`;
     content += `<text class="axisTitle" x="${(left + right) / 2}" y="${H - 2}" text-anchor="middle">Expected FPA${ranked ? " · Rank" : " · total points"}</text><text class="axisTitle" transform="translate(11 ${(top + bottom) / 2}) rotate(-90)" text-anchor="middle">Actual FPA${ranked ? " rank" : " · total points"}</text>`;
     points.sort((a, b) => Number(a.team === state.team) - Number(b.team === state.team)).forEach(point => {
       const c = point.c, selected = point.team === state.team, key = `scatter:${point.team}`;
