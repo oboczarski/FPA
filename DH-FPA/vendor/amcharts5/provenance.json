@@ -1,0 +1,42 @@
+{
+  "library": "amCharts 5",
+  "version": "5.20.8",
+  "files": [
+    {
+      "file": "index.js",
+      "source": "https://cdn.amcharts.com/lib/version/5.20.8/index.js",
+      "bytes": 471689,
+      "sha256": "b0ac150d7f76796c5763e23ee842aec6dc496f4ee8d22d019a5b6de8c06cb41a"
+    },
+    {
+      "file": "xy.js",
+      "source": "https://cdn.amcharts.com/lib/version/5.20.8/xy.js",
+      "bytes": 185124,
+      "sha256": "d5f1858ab0d536d331832eb7c81124e5b948ea1254ffecac7526a207b6c1f8e7"
+    },
+    {
+      "file": "radar.js",
+      "source": "https://cdn.amcharts.com/lib/version/5.20.8/radar.js",
+      "bytes": 23311,
+      "sha256": "4336f2e2173ecd91d3349f0d96596870f6d75a7ff00781282c55ff27c298e1c5"
+    },
+    {
+      "file": "themes/Animated.js",
+      "source": "https://cdn.amcharts.com/lib/version/5.20.8/themes/Animated.js",
+      "bytes": 1073,
+      "sha256": "291ec93f3b15c90181842c4d0d447a7bb94d94310cbfe8e6b73b7369ccdf6e6a"
+    },
+    {
+      "file": "themes/Dark.js",
+      "source": "https://cdn.amcharts.com/lib/version/5.20.8/themes/Dark.js",
+      "bytes": 1415,
+      "sha256": "a7d603cf653be2ecd078a249682984120e421d1915d9cd53bc6201b815a4c178"
+    },
+    {
+      "file": "LICENSE",
+      "source": "https://registry.npmjs.org/@amcharts/amcharts5/-/amcharts5-5.20.8.tgz#package/LICENSE",
+      "bytes": 1699,
+      "sha256": "51c7fed11750e6f7261cf5e4b68add57de988ee9e00792043253309a7e0242c4"
+    }
+  ]
+}
