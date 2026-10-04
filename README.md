@@ -50,7 +50,7 @@ These are comparisons with opponents' season-to-date scoring averages. Those ave
 
 The replacement FPAv2 contains 1,255 rows: 1,233 assigned results and 22 with no opponent. All 32 defenses have four-position coverage in each supplied week. Assigned scores include 471 zeros and 12 negatives, totaling **7,677.18** PPR points across 96 defense-game observations and 48 matchups. Weekly totals are 2,624.88 / 2,420.90 / 2,631.40.
 
-FPF has 32 unique teams, 30 numeric metric columns, and three opponent columns. Every opponent link agrees with the updated weekly source, and all 160 actual totals agree within one-decimal rounding. FPF currently repeats RB's expected total, average, and rank in the WR expected fields for every team. These values remain exactly as supplied; no correction is inferred.
+FPF has 32 unique teams, 30 numeric metric columns, and three opponent columns. Every opponent link agrees with the updated weekly source, and all 160 actual totals agree within one-decimal rounding. The corrected `2026-Wkly - FPF.csv` replaces FPF.csv byte for byte and updates WRvs, WRvX, and WRvRK for all 32 teams. All other supplied fields are unchanged.
 
 See [the migration receipt](docs/2026-fpf-migration.md) for source ownership and reproducible checks.
 

@@ -1,6 +1,6 @@
 # FPF source migration — 2026 Weeks 1–3
 
-The app now uses `DH-FPA/data/FPF.csv` for season matchup summaries and the replacement `DH-FPA/data/FPAv2.csv` for players and individual weekly games. FPAv2 is the supplied `2026-Wkly - FPA (2).csv` copied under the requested existing filename, byte for byte. FPF is unchanged. TSUMS.csv and its parser, opponent-average accumulation, offense-rank lookups, and source-reconciliation code have been removed.
+The app now uses `DH-FPA/data/FPF.csv` for season matchup summaries and the replacement `DH-FPA/data/FPAv2.csv` for players and individual weekly games. FPAv2 is the supplied `2026-Wkly - FPA (2).csv` copied under the requested existing filename, byte for byte. FPF.csv is the corrected supplied `2026-Wkly - FPF.csv`, also copied byte for byte. TSUMS.csv and its parser, opponent-average accumulation, offense-rank lookups, and source-reconciliation code have been removed.
 
 ## Direct field mapping
 
@@ -34,16 +34,15 @@ Venue-only actual ranks retain the existing ascending competition order, where 1
 | Source | SHA-256 |
 | --- | --- |
 | Updated FPAv2.csv | `f6c8f4352e2464e10391675f35e25c0d9d669e76a8d29feb73edfbab094736a9` |
-| FPF.csv | `b55fd51fa540a578eb3c9d265ed539c4d12c41a9e3cf2ad46fd010922e0ce5ab` |
+| FPF.csv | `90aa6354d57dd1e2897d329d5475f1ff0ecebc83aec957aa3a6bb88dd162368f` |
 
 FPAv2 has 1,255 rows: 1,233 matched player results and 22 with no opposing defense. There are 471 zero scores and 12 negative scores. Assigned totals are **7,677.18** across 96 defense-game observations and 48 matchups. Weekly totals are **2,624.88**, **2,420.90**, and **2,631.40**.
 
 FPF has 32 unique team rows and all 30 required numeric fields populated. All 96 opponent links match the replacement weekly file. All 160 actual totals agree with weekly sums within FPF's one-decimal rounding.
 
-Two properties are retained as supplied:
+The corrected FPF changes only WRvs, WRvX, and WRvRK, each for all 32 teams. These values now replace the incorrect WR expectations throughout the summary, scatter, dumbbells, and chart tooltips. For example, BAL WR expected scoring is 107.8 total, 35.9 per game, rank 4. FPAv2 and all other FPF fields are unchanged.
 
-- All 32 WR expected totals, averages, and ranks match the corresponding RB expected fields. The app does not infer or repair replacements.
-- Seven teams have a 0.1 difference between the sum of rounded position averages and the supplied ALL average. Stacked segments use the position averages and the total label uses ALLx independently.
+Seven teams have a 0.1 difference between the sum of rounded position averages and the supplied ALL average. Stacked segments use the position averages and the total label uses ALLx independently.
 
 ## Focused verification
 

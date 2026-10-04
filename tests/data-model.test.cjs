@@ -254,12 +254,13 @@ test("FPF rejects missing fields, duplicate/unknown teams, invalid numbers and i
     assert.throws(() => Data.readFPF(file.headers.join(",") + "\n" + row.join(",")), /rank from 1 to 32/);
   }
 });
-test("updated player source reconciles to FPF within published rounding; repeated WR expectations remain supplied", () => {
+test("updated player source reconciles to FPF; corrected WR expectations are used directly", () => {
   assert.deepEqual(Data.summaryDifferences(source, summary), []);
+  const wr = expectations.byTeam.get("BAL").metrics.WR;
+  assert.equal(wr.expectedTotal, 107.8); assert.equal(wr.expectedAvg, 35.9); assert.equal(wr.expectedRank, 4);
+  assert.equal(wr.actual.total, 109.2); assert.equal(wr.delta, 1.4);
+  assert.notEqual(wr.expectedTotal, expectations.byTeam.get("BAL").metrics.RB.expectedTotal);
   for (const row of summary.rows) {
-    const rb = row.metrics.RB, wr = row.metrics.WR;
-    assert.equal(wr.expectedTotal, rb.expectedTotal);
-    assert.equal(wr.expectedAvg, rb.expectedAvg); assert.equal(wr.expectedRank, rb.expectedRank);
     for (const opponent of row.opponents) assert.equal(source.gamesByKey.get(`${row.team}|${opponent.week}`).offense, opponent.offense);
   }
 });
