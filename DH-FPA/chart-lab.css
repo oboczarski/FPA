@@ -1,0 +1,71 @@
+/* All chart text can be adjusted here, globally or on one [data-amchart-panel].
+   Canvas text reads the --am-* properties below; use px for sizes and hex/RGB colors. */
+.chartLab {
+  margin-top:0; --lab-ink:#dce5ff; --lab-muted:#a1abc9; --lab-heading-inset:32px;
+  --am-font-family:var(--font);
+  --am-axis-font-size:10px; --am-axis-color:#97afd1; --am-axis-font-weight:400;
+  --am-team-font-size:11px; --am-team-color:#b6c9e9; --am-team-font-weight:500;
+  --am-label-font-size:10px; --am-label-color:#bacdeb; --am-label-font-weight:400;
+  --am-selected-text-color:#f1f6ff; --am-selected-font-weight:600;
+  --am-tooltip-font-size:11px; --am-tooltip-color:#dae6ff; --am-tooltip-font-weight:400;
+  --am-tooltip-background:#0a1427; --am-tooltip-border:#9cbbee; --am-tooltip-line-height:135;
+  --am-center-font-size:13px; --am-center-team-font-size:27px; --am-center-detail-font-size:10px;
+  --am-center-color:#c7daf9; --am-center-font-weight:500;
+}
+#labDumbbellPanel { --am-label-font-size:8px; }
+.chartLab .labCard { overflow:hidden; border-radius:18px; border-color:#b1c5ff29; background:radial-gradient(750px 400px at 0% 0%,#569fff0c,transparent 75%),radial-gradient(650px 400px at 100% 100%,#a266f50b,transparent 75%),linear-gradient(160deg,#122139ed,#081222f2 65%,#0e132af0); box-shadow:0 16px 42px #02051344,inset 0 1px 0 #d3e5ff0d; }
+.chartLab .labCard::before { background:linear-gradient(125deg,#dcf3ff07,transparent 45%); }
+.chartLab .labCard::after { content:""; position:absolute; top:0; left:22px; right:22px; height:1px; pointer-events:none; background:linear-gradient(90deg,transparent,#74dfff70,#b59bff60,transparent); }
+.chartLab .labCard--composition { background:radial-gradient(ellipse at 50% 47%,#6f99f510,transparent 58%),linear-gradient(160deg,#14223bee,#0a1528f2 70%,#15132aed); }
+.chartLab .labCard--dumbbell { background:radial-gradient(ellipse at 0% 45%,#6794ff0c,transparent 65%),radial-gradient(ellipse at 100% 60%,#f18aaf08,transparent 65%),linear-gradient(155deg,#142138ef,#091427f0); }
+.chartLab .labCard--polar { background:radial-gradient(circle at 50% 46%,#4573d90d,transparent 55%),linear-gradient(160deg,#101f34ef,#081223f5 65%,#171429ee); }
+.chartLab .labCaption { display:flex; flex-wrap:wrap; align-items:center; gap:9px; padding:14px var(--lab-heading-inset) 0; color:#9dafcd; font-size:9px; font-weight:500; letter-spacing:1.2px; }
+.chartLab .labNumber { display:inline-flex; align-items:center; justify-content:center; width:24px; height:22px; border:1px solid #c1d8ff25; border-radius:7px; background:linear-gradient(145deg,#a9d7ff12,#9388ff0a); color:#c1d4f9; font-size:10px; letter-spacing:0; font-variant-numeric:tabular-nums; }
+.chartLab .labCaption .chartPositionToggle { margin-left:auto; letter-spacing:0; }
+.chartLab .labHeading { padding:12px var(--lab-heading-inset) 5px; }
+.chartLab .labTitle { margin:0 0 7px; color:#e2ebff; font:500 19px/1.35 "MuseoModerno",var(--font); letter-spacing:-.35px; }
+.chartLab .labSubtitle { margin:0; color:#8ba2c6; font:400 9px/1.6 var(--font); letter-spacing:.35px; }
+.chartLab .labLegend { display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; padding:5px var(--lab-heading-inset) 10px; font:500 10px/1.5 var(--font); color:#bacdeb; }
+.chartLab .labLegend span { display:inline-flex; align-items:center; gap:5px; }
+.chartLab .labLegend i { width:14px; height:6px; border-radius:4px; background:var(--legend-gradient,var(--legend-color)); }
+.chartLab .labLegend i.labLegendSymbol { width:14px; height:auto; background:none; color:var(--legend-color); font-style:normal; font-size:14px; line-height:1; text-align:center; }
+.chartLab .labLegendRow { display:flex; align-items:center; justify-content:space-between; gap:9px; padding-right:var(--lab-heading-inset); }
+.chartLab .labLegendRow .labLegend { flex:1; }
+.chartLab .labFocusButton { flex:none; padding:5px 8px; margin-bottom:7px; border:1px solid #adcfff38; border-radius:6px; background:#8eb8f512; color:#bad3f5; font:500 10px var(--font); }
+.chartLab .labFocusButton[aria-pressed="true"] { background:#8eb8f533; border-color:#adcfff88; }
+.chartLab .labBody { display:flex; flex-direction:column; }
+.chartLab .labBody--breakdown,.chartLab .labBody--dumbbell { height:640px; }
+.chartLab .labBody--polar { height:700px; }
+.chartLab .labBody > .labScroll { flex:1; min-height:0; }
+.chartLab .labCanvas { position:relative; width:100%; height:100%; font-family:var(--am-font-family); }
+.chartLab .labCanvas--breakdown { min-width:630px; }
+.chartLab .labCanvas--dumbbell { min-width:630px; }
+.chartLab .labCanvas--polar { min-width:600px; }
+.chartLab .labScroll { overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; scrollbar-color:#4e5d8080 transparent; }
+.chartLab .labScroll::-webkit-scrollbar { height:6px; }
+.chartLab .labScroll::-webkit-scrollbar-thumb { background:#4e5d8080; border-radius:9px; }
+.chartLab .labReadout { display:flex; align-items:center; flex-wrap:wrap; gap:7px 18px; min-height:37px; margin:0 var(--lab-heading-inset); padding:9px 0; border-top:1px solid #bcd3ff19; color:#94a8c9; font-size:11px; font-variant-numeric:tabular-nums; }
+.chartLab .labReadout strong { color:#dceaff; font-weight:550; }
+.chartLab .labReadout .labTeam { display:inline-flex; align-items:center; gap:5px; color:var(--lab-ink); font-size:12px; }
+.chartLab .labTeam img { width:22px; height:20px; object-fit:contain; }
+.chartLab .labReadout .labValue { display:inline-flex; align-items:center; gap:5px; }
+.chartLab .labReadout .labUnavailable { color:#8e9fbd; }
+.chartLab .labFootnote { padding:0 var(--lab-heading-inset) 13px; font-size:10px; line-height:1.6; color:#91a5c5; }
+.chartLab .labScrollHint { display:none; color:#bbcdeb; }
+.chartLab .labLoading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#95abd0; background:radial-gradient(ellipse at center,#7896ff09,transparent 65%); }
+.labError { padding:10px 12px; margin-bottom:10px; color:#cad5eb; font-size:11px; border:1px solid #9fc2fc24; border-radius:10px; background:#8aabfb08; }
+@media (max-width:1100px) {
+  .matchupLayout.chartLab { grid-template-columns:minmax(0,1fr); }
+  .chartLab .labScrollHint { display:inline; }
+  .chartLab .labBody--polar { height:850px; }
+}
+@media (max-width:620px) {
+  .chartLab { --lab-heading-inset:20px; --am-team-font-size:10px; }
+  .chartLab .labCard { border-radius:13px; }
+  .chartLab .labCaption { padding-top:11px; gap:6px; font-size:7px; letter-spacing:.6px; }
+  .chartLab .labTitle { font-size:17px; }
+  .chartLab .labSubtitle { font-size:8px; }
+  .chartLab .labLegend { gap:5px 11px; font-size:9px; }
+  .chartLab .labReadout { gap:6px 12px; font-size:10px; }
+}
+@media print { .chartLab .labScroll { overflow:visible; } }
