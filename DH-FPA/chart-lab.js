@@ -5,8 +5,8 @@
   const scenes = new Map(), observed = new Set();
   const definitions = [
     { id: "labBreakdown", title: "Scoring allowed, position by position", kind: "all", nativeResolution: true, create: scoringBreakdown },
-    { id: "labDumbbell", title: "Actual vs. expected, team by team", kind: "position", nativeResolution: true, create: actualExpectedDumbbells },
-    { id: "labPolar", title: "Every game, on its defense’s spoke", kind: "position", create: polarScatter },
+    { id: "labDumbbell", title: "Actual vs. Expected", kind: "position", nativeResolution: true, create: actualExpectedDumbbells },
+    { id: "labPolar", title: "Game Spokes", kind: "position", create: polarScatter },
   ];
   let current = null, snapshot = null, observer = null, styleObserver = null, styleTimer = null;
   let stackSort = "ALL";

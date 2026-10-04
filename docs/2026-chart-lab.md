@@ -21,6 +21,8 @@ The footers use the requested copy exactly:
 
 Headings, subheadings, legends, the focus button, footnotes, and selected-team readouts are real HTML. Style them directly with .labTitle, .labSubtitle, .labCaption, .labLegend, .labFocusButton, .labFootnote, and .labReadout. The heading and caption inset is --lab-heading-inset: 32px, reduced to 20px on mobile. Their alignment no longer depends on canvas coordinates.
 
+The dumbbell heading is "Actual vs. Expected" and the polar heading is "Game Spokes". Their position bars sit to the right of the title inside .labTitleRow, with subtitles below. The title row does not wrap; mobile buttons use compact spacing, and title text reduces to 14px at 360px and below so the full five-position bar fits beside it. The controls retain their shared dashboard-position behavior. The upper expected/actual scatter is titled "Opponent Expectations" to distinguish it from the dumbbells. Existing chart-body heights and heading insets remain unchanged.
+
 amCharts draws its remaining text on canvas. The chart reads the following CSS properties and applies them through amCharts label settings. Set them on .chartLab for all charts or on #labBreakdownPanel, #labDumbbellPanel, or #labPolarPanel for one chart. Use px for sizes, supported font-weight strings/numbers, and hex or RGB colors.
 
 | Text | CSS properties |

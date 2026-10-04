@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,slnt,wdth,wght,GRAD,ROND@6..144,-10..0,25..151,1..1000,0..100,0..100&amp;family=MuseoModerno:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=2026.7">
-  <link rel="stylesheet" href="chart-lab.css?v=2026.7">
+  <link rel="stylesheet" href="chart-lab.css?v=2026.8">
   <script defer src="data-model.js?v=2026.3"></script>
   <script defer src="data/2026-weekly.js?v=2026.2"></script>
   <script defer src="chart-utils.js?v=2026.3"></script>
@@ -23,7 +23,7 @@
   <script defer src="vendor/amcharts5/themes/Animated.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/themes/Dark.js?v=5.20.8"></script>
   <script defer src="chart-lab-model.js?v=2026.5"></script>
-  <script defer src="chart-lab.js?v=2026.7"></script>
+  <script defer src="chart-lab.js?v=2026.8"></script>
 </head>
 <body data-page="matchups">
   <div class="background-orb background-orb--one" aria-hidden="true"></div>
@@ -76,7 +76,7 @@
         </section>
       </section>
         <section class="glass-panel comparisonPanel" aria-labelledby="comparisonTitle">
-          <div class="panelHeader"><div><span class="fieldLabel">OPPONENT OFFENSE CONTEXT</span><h2 id="comparisonTitle">Expected vs. actual</h2></div><div class="chartHeaderControls"><div class="smallToggle" role="group" aria-label="Comparison metric"><button type="button" data-scatter-mode="points" aria-pressed="true">Points</button><button type="button" data-scatter-mode="rank" aria-pressed="false">Ranks</button></div><div class="positionToggle chartPositionToggle" role="group" aria-label="Expected vs actual scatter position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div></div>
+          <div class="panelHeader"><div><span class="fieldLabel">OPPONENT OFFENSE CONTEXT</span><h2 id="comparisonTitle">Opponent Expectations</h2></div><div class="chartHeaderControls"><div class="smallToggle" role="group" aria-label="Comparison metric"><button type="button" data-scatter-mode="points" aria-pressed="true">Points</button><button type="button" data-scatter-mode="rank" aria-pressed="false">Ranks</button></div><div class="positionToggle chartPositionToggle" role="group" aria-label="Expected vs actual scatter position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div></div>
           <div class="chart comparisonChart" id="comparisonChart"></div>
           <div class="comparisonDetail" id="comparisonDetail" aria-live="polite"></div>
           <p class="chartNote" id="comparisonNote"></p>
@@ -98,9 +98,9 @@
           <p class="panelFootnote">FPA per game <span class="footnoteDivider">/</span> Rank 1 = fewest points allowed <span class="footnoteDivider">/</span> Select a matchup</p>
         </section>
         <article id="labDumbbellPanel" data-amchart-panel aria-labelledby="labDumbbellTitle" class="glass-panel labCard labCard--dumbbell" aria-label="Dumbbell comparison of actual and expected FPA for every defense">
-          <div class="labCaption"><span class="labNumber">02</span><span>ACTUAL VS. EXPECTED / DUMBBELLS</span><div class="positionToggle chartPositionToggle" role="group" aria-label="Actual vs expected dumbbell position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div>
+          <div class="labCaption"><span class="labNumber">02</span><span>ACTUAL VS. EXPECTED / DUMBBELLS</span></div>
           <div class="labBody labBody--dumbbell">
-          <div class="labHeading"><h2 class="labTitle" id="labDumbbellTitle">Actual vs. expected, team by team</h2><p class="labSubtitle" id="labDumbbellSubtitle"></p></div>
+          <div class="labHeading"><div class="labTitleRow"><h2 class="labTitle" id="labDumbbellTitle">Actual vs. Expected</h2><div class="positionToggle chartPositionToggle" role="group" aria-label="Actual vs expected dumbbell position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div><p class="labSubtitle" id="labDumbbellSubtitle"></p></div>
           <div class="labLegend" id="labDumbbellLegend"></div>
           <div class="labScroll" tabindex="0" aria-label="Scroll for all 32 actual and expected comparisons"><div class="labCanvas labCanvas--dumbbell" id="labDumbbell"><p class="labLoading">Preparing the actual and expected dumbbells…</p></div></div>
           </div>
@@ -108,9 +108,9 @@
           <p class="labFootnote">Hollow Ring → Expected FPA  |  Filled Dot → Actual FPA  |  Δ →  (actual - expected).</p>
         </article>
         <article id="labPolarPanel" data-amchart-panel aria-labelledby="labPolarTitle" class="glass-panel labCard labCard--polar" aria-label="Polar scatter with opposing offense logos aligned to each defense">
-          <div class="labCaption"><span class="labNumber">03</span><span>INDIVIDUAL MATCHUPS / POLAR SCATTER</span><div class="positionToggle chartPositionToggle" role="group" aria-label="Polar scatter position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div>
+          <div class="labCaption"><span class="labNumber">03</span><span>INDIVIDUAL MATCHUPS / POLAR SCATTER</span></div>
           <div class="labBody labBody--polar">
-          <div class="labHeading"><h2 class="labTitle" id="labPolarTitle">Every game, on its defense’s spoke</h2><p class="labSubtitle" id="labPolarSubtitle"></p></div>
+          <div class="labHeading"><div class="labTitleRow"><h2 class="labTitle" id="labPolarTitle">Game Spokes</h2><div class="positionToggle chartPositionToggle" role="group" aria-label="Polar scatter position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div><p class="labSubtitle" id="labPolarSubtitle"></p></div>
           <div class="labLegendRow"><div class="labLegend" id="labPolarLegend"></div><button type="button" class="labFocusButton" data-lab-focus="labPolar" aria-pressed="false">Focus defense</button></div>
           <div class="labScroll" tabindex="0" aria-label="Scroll for the full-size polar scatter"><div class="labCanvas labCanvas--polar" id="labPolar"><p class="labLoading">Preparing the aligned matchup scatter…</p></div></div>
           </div>
