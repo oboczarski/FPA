@@ -5,8 +5,9 @@ const path = require("node:path");
 const Data = require("../DH-FPA/data-model.js");
 const Lab = require("../DH-FPA/chart-lab-model.js");
 const read = name => fs.readFileSync(path.join(__dirname, "../DH-FPA/data", name), "utf8");
-const model = Data.readSource(read("FPAv2.csv")), summary = Data.readFPF(read("FPF.csv"));
-const analysis = Data.matchupAnalysis(model, summary);
+const model = Data.readSource(read("FPAv2.csv")), summary = Data.readFPFA(read("FPFA.csv"));
+const offenses = Data.readOffenses(read("FPF.csv"));
+const analysis = Data.matchupAnalysis(model, summary, {}, offenses);
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
 
 test("chart views cover all 32 teams and all five positions without changing the analysis", () => {
@@ -34,6 +35,8 @@ test("each position has 96 distinct game dots and three correctly scored dots pe
       for (const dot of dots) {
         const original = analysis.byTeam.get(team).metrics[pos].entries.find(entry => entry.week === dot.week);
         assert.equal(dot.logoTeam, original.offense);
+        assert.equal(dot.expected, offenses.byTeam.get(dot.logoTeam).metrics[pos].avg);
+        assert.equal(dot.offenseRank, offenses.byTeam.get(dot.logoTeam).metrics[pos].rank);
         assert.notEqual(dot.logoTeam, dot.team);
         assert.ok(fs.existsSync(path.join(__dirname, '../DH-FPA/assets/NFL-Tags_webp', `${dot.logoTeam.toLowerCase()}.webp`)));
       }
@@ -42,7 +45,7 @@ test("each position has 96 distinct game dots and three correctly scored dots pe
 });
 test("stacked bars preserve positional and ALL averages, allowing supplied rounding", () => {
   for (const venue of ["all", "home", "away"]) {
-    const scoped = Data.matchupAnalysis(model, summary, { venue });
+    const scoped = Data.matchupAnalysis(model, summary, { venue }, offenses);
     for (const pos of Lab.POSITIONS) {
       const view = Lab.build(scoped, pos);
       assert.equal(view.breakdown.length, 32);
@@ -55,16 +58,15 @@ test("stacked bars preserve positional and ALL averages, allowing supplied round
       }
     }
   }
-  const away = Lab.build(Data.matchupAnalysis(model, summary, { venue: "away" }), "TE");
+  const away = Lab.build(Data.matchupAnalysis(model, summary, { venue: "away" }, offenses), "TE");
   assert.ok(away.breakdown.some(row => row.TE === 0));
 });
-test("dumbbells use supplied FPF totals and omit unavailable venue comparisons", () => {
+test("dumbbells use FPFA season totals and FPF opponent averages for venue comparisons", () => {
   for (const venue of ["all", "home", "away"]) {
-    const scoped = Data.matchupAnalysis(model, summary, { venue });
+    const scoped = Data.matchupAnalysis(model, summary, { venue }, offenses);
     for (const pos of Lab.POSITIONS) {
       const view = Lab.build(scoped, pos);
-      assert.equal(view.dumbbell.length, venue === "all" ? 32 : 0);
-      if (venue !== "all") continue;
+      assert.equal(view.dumbbell.length, 32);
       for (const band of ["highest", "upper", "lower", "lowest"]) {
         assert.equal(view.dumbbell.filter(row => row.gradientKey === band).length, 8);
       }
@@ -86,7 +88,7 @@ test("dumbbells use supplied FPF totals and omit unavailable venue comparisons",
 });
 test("venue filters keep the team sectors but only include games at the selected defense venue", () => {
   for (const venue of ["home", "away"]) {
-    const scoped = Data.matchupAnalysis(model, summary, { venue });
+    const scoped = Data.matchupAnalysis(model, summary, { venue }, offenses);
     const view = Lab.build(scoped, "WR");
     assert.equal(view.teams.length, 32); assert.equal(view.cells.length, 160); assert.equal(view.polar.length, 48);
     assert.ok(view.polar.every(row => row.venue === venue));

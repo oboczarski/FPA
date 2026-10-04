@@ -1,4 +1,4 @@
-/* Current-season matchups: FPF season summaries and FPAv2 individual games. */
+/* Current-season matchups: FPFA defense summaries, FPF offenses and FPAv2 games. */
 (() => {
   "use strict";
   const Data = window.FPAData, Charts = window.FPACharts, $ = id => document.getElementById(id);
@@ -30,7 +30,7 @@
   const pickerRoots = [...document.querySelectorAll("[data-picker-kind]")];
   const state = { team: "BAL", pos: "QB", venue: "all", mode: "points", query: "", hideZero: true,
     heatSort: { pos: "QB", direction: "desc" }, playerSort: { key: "week", direction: "desc" } };
-  let model = null, summary = null, offenseAverages = null, analysis = null, openPicker = null;
+  let model = null, summary = null, offenses = null, analysis = null, openPicker = null;
   const tooltips = new Map();
 
   const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -147,7 +147,7 @@
   }
   function render() {
     if (!model) return;
-    analysis = Data.matchupAnalysis(model, summary, { venue: state.venue });
+    analysis = Data.matchupAnalysis(model, summary, { venue: state.venue }, offenses);
     syncControls(); tooltips.clear(); hideTooltip();
     $("coverage").innerHTML = `<strong>${weekLabel()}</strong> · ${model.defenses.length} defenses · ${model.audit.usedRows.toLocaleString("en-US")} player records`;
     $("scopeNote").textContent = `Season to date · ${weekLabel()}`;
@@ -167,7 +167,7 @@
     $("defenseSubtitle").textContent = `vs. ${LABELS[state.pos]} · ${venueLabel()}`;
     $("selectedPosition").textContent = state.pos; $("selectedPosition").dataset.pos = state.pos;
     const deltaValue = c.deltaPct !== null ? `${signed(c.deltaPct)}%` : signed(c.delta, 2);
-    const baselineNote = c.expectedTotal !== null ? `${fmt(c.expectedAvg, 1)} per game` : analysis.summaryAvailable ? "Not supplied in FPF" : "No FPF venue split";
+    const baselineNote = c.expectedTotal !== null ? `${fmt(c.expectedAvg, 1)} per game` : analysis.summaryAvailable ? "Not supplied in FPFA" : "Opponent average unavailable";
     $("metrics").innerHTML = `
       <div class="metric"><div class="metricLabel">Actual FPA</div><div class="metricValue">${fmt(stat.total)}</div><div class="metricSub">${fmt(stat.avg, 1)} per game</div></div>
       <div class="metric"><div class="metricLabel">Expected FPA</div><div class="metricValue">${fmt(c.expectedTotal, 1)}</div><div class="metricSub">${baselineNote}</div></div>
@@ -194,8 +194,7 @@
 
   // Each opponent's positional scoring average supplies its weekly expected line.
   function renderWeekly() {
-    const entries = comparison().entries.map(entry => ({ ...entry,
-      expected: offenseAverages.get(entry.offense)?.[state.pos] ?? null }));
+    const entries = comparison().entries;
     $("weeklyMatchups").innerHTML = entries.map(entry => `<div class="weekMatchup"><span class="weekNumber">W${entry.week}</span>${logo(entry.offense)}<span>${entry.offense ? `${entry.venue === "home" ? "vs" : "@"} ${entry.offense}` : "Offense unknown"}</span></div>`).join("");
     if (!entries.some(entry => entry.actual !== null)) { $("weeklyChart").innerHTML = empty("No recorded games", "Choose another defense venue or position."); return; }
     const W = width("weeklyChart"), H = 196, left = 31, right = W - 9, top = 22, bottom = H - 19;
@@ -214,7 +213,7 @@
     }); finish();
     entries.forEach((entry, i) => {
       const key = `week:${entry.week}`;
-      tooltips.set(key, `<strong>${state.team} vs. ${state.pos} · Week ${entry.week}</strong><br>Actual: ${fmt(entry.actual)} PPR points<br>Expected: ${fmt(entry.expected, 1)} · ${entry.offense || "Opponent"} season average<br><span class="tooltipMuted">${entry.venue === "home" ? "Defense at home" : "Defense away"}</span>`);
+      tooltips.set(key, `<strong>${state.team} vs. ${state.pos} · Week ${entry.week}</strong><br>Actual: ${fmt(entry.actual)} PPR points<br>Expected: ${fmt(entry.expected, 1)} · ${entry.offense || "Opponent"} season average<br>Offense rank: ${entry.offenseRank === null ? "—" : `#${entry.offenseRank}`}<br><span class="tooltipMuted">${entry.venue === "home" ? "Defense at home" : "Defense away"}</span>`);
       if (entry.actual !== null) {
         const labelY = entry.actual >= 0 ? y(entry.actual) - 7 : Math.min(bottom - 6, y(entry.actual) + 13);
         content += `<g class="chartPoint" role="img" tabindex="0" data-tooltip="${key}" aria-label="Week ${entry.week}: ${fmt(entry.actual)} actual, ${fmt(entry.expected, 1)} expected ${state.pos} points"><rect x="${x(i) - barWidth / 2}" y="${Math.min(y(0), y(entry.actual))}" width="${barWidth}" height="${Math.max(2, Math.abs(y(entry.actual) - y(0)))}" rx="4" fill="url(#weekly-bar)"/><text class="chartValue" x="${x(i)}" y="${labelY}" text-anchor="middle">${fmt(entry.actual, 1)}</text></g>`;
@@ -228,7 +227,7 @@
   }
 
   // Both axes use totals, not individual-player scores or a recent window.
-  // Rank mode uses the ranks supplied in FPF without recomputing ties.
+  // Full-season rank mode preserves FPFA's supplied ranks without recomputing ties.
   function renderScatter() {
     document.querySelectorAll("[data-scatter-mode]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.scatterMode === state.mode)));
     const ranked = state.mode === "rank";
@@ -237,7 +236,7 @@
       return { team: row.team, c, x: ranked ? c.expectedRank : c.expectedTotal, y: ranked ? c.actualRank : c.actual.total };
     }).filter(point => point.x !== null && point.y !== null);
     renderScatterDetail(state.team);
-    $("comparisonNote").textContent = ranked ? `FPF ranks · 1 = highest · ${points.length} comparable defenses. Select a logo.` : `Above the line = more points allowed than expected. ${points.length} comparable defenses.`;
+    $("comparisonNote").textContent = ranked ? `${analysis.summaryAvailable ? "FPFA ranks" : "Selected-game ranks"} · 1 = highest · ${points.length} comparable defenses. Select a logo.` : `Above the line = more points allowed than expected. ${points.length} comparable defenses.`;
     if (!points.length) { $("comparisonChart").innerHTML = empty("No complete comparisons", analysis.unavailableReason); return; }
     const W = width("comparisonChart"), H = innerWidth <= 620 ? 320 : 330, left = 43, right = W - 16, top = 18, bottom = H - 34;
     const pool = Data.TEAMS.length;
@@ -275,14 +274,15 @@
   function renderOpponents() {
     const c = comparison();
     // Layout-only preview row: never add it to the analysis or matchup entries.
-    const placeholder = c.entries.some(entry => entry.week === 4) ? "" : '<tr class="opponentPlaceholder" aria-label="Week 4 layout placeholder; no matchup or scoring data"><td>W4</td><td><span class="offenseCell"><i class="placeholderLogo" aria-hidden="true"></i>Placeholder</span></td><td>—</td></tr>';
-    $("opponentsScope").textContent = `${state.team} · ${state.pos} · weekly actuals`;
-    $("opponentsTable").innerHTML = `<caption class="srOnly">${state.team} opposing offenses and actual ${state.pos} scoring from FPAv2</caption><thead><tr><th>Wk</th><th>Offense</th><th>Actual FPA</th></tr></thead><tbody>${c.entries.length ? c.entries.map(entry =>
-      `<tr><td>W${entry.week}</td><td><span class="offenseCell" title="${esc(Data.TEAM_NAMES[entry.offense] || "Offense unavailable")}">${logo(entry.offense)}${entry.offense || "—"}</span></td><td>${fmt(entry.actual)}</td></tr>`
-    ).join("") : '<tr><td colspan="3">No recorded games in this venue.</td></tr>'}${placeholder}</tbody>`;
+    const placeholder = c.entries.some(entry => entry.week === 4) ? "" : '<tr class="opponentPlaceholder" aria-label="Week 4 layout placeholder; no matchup or scoring data"><td>W4</td><td><span class="offenseCell"><i class="placeholderLogo" aria-hidden="true"></i>Placeholder</span></td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
+    $("opponentsScope").textContent = `${state.team} · ${state.pos}`;
+    $("opponentsTable").innerHTML = `<caption class="srOnly">${state.team} opposing offenses, supplied ${state.pos} scoring averages and actual FPA</caption><thead><tr><th>Wk</th><th>Offense</th><th title="FPF offense position rank; 1 is the most points scored">Off. rank</th><th title="Supplied FPF average, counted once for this game">Expected</th><th>Actual</th><th>Δ FPA</th></tr></thead><tbody>${c.entries.length ? c.entries.map(entry => {
+      const delta = entry.actual !== null && entry.expected !== null ? (Math.round(entry.actual * 100) - Math.round(entry.expected * 100)) / 100 : null;
+      return `<tr><td>W${entry.week}</td><td><span class="offenseCell" title="${esc(Data.TEAM_NAMES[entry.offense] || "Offense unavailable")}">${logo(entry.offense)}${entry.offense || "—"}</span></td><td>${entry.offenseRank === null ? "—" : `#${entry.offenseRank}`}</td><td>${fmt(entry.expected, 1)}</td><td>${fmt(entry.actual)}</td><td class="${direction(delta)}">${signed(delta)}</td></tr>`;
+    }).join("") : '<tr><td colspan="6">No recorded games in this venue.</td></tr>'}${placeholder}</tbody>`;
   }
   function renderHeatmap() {
-    $("heatRankNote").textContent = `Rank 1 = ${analysis.summaryAvailable ? "most points allowed (FPF)" : "fewest points allowed (venue)"}`;
+    $("heatRankNote").textContent = `Rank 1 = ${analysis.summaryAvailable ? "most points allowed (FPFA)" : "fewest points allowed (venue)"}`;
     document.querySelectorAll("[data-heat-order]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.heatOrder === state.heatSort.pos)));
     const sorted = [...analysis.actual.rows].sort((a, b) => {
       const first = a.metrics[state.heatSort.pos].avg, second = b.metrics[state.heatSort.pos].avg;
@@ -401,10 +401,11 @@
     bindEvents();
     try {
       const sources = window.FPA_SOURCE;
-      if (!Data || sources?.season !== 2026 || !sources.weekly?.csv || !sources.summary?.csv) throw new Error("The 2026 matchup source pair is unavailable.");
+      if (!Data || sources?.season !== 2026 || !sources.weekly?.csv || !sources.summary?.csv || !sources.offense?.csv) throw new Error("The 2026 weekly, defense-summary and offense sources are unavailable.");
       const nextModel = Data.readSource(sources.weekly.csv, { name: sources.weekly.name });
-      const nextSummary = Data.readFPF(sources.summary.csv, { name: sources.summary.name });
-      model = nextModel; summary = nextSummary; offenseAverages = Data.offenseAverages(model); readURL();
+      const nextSummary = Data.readFPFA(sources.summary.csv, { name: sources.summary.name });
+      const nextOffenses = Data.readOffenses(sources.offense.csv, { name: sources.offense.name });
+      model = nextModel; summary = nextSummary; offenses = nextOffenses; readURL();
       buildPickers();
       const differences = Data.summaryDifferences(model, summary);
       const repeatedExpectations = summary.rows.length > 0 && summary.rows.every(row => {
@@ -412,9 +413,9 @@
         return rb.expectedTotal === wr.expectedTotal && rb.expectedAvg === wr.expectedAvg && rb.expectedRank === wr.expectedRank;
       });
       $("sourceNotes").textContent = `${model.audit.excludedRows} rows without an opposing defense are excluded. ` +
-        (differences.length ? "FPF season totals and FPAv2 weekly totals differ beyond rounding for " + [...new Set(differences.map(row => row.team))].join(", ") + ". Each view preserves its source. " : "") +
-        (repeatedExpectations ? "FPF supplies identical RB and WR expected totals, averages, and ranks for every team; these are retained as provided. " : "") +
-        "Published FPF averages and ranks are never recalculated. Rounded positional averages may sum differently from the supplied ALL average.";
+        (differences.length ? "FPFA season totals and FPAv2 weekly totals differ beyond rounding for " + [...new Set(differences.map(row => row.team))].join(", ") + ". Each view preserves its source. " : "") +
+        (repeatedExpectations ? "FPFA supplies identical RB and WR expected totals, averages, and ranks for every team; these are retained as provided. " : "") +
+        "Published FPFA summaries and FPF offense averages/ranks are used directly. Rounded opponent averages may sum differently from FPFA's expected total; full-season comparisons preserve FPFA. Rounded positional averages may sum differently from the supplied ALL average.";
       render();
     } catch (error) {
       $("loadError").textContent = `Matchup data could not load: ${error.message}`; $("loadError").hidden = false;

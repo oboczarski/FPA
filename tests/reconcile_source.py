@@ -1,4 +1,4 @@
-"""Independently verify weekly arithmetic and direct FPF field preservation."""
+"""Independently verify weekly arithmetic and direct FPFA/FPF field preservation."""
 import csv
 import json
 import os
@@ -12,8 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 POSITIONS = ["QB", "RB", "WR", "TE", "ALL"]
 with (ROOT / "DH-FPA/data/FPAv2.csv").open(encoding="utf-8-sig", newline="") as file:
     rows = list(csv.DictReader(file))
-with (ROOT / "DH-FPA/data/FPF.csv").open(encoding="utf-8-sig", newline="") as file:
+with (ROOT / "DH-FPA/data/FPFA.csv").open(encoding="utf-8-sig", newline="") as file:
     supplied = list(csv.DictReader(file))
+with (ROOT / "DH-FPA/data/FPF.csv").open(encoding="utf-8-sig", newline="") as file:
+    offense_rows = [{key.upper(): value for key, value in row.items()} for row in csv.DictReader(file)]
+offenses = {row["TM"]: row for row in offense_rows}
+assert len(offenses) == 32
 assert len(supplied) == len({row["TM"] for row in supplied}) == 32
 summaries = {row["TM"]: row for row in supplied}
 games = defaultdict(lambda: {"points": {}, "venue": None})
@@ -34,10 +38,11 @@ node = os.environ.get("FPA_NODE", "node")
 program = """
 const fs = require('node:fs'), D = require('./DH-FPA/data-model.js');
 const m = D.readSource(fs.readFileSync('./DH-FPA/data/FPAv2.csv','utf8'));
-const s = D.readFPF(fs.readFileSync('./DH-FPA/data/FPF.csv','utf8'));
+const s = D.readFPFA(fs.readFileSync('./DH-FPA/data/FPFA.csv','utf8'));
+const offenses = D.readOffenses(fs.readFileSync('./DH-FPA/data/FPF.csv','utf8'));
 const scopes = JSON.parse(process.argv[1]);
 console.log(JSON.stringify(scopes.map(scope => ({
-  weekly: D.summarize(m, scope), comparison: D.matchupAnalysis(m, s, scope)
+  weekly: D.summarize(m, scope), comparison: D.matchupAnalysis(m, s, scope, offenses)
 }))));
 """
 outputs = json.loads(subprocess.check_output([node, "-e", program, json.dumps(scopes)], cwd=ROOT, text=True))
@@ -79,13 +84,25 @@ for scope, output in zip(scopes, outputs):
                 assert comparison["actual"]["rankOrder"] == "descending"
             else:
                 assert comparison["actual"] == result
-                for field in ["expectedTotal", "expectedAvg", "expectedRank", "delta", "deltaPct"]:
-                    assert comparison[field] is None, (scope, defense, pos, field)
+                baselines = [Decimal(offenses[game["offense"]][pos + "X"]) for (team, week), game in selected.items() if team == defense and game["points"].get(pos) is not None]
+                expected = float(sum(baselines)) if baselines else None
+                assert comparison["expectedTotal"] == expected, (scope, defense, pos, "expected total")
+                if expected is not None:
+                    assert abs(comparison["expectedAvg"] - expected / sample) < 1e-9
+                    delta = total / 100 - expected
+                    assert abs(comparison["delta"] - delta) < 1e-9
+                    assert abs(comparison["deltaPct"] - delta / abs(expected) * 100) < 1e-9 if expected else comparison["deltaPct"] is None
+                    cohort = [row["metrics"][pos] for row in comparisons.values() if row["metrics"][pos]["expectedTotal"] is not None and row["metrics"][pos]["actual"]["total"] is not None]
+                    assert comparison["expectedRank"] == 1 + sum(other["expectedTotal"] > expected for other in cohort)
+                    assert comparison["actualRank"] == 1 + sum(other["actual"]["total"] > total / 100 for other in cohort)
+                else:
+                    assert comparison["expectedAvg"] is None and comparison["delta"] is None
             for entry in comparison["entries"]:
                 original = selected[(defense, entry["week"])]
                 assert entry["offense"] == original["offense"] and entry["venue"] == original["venue"]
                 assert entry["actual"] == original["points"][pos] / 100
-                assert "expected" not in entry and "offenseRank" not in entry
+                assert entry["expected"] == float(Decimal(offenses[entry["offense"]][pos + "X"]))
+                assert entry["offenseRank"] == int(offenses[entry["offense"]][pos + "RK"])
         league_games = sum(sample for total, sample, avg in expectations.values())
         league_total = sum(total for total, sample, avg in expectations.values())
         assert output["weekly"]["league"][pos]["games"] == league_games
@@ -96,4 +113,4 @@ for team, row in summaries.items():
     for week in [1, 2, 3]:
         assert games[(team, week)]["offense"] == row[f"w{week}"]
         opponent_links += 1
-print(f"Reconciled {checked:,} weekly defense-position cases across {len(scopes)} scopes, {supplied_fields} supplied FPF values, and {opponent_links} opponent links. All season totals agree within FPF rounding; filtered expectations remain unavailable.")
+print(f"Reconciled {checked:,} weekly defense-position cases across {len(scopes)} scopes, {supplied_fields} supplied FPFA values, and {opponent_links} opponent links. All season totals agree within FPFA rounding; every game baseline and offense rank matches FPF, including filtered comparisons.")

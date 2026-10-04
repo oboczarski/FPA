@@ -98,7 +98,7 @@
     scene.paint?.();
   }
   function cellTooltip(row) {
-    return `[bold]${row.team} · ${row.pos}[/]\n${fmt(row.avg, 2)} FPA/game · rank ${row.rank ?? "—"} of ${row.pool}\nExpected FPA: ${fmt(row.expectedAvg, 2)} /game (FPF)\n${row.games} recorded games\nSelect to explore this defense and position`;
+    return `[bold]${row.team} · ${row.pos}[/]\n${fmt(row.avg, 2)} FPA/game · rank ${row.rank ?? "—"} of ${row.pool}\nExpected FPA: ${fmt(row.expectedAvg, 2)} /game\n${row.games} recorded games\nSelect to explore this defense and position`;
   }
   function scoringBreakdown(definition) {
     const scene = makeScene(definition), root = scene.root, palette = am5.ColorSet.new(root, {});
@@ -252,7 +252,7 @@
   }
 
   function dumbbellTooltip(row) {
-    return `[bold]${row.team} · ${row.pos}[/]\nActual FPA: ${fmt(row.actualTotal, 2)} points\nExpected FPA (FPF): ${fmt(row.expectedTotal, 2)} points\nActual − expected: ${signedPoints(row.deltaTotal)} points\n${row.games} recorded games · select to explore`;
+    return `[bold]${row.team} · ${row.pos}[/]\nActual FPA: ${fmt(row.actualTotal, 2)} points\nExpected FPA: ${fmt(row.expectedTotal, 2)} points\nActual − expected: ${signedPoints(row.deltaTotal)} points\n${row.games} recorded games · select to explore`;
   }
 
   function gameMarker(scene, row, stroke, text) {
@@ -308,7 +308,7 @@
       series.bullets.push((root, series, item) => {
         const row = item.dataContext, stat = current.analysis.byTeam.get(row.team).metrics[row.pos].actual;
         const games = snapshot.polar.filter(game => game.team === row.team);
-        const text = `[bold]${row.team} DEFENSE · ${row.pos} · W${row.week}[/]\n${row.venue === "home" ? "vs" : "@"} ${row.offense || "Unknown offense"}\nActual: ${fmt(row.actual, 2)} PPR points\n\n[bold]All games on this spoke[/]\n` +
+        const text = `[bold]${row.team} DEFENSE · ${row.pos} · W${row.week}[/]\n${row.venue === "home" ? "vs" : "@"} ${row.offense || "Unknown offense"}\nActual: ${fmt(row.actual, 2)} PPR points\nExpected: ${fmt(row.expected, 1)} · opponent season average\nOffense rank: ${row.offenseRank === null ? "—" : `#${row.offenseRank}`}\nActual − expected: ${row.expected === null ? "—" : signedPoints(row.actual - row.expected)}\n\n[bold]All games on this spoke[/]\n` +
           games.map(game => `W${game.week} ${game.venue === "home" ? "vs" : "@"} ${game.offense || "—"}: ${fmt(game.actual, 2)}`).join("\n");
         return am5.Bullet.new(root, { locationX: row.location, sprite: gameMarker(scene, row, color(current.heatColor(stat)), text) });
       });

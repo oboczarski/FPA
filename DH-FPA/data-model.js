@@ -290,9 +290,9 @@
     );
   }
 
-  // FPF publishes season-to-date matchup summaries. Every one of its six
+  // FPFA publishes season-to-date matchup summaries. Every one of its six
   // positional fields is authoritative, including rounded averages and ranks.
-  function readFPF(text, { name = "FPF.csv" } = {}) {
+  function readFPFA(text, { name = "FPFA.csv" } = {}) {
     const positions = [...POSITIONS, "ALL"];
     const columns = ["TM", ...positions.flatMap(pos => [pos, `${pos}X`, `${pos}RK`, `${pos}VS`, `${pos}VX`, `${pos}VRK`])];
     const parsed = parseCSV(text, columns), rows = [], byTeam = new Map();
@@ -300,8 +300,8 @@
     const weeks = weekColumns.map(header => Number(header.slice(1))).sort((a, b) => a - b);
     for (const { values: row, line } of parsed.records) {
       const team = canonicalTeam(row.TM);
-      if (!TEAMS.includes(team)) throw new Error(`Line ${line}: unknown FPF team “${row.TM}”.`);
-      if (byTeam.has(team)) throw new Error(`Line ${line}: duplicate FPF team ${team}.`);
+      if (!TEAMS.includes(team)) throw new Error(`Line ${line}: unknown FPFA team “${row.TM}”.`);
+      if (byTeam.has(team)) throw new Error(`Line ${line}: duplicate FPFA team ${team}.`);
       const points = column => row[column] === "" ? null : pointCents(row[column], line, column) / 100;
       const rank = column => {
         const value = row[column];
@@ -313,7 +313,7 @@
       const opponents = weekColumns.flatMap(column => {
         if (!row[column] || row[column].toUpperCase() === "NA") return [];
         const offense = canonicalTeam(row[column]);
-        if (!TEAMS.includes(offense)) throw new Error(`Line ${line}: unknown FPF opponent “${row[column]}” in ${column}.`);
+        if (!TEAMS.includes(offense)) throw new Error(`Line ${line}: unknown FPFA opponent “${row[column]}” in ${column}.`);
         return [{ week: Number(column.slice(1)), offense }];
       }).sort((a, b) => a.week - b.week);
       const metrics = Object.fromEntries(positions.map(pos => [pos, {
@@ -326,13 +326,37 @@
     return { name, rawCSV: text, headers: parsed.headers, rows, byTeam, weeks };
   }
 
-  function matchupAnalysis(model, summary, scope = {}) {
+  // FPF describes offenses, not defenses. Its published averages and ranks
+  // provide the context for each opponent actually faced in the weekly source.
+  function readOffenses(text, { name = "FPF.csv" } = {}) {
+    const positions = [...POSITIONS, "ALL"];
+    const parsed = parseCSV(text, ["TM", ...positions.flatMap(pos => [pos, `${pos}RK`, `${pos}X`])]);
+    const rows = [], byTeam = new Map();
+    for (const { values: row, line } of parsed.records) {
+      const team = canonicalTeam(row.TM);
+      if (!TEAMS.includes(team)) throw new Error(`Line ${line}: unknown FPF offense “${row.TM}”.`);
+      if (byTeam.has(team)) throw new Error(`Line ${line}: duplicate FPF offense ${team}.`);
+      const points = column => row[column] === "" ? null : pointCents(row[column], line, column) / 100;
+      const metrics = Object.fromEntries(positions.map(pos => {
+        const value = row[`${pos}RK`];
+        if (value !== "" && (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 32)) {
+          throw new Error(`Line ${line}: ${pos}RK must be a rank from 1 to 32, or blank.`);
+        }
+        return [pos, { total: points(pos), avg: points(`${pos}X`), rank: value === "" ? null : Number(value) }];
+      }));
+      const offense = { team, metrics };
+      rows.push(offense); byTeam.set(team, offense);
+    }
+    return { name, rawCSV: text, headers: parsed.headers, rows, byTeam };
+  }
+
+  function matchupAnalysis(model, summary, scope = {}, offenses = null) {
     const positions = [...POSITIONS, "ALL"], weekly = summarize(model, scope);
     const period = summary.weeks.length ? summary.weeks : model.weeks;
     const summaryAvailable = (scope.venue || "all") === "all" &&
       (scope.from ?? 1) <= period[0] && (scope.to ?? Infinity) >= period.at(-1);
-    const unavailableReason = summaryAvailable ? "FPF summary values are missing for this matchup." :
-      "FPF supplies season totals only; expected FPA is unavailable for venue or partial-week selections.";
+    const unavailableReason = summaryAvailable ? "FPFA summary values are missing for this matchup." :
+      "Expected FPA requires a supplied FPF offense average for every recorded game in this selection.";
     const teams = [...new Set([...model.defenses, ...summary.byTeam.keys()])].sort();
     const actualRows = teams.map(team => {
       const source = summary.byTeam.get(team), recorded = weekly.byTeam.get(team);
@@ -353,14 +377,20 @@
       const games = weekly.games.filter(game => game.def === row.team);
       return { team: row.team, metrics: Object.fromEntries(positions.map(pos => {
         const stat = row.metrics[pos], supplied = summaryAvailable ? summary.byTeam.get(row.team)?.metrics[pos] : null;
-        const expectedTotal = supplied?.expectedTotal ?? null;
-        const complete = stat.total !== null && expectedTotal !== null;
-        const delta = complete ? (Math.round(stat.total * 100) - Math.round(expectedTotal * 100)) / 100 : null;
         const entries = games.map(game => {
           const cents = pos === "ALL" ? game.totalCents : game.positionCents[pos];
-          return { week: game.week, offense: game.offense, venue: game.venue, actual: cents === null ? null : cents / 100 };
+          const offense = offenses?.byTeam.get(game.offense)?.metrics[pos];
+          return { week: game.week, offense: game.offense, venue: game.venue, actual: cents === null ? null : cents / 100,
+            expected: offense?.avg ?? null, offenseRank: offense?.rank ?? null };
         });
-        return [pos, { actual: stat, expectedTotal, expectedAvg: supplied?.expectedAvg ?? null,
+        const eligible = entries.filter(entry => entry.actual !== null);
+        const baselineComplete = eligible.length > 0 && eligible.every(entry => entry.expected !== null);
+        const expectedTotal = summaryAvailable ? supplied?.expectedTotal ?? null : baselineComplete ?
+          eligible.reduce((sum, entry) => sum + Math.round(entry.expected * 100), 0) / 100 : null;
+        const expectedAvg = summaryAvailable ? supplied?.expectedAvg ?? null : expectedTotal === null ? null : expectedTotal / eligible.length;
+        const complete = stat.total !== null && expectedTotal !== null;
+        const delta = complete ? (Math.round(stat.total * 100) - Math.round(expectedTotal * 100)) / 100 : null;
+        return [pos, { actual: stat, expectedTotal, expectedAvg,
           actualRank: stat.rank, expectedRank: supplied?.expectedRank ?? null,
           delta, deltaPct: complete && expectedTotal !== 0 ? delta / Math.abs(expectedTotal) * 100 : null,
           pool: 0, games: stat.games, entries }];
@@ -369,6 +399,13 @@
     const pools = Object.fromEntries(positions.map(pos => [pos, rows.filter(row => {
       const c = row.metrics[pos]; return c.actual.total !== null && c.expectedTotal !== null;
     }).length]));
+    if (!summaryAvailable) for (const pos of positions) {
+      const comparable = rows.map(row => row.metrics[pos]).filter(c => c.actual.total !== null && c.expectedTotal !== null);
+      for (const c of rows.map(row => row.metrics[pos])) {
+        c.actualRank = comparable.includes(c) ? 1 + comparable.filter(other => other.actual.total > c.actual.total).length : null;
+        c.expectedRank = comparable.includes(c) ? 1 + comparable.filter(other => other.expectedTotal > c.expectedTotal).length : null;
+      }
+    }
     rows.forEach(row => positions.forEach(pos => { row.metrics[pos].pool = pools[pos]; }));
     return { actual, rows, byTeam: new Map(rows.map(row => [row.team, row])), pools, summaryAvailable, unavailableReason };
   }
@@ -383,5 +420,5 @@
     }));
   }
 
-  return Object.freeze({ POSITIONS, TEAM_NAMES, TEAMS, REQUIRED_COLUMNS, canonicalTeam, parseOpponent, parseCSV, readSource, offenseAverages, summarize, selectResults, inScope, readFPF, matchupAnalysis, summaryDifferences });
+  return Object.freeze({ POSITIONS, TEAM_NAMES, TEAMS, REQUIRED_COLUMNS, canonicalTeam, parseOpponent, parseCSV, readSource, offenseAverages, summarize, selectResults, inScope, readFPFA, readOffenses, matchupAnalysis, summaryDifferences });
 });
