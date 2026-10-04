@@ -260,3 +260,35 @@ test("weekly reader accepts supplied WK and legacy WEEK, rejecting conflicting a
   assert.equal(Data.readSource("WEEK,PLAYER NAME,POS,FPT_PPR,VS\n" + body).results[0].week, 1);
   assert.throws(() => Data.readSource("WK,WEEK,PLAYER NAME,POS,FPT_PPR,VS\n1,2,A,QB,12,vs TB"), /WEEK and WK disagree/);
 });
+
+
+test("weekly expectations reconstruct every opponent baseline and reconcile to FPF rounding", () => {
+  const averages = Data.offenseAverages(source);
+  assert.equal(averages.size, 32);
+  near(averages.get("IND").QB, 10.446666666666667);
+  near(averages.get("NO").QB, 24.126666666666665);
+  near(averages.get("DAL").QB, 21.366666666666667);
+  for (const row of summary.rows) for (const pos of positions) {
+    const expected = row.opponents.reduce((sum, opponent) => sum + averages.get(opponent.offense)[pos], 0);
+    assert.ok(Math.abs(expected - row.metrics[pos].expectedTotal) <= .05, `${row.team} ${pos}`);
+  }
+  // Venue selection chooses games; the opponent's season baseline stays the same.
+  const home = Data.matchupAnalysis(source, summary, { venue: "home" }).byTeam.get("BAL").metrics.QB.entries;
+  assert.deepEqual(home.map(entry => entry.offense), ["NO"]);
+  near(averages.get(home[0].offense).QB, 24.126666666666665);
+});
+test("weekly offense averages count games once, retain zero/negative scoring, and leave missing positions unavailable", () => {
+  const m = Data.readSource("WK,PLAYER NAME,POS,FPT_PPR,VS,TM\n1,A,QB,10,vs TB,CIN\n1,B,QB,5,vs TB,CIN\n2,C,QB,0,vs NYG,CIN\n3,D,QB,-3,vs SEA,CIN");
+  const averages = Data.offenseAverages(m);
+  assert.equal(averages.get("CIN").QB, 4);
+  assert.equal(averages.get("CIN").RB, null); assert.equal(averages.get("CIN").ALL, null);
+  assert.equal(Data.offenseAverages(fixture(["1,A,QB,1,vs TB"])).size, 0);
+  const zero = Data.readSource("WK,PLAYER NAME,POS,FPT_PPR,VS,TM\n1,A,QB,0,vs TB,CIN");
+  assert.equal(Data.offenseAverages(zero).get("CIN").QB, 0);
+});
+test("ALL weekly expectations use complete offensive games without double-counting players", () => {
+  const m = Data.readSource("WK,PLAYER NAME,POS,FPT_PPR,VS,TM\n" +
+    Data.POSITIONS.map((pos, index) => `1,${pos},${pos},${(index + 1) * 10},vs TB,CIN`).join("\n") + "\n2,Other,QB,50,vs NYG,CIN");
+  const averages = Data.offenseAverages(m).get("CIN");
+  assert.equal(averages.ALL, 100); assert.equal(averages.QB, 30);
+});

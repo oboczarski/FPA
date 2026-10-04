@@ -146,6 +146,7 @@ svg { display:block; }
 .chartSortControls { display:flex; align-items:center; flex:none; gap:6px; margin-left:auto; white-space:nowrap; }
 .chartSortLabel { font-size:8px; color:var(--dim); letter-spacing:.3px; }
 .chartHeaderControls .chartLegend { margin-left:0; white-space:nowrap; }
+.legendExpected { width:14px; border-top:2px dashed #aabaff; }
 .legendActual { width:7px; height:7px; border-radius:2px; background:var(--position); box-shadow:0 0 6px color-mix(in srgb,var(--position) 25%,transparent); }
 .chart { min-width:0; }
 .chart svg { display:block; width:100%; height:auto; overflow:visible; }
@@ -158,6 +159,7 @@ svg { display:block; }
 .chartPoint { cursor:pointer; outline:none; }
 .chartPoint:focus-visible circle,.chartPoint:focus-visible rect { stroke:#fff; stroke-width:2; }
 .weeklyMatchups { display:grid; grid-template-columns:repeat(auto-fit,minmax(80px,1fr)); gap:5px; margin:4px 0 10px; }
+.expectedLine { fill:none; stroke:#aabaff; stroke-width:1.7; stroke-dasharray:4 4; }
 .weekMatchup { display:flex; justify-content:center; align-items:center; gap:5px; padding:4px 5px; color:var(--muted); background:#8f94a608; border:1px solid #aabbff10; border-radius:7px; font-size:9px; }
 .weekMatchup img { width:19px; height:18px; object-fit:contain; }
 .weekMatchup .weekNumber { color:var(--dim); font-size:8px; }

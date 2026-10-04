@@ -80,7 +80,7 @@ Markers are slightly larger: normal circle radius 7.3px with 11.5px opponent log
 
 ## Original chart sizes and player filtering
 
-The weekly chart is 196px tall, up from 156px. The original scatter is reduced from 452/440px to 330px desktop / 320px mobile; independent data-driven axis bounds and points/ranks modes remain intact.
+The weekly chart is 196px tall, up from 156px. Its actual bars retain the expected-points line and markers, using each opponent offense’s season scoring average reconstructed from FPAv2 at the selected position. Venue filters select the games while keeping each opponent’s full-season baseline. The original scatter is reduced from 452/440px to 330px desktop / 320px mobile; independent data-driven axis bounds and points/ranks modes remain intact.
 
 Offenses faced appends a W4 layout placeholder with a neutral logo outline and a dash for actual scoring. It uses the existing row sizing and is omitted if the selected scope has a real Week 4 entry. This row exists only in the table's HTML: no fabricated game, offense, or score enters the source, aggregates, charts, ranks, or week controls.
 

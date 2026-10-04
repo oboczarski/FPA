@@ -202,6 +202,25 @@
     };
   }
 
+  // Weekly expected points use the opposing offense's season-to-date scoring
+  // average, reconstructed from player data. Count each offense-game once.
+  function offenseAverages(model) {
+    const positions = [...POSITIONS, "ALL"], sums = new Map();
+    for (const game of model.games) {
+      if (!game.offense) continue;
+      if (!sums.has(game.offense)) sums.set(game.offense, Object.fromEntries(positions.map(pos => [pos, { cents: 0, games: 0 }])));
+      const metrics = sums.get(game.offense);
+      for (const pos of positions) {
+        const cents = pos === "ALL" ? game.totalCents : game.positionCents[pos];
+        if (cents === null) continue;
+        metrics[pos].cents += cents; metrics[pos].games++;
+      }
+    }
+    return new Map([...sums].map(([team, metrics]) => [team, Object.fromEntries(positions.map(pos => {
+      const stat = metrics[pos]; return [pos, stat.games ? stat.cents / 100 / stat.games : null];
+    }))]));
+  }
+
   function inScope(game, { from = 1, to = Infinity, venue = "all" } = {}) {
     return game.week >= from && game.week <= to && (venue === "all" || game.venue === venue);
   }
@@ -364,5 +383,5 @@
     }));
   }
 
-  return Object.freeze({ POSITIONS, TEAM_NAMES, TEAMS, REQUIRED_COLUMNS, canonicalTeam, parseOpponent, parseCSV, readSource, summarize, selectResults, inScope, readFPF, matchupAnalysis, summaryDifferences });
+  return Object.freeze({ POSITIONS, TEAM_NAMES, TEAMS, REQUIRED_COLUMNS, canonicalTeam, parseOpponent, parseCSV, readSource, offenseAverages, summarize, selectResults, inScope, readFPF, matchupAnalysis, summaryDifferences });
 });

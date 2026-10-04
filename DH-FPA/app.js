@@ -30,7 +30,7 @@
   const pickerRoots = [...document.querySelectorAll("[data-picker-kind]")];
   const state = { team: "BAL", pos: "QB", venue: "all", mode: "points", query: "", hideZero: true,
     heatSort: { pos: "QB", direction: "desc" }, playerSort: { key: "week", direction: "desc" } };
-  let model = null, summary = null, analysis = null, openPicker = null;
+  let model = null, summary = null, offenseAverages = null, analysis = null, openPicker = null;
   const tooltips = new Map();
 
   const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -192,27 +192,37 @@
   const tick = (value, bounds) => fmt(value, bounds.step ? Math.max(0, -Math.floor(Math.log10(bounds.step))) : 0);
   const frame = (id, W, H, title, content) => `<svg viewBox="0 0 ${W} ${H}" role="group" aria-labelledby="${id}-title"><title id="${id}-title">${esc(title)}</title>${content}</svg>`;
 
-  // FPAv2 supplies individual weekly totals. FPF has no per-game expectation.
+  // Each opponent's positional scoring average supplies its weekly expected line.
   function renderWeekly() {
-    const entries = comparison().entries;
+    const entries = comparison().entries.map(entry => ({ ...entry,
+      expected: offenseAverages.get(entry.offense)?.[state.pos] ?? null }));
     $("weeklyMatchups").innerHTML = entries.map(entry => `<div class="weekMatchup"><span class="weekNumber">W${entry.week}</span>${logo(entry.offense)}<span>${entry.offense ? `${entry.venue === "home" ? "vs" : "@"} ${entry.offense}` : "Offense unknown"}</span></div>`).join("");
     if (!entries.some(entry => entry.actual !== null)) { $("weeklyChart").innerHTML = empty("No recorded games", "Choose another defense venue or position."); return; }
     const W = width("weeklyChart"), H = 196, left = 31, right = W - 9, top = 22, bottom = H - 19;
-    const bounds = scale(entries.map(entry => entry.actual));
+    const bounds = scale(entries.flatMap(entry => [entry.actual, entry.expected]));
     const y = value => bottom - (value - bounds.low) / (bounds.high - bounds.low) * (bottom - top);
     const slot = (right - left) / entries.length, x = index => left + slot * (index + .5), barWidth = Math.min(49, slot * .4);
     let content = `<defs><linearGradient id="weekly-bar" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${COLORS[state.pos]}" stop-opacity=".83"/><stop offset="1" stop-color="${COLORS[state.pos]}" stop-opacity=".24"/></linearGradient></defs>`;
     content += bounds.ticks.map(n => `<line class="${n === 0 ? "zeroLine" : "gridLine"}" x1="${left}" x2="${right}" y1="${y(n)}" y2="${y(n)}"/><text x="${left - 6}" y="${y(n) + 3}" text-anchor="end">${tick(n, bounds)}</text>`).join("");
+    let segment = [];
+    const finish = () => {
+      if (segment.length > 1) content += `<polyline class="expectedLine" points="${segment.join(" ")}"/>`;
+      segment = [];
+    };
+    entries.forEach((entry, i) => {
+      if (entry.expected === null) finish(); else segment.push(`${x(i)},${y(entry.expected)}`);
+    }); finish();
     entries.forEach((entry, i) => {
       const key = `week:${entry.week}`;
-      tooltips.set(key, `<strong>${state.team} vs. ${state.pos} · Week ${entry.week}</strong><br>Actual: ${fmt(entry.actual)} PPR points<br><span class="tooltipMuted">${entry.venue === "home" ? "Defense at home" : "Defense away"}</span>`);
+      tooltips.set(key, `<strong>${state.team} vs. ${state.pos} · Week ${entry.week}</strong><br>Actual: ${fmt(entry.actual)} PPR points<br>Expected: ${fmt(entry.expected, 1)} · ${entry.offense || "Opponent"} season average<br><span class="tooltipMuted">${entry.venue === "home" ? "Defense at home" : "Defense away"}</span>`);
       if (entry.actual !== null) {
         const labelY = entry.actual >= 0 ? y(entry.actual) - 7 : Math.min(bottom - 6, y(entry.actual) + 13);
-        content += `<g class="chartPoint" role="img" tabindex="0" data-tooltip="${key}" aria-label="Week ${entry.week}: ${fmt(entry.actual)} actual ${state.pos} points"><rect x="${x(i) - barWidth / 2}" y="${Math.min(y(0), y(entry.actual))}" width="${barWidth}" height="${Math.max(2, Math.abs(y(entry.actual) - y(0)))}" rx="4" fill="url(#weekly-bar)"/><text class="chartValue" x="${x(i)}" y="${labelY}" text-anchor="middle">${fmt(entry.actual, 1)}</text></g>`;
+        content += `<g class="chartPoint" role="img" tabindex="0" data-tooltip="${key}" aria-label="Week ${entry.week}: ${fmt(entry.actual)} actual, ${fmt(entry.expected, 1)} expected ${state.pos} points"><rect x="${x(i) - barWidth / 2}" y="${Math.min(y(0), y(entry.actual))}" width="${barWidth}" height="${Math.max(2, Math.abs(y(entry.actual) - y(0)))}" rx="4" fill="url(#weekly-bar)"/><text class="chartValue" x="${x(i)}" y="${labelY}" text-anchor="middle">${fmt(entry.actual, 1)}</text></g>`;
       }
+      if (entry.expected !== null) content += `<circle class="chartPoint" cx="${x(i)}" cy="${y(entry.expected)}" r="3" fill="#aabaff" tabindex="0" role="img" data-tooltip="${key}" aria-label="${entry.offense || "Opponent"} expected Week ${entry.week} ${state.pos}: ${fmt(entry.expected, 1)} points"/>`;
       if (entries.length <= 10 || i % 2 === 0) content += `<text x="${x(i)}" y="${bottom + 14}" text-anchor="middle">W${entry.week}</text>`;
     });
-    $("weeklyChart").innerHTML = frame("weekly", W, H, `${state.team} ${state.pos}: actual weekly totals from FPAv2`, content);
+    $("weeklyChart").innerHTML = frame("weekly", W, H, `${state.team} ${state.pos}: actual weekly totals versus opposing offense averages`, content);
   }
 
   // Both axes use totals, not individual-player scores or a recent window.
@@ -392,7 +402,7 @@
       if (!Data || sources?.season !== 2026 || !sources.weekly?.csv || !sources.summary?.csv) throw new Error("The 2026 matchup source pair is unavailable.");
       const nextModel = Data.readSource(sources.weekly.csv, { name: sources.weekly.name });
       const nextSummary = Data.readFPF(sources.summary.csv, { name: sources.summary.name });
-      model = nextModel; summary = nextSummary; readURL();
+      model = nextModel; summary = nextSummary; offenseAverages = Data.offenseAverages(model); readURL();
       buildPickers();
       const differences = Data.summaryDifferences(model, summary);
       const repeatedExpectations = summary.rows.length > 0 && summary.rows.every(row => {
@@ -402,7 +412,7 @@
       $("sourceNotes").textContent = `${model.audit.excludedRows} rows without an opposing defense are excluded. ` +
         (differences.length ? "FPF season totals and FPAv2 weekly totals differ beyond rounding for " + [...new Set(differences.map(row => row.team))].join(", ") + ". Each view preserves its source. " : "") +
         (repeatedExpectations ? "FPF supplies identical RB and WR expected totals, averages, and ranks for every team; these are retained as provided. " : "") +
-        "Published averages and ranks are never recalculated. Rounded positional averages may sum differently from the supplied ALL average.";
+        "Published FPF averages and ranks are never recalculated. Rounded positional averages may sum differently from the supplied ALL average.";
       render();
     } catch (error) {
       $("loadError").textContent = `Matchup data could not load: ${error.message}`; $("loadError").hidden = false;

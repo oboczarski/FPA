@@ -25,7 +25,7 @@ FPAv2 supports both `WK` and the legacy `WEEK`; if both are supplied, conflictin
 
 Weekly bars, opponent rows, player tables, and polar game dots retain exact FPAv2 scores, including zeros and negatives. The player filter still starts by hiding scores below one point and does not change scoring aggregates.
 
-FPF contains no per-game expected score, individual offense rank, or home/away expected split. The obsolete weekly expected line, opponent-rank/expected/difference columns, and polar expected tooltip are removed. The W4 display-only placeholder remains. Venue-filtered actual charts use FPAv2; expected scatter/dumbbell comparisons show an explicit unavailable state. Partial-week model scopes also cannot allocate FPF expectations. All-games summary views use FPF.
+FPF contains no per-game expected score, individual offense rank, or home/away expected split. The weekly expected line is retained: each game uses the opposing offense’s season-to-date positional average reconstructed from FPAv2 player results, with one observation per offense-game. It does not require a precomputed per-game expectation column. Venue filters select which games appear while preserving those opponent season averages. Missing baselines remain gaps; zero and negative scoring are included. Opponent-rank/expected/difference table columns and the polar expected tooltip remain removed. The W4 display-only placeholder remains. Venue-filtered actual charts use FPAv2; expected scatter/dumbbell comparisons show an explicit unavailable state. Partial-week model scopes also cannot allocate FPF expectations. All-games summary views use FPF.
 
 Venue-only actual ranks retain the existing ascending competition order, where 1 means the fewest allowed points. The heatmap note and color direction follow the active source. Full-season ranks retain FPF's supplied descending order.
 
@@ -46,7 +46,7 @@ Seven teams have a 0.1 difference between the sum of rounded position averages a
 
 ## Focused verification
 
-The existing data/chart suites contain 47 checks covering source integrity, all 960 FPF metric values, parser aliases, missing/zero values, rank preservation, source checksums, player filters, stack values, dumbbell sorting/gradients/bounds, and polar opponent logos/spoke alignment. All passed. Independent Python CSV/Decimal/Fraction reconciliation passed for 2,880 weekly defense-position cases across 18 scopes, 960 FPF values, and 96 opponent links. Browser and visual acceptance remain user-owned; no preview was opened.
+The existing data/chart suites contain 50 checks covering source integrity, all 960 FPF metric values, parser aliases, missing/zero values, rank preservation, source checksums, player filters, stack values, dumbbell sorting/gradients/bounds, and polar opponent logos/spoke alignment. All passed. Independent Python CSV/Decimal/Fraction reconciliation passed for 2,880 weekly defense-position cases across 18 scopes, 960 FPF values, and 96 opponent links. Browser and visual acceptance remain user-owned; no preview was opened.
 
 Reproduce with:
 

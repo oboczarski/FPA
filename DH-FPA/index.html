@@ -11,12 +11,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,slnt,wdth,wght,GRAD,ROND@6..144,-10..0,25..151,1..1000,0..100,0..100&amp;family=MuseoModerno:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.8-fpf">
+  <link rel="stylesheet" href="styles.css?v=2026.12-weekly-expected">
   <link rel="stylesheet" href="chart-lab.css?v=2026.8">
-  <script defer src="data-model.js?v=2026.11-cleanup"></script>
+  <script defer src="data-model.js?v=2026.12-weekly-expected"></script>
   <script defer src="data/2026-weekly.js?v=2026.10-fpf-wr"></script>
   <script defer src="chart-utils.js?v=2026.3"></script>
-  <script defer src="app.js?v=2026.9-fpf"></script>
+  <script defer src="app.js?v=2026.12-weekly-expected"></script>
   <script defer src="vendor/amcharts5/index.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/xy.js?v=5.20.8"></script>
   <script defer src="vendor/amcharts5/radar.js?v=5.20.8"></script>
@@ -64,7 +64,7 @@
         <div class="defenseHeader"><div class="defenseLogo" id="defenseLogo"></div><div><span class="fieldLabel">FANTASY POINTS ALLOWED</span><h2 id="defenseTitle">Loading defense…</h2><p id="defenseSubtitle" class="panelSubtitle"></p></div><span class="positionBadge" id="selectedPosition" data-pos="QB">QB</span></div>
         <div class="metricStrip" id="metrics"></div>
         <section class="weeklySection" aria-labelledby="weeklyTitle">
-          <div class="sectionHeading chartHeading"><h3 id="weeklyTitle">Week by week</h3><div class="chartHeaderControls"><div class="chartLegend"><span><i class="legendActual"></i>Actual FPA</span></div><div class="positionToggle chartPositionToggle" role="group" aria-label="Weekly chart position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div></div>
+          <div class="sectionHeading chartHeading"><h3 id="weeklyTitle">Week by week</h3><div class="chartHeaderControls"><div class="chartLegend"><span><i class="legendActual"></i>Actual FPA</span><span><i class="legendExpected"></i>Expected</span></div><div class="positionToggle chartPositionToggle" role="group" aria-label="Weekly chart position"><button type="button" data-position="QB" data-pos="QB" aria-pressed="true">QB</button><button type="button" data-position="RB" data-pos="RB" aria-pressed="false">RB</button><button type="button" data-position="WR" data-pos="WR" aria-pressed="false">WR</button><button type="button" data-position="TE" data-pos="TE" aria-pressed="false">TE</button><button type="button" data-position="ALL" data-pos="ALL" aria-pressed="false">ALL</button></div></div></div>
           <div class="chart weeklyChart" id="weeklyChart"></div>
           <div class="weeklyMatchups" id="weeklyMatchups"></div>
         </section>
@@ -120,8 +120,8 @@
     </div>
     <details class="methodology"><summary><svg class="icon"><use href="#icon-info"/></svg>How expected FPA works</summary><div class="methodologyContent">
       <p><strong>Season summaries:</strong> FPF supplies actual FPA totals (QB/RB/WR/TE/ALL), averages (x), and ranks (rk), plus expected totals (vs), averages (vX), and ranks (vRK). All six fields are used directly. Rank 1 means the most points; fewer points allowed remain the tougher matchup.</p>
-      <p><strong>Weekly games and players:</strong> FPAv2 supplies individual game totals and player scores, including zero and negative results. FPF does not supply per-game expectations or offense ranks. The scatter and dumbbells compare FPF season totals; the scatter’s rank view retains FPF’s supplied ranks.</p>
-      <p>Venue describes the defense: a player’s <code>vs TB</code> puts TB away; <code>@ NYG</code> puts NYG at home. Home/away actual views use FPAv2; expected comparisons are unavailable because FPF has no venue splits. Player search and hiding scores below one point affect the player list only.</p>
+      <p><strong>Weekly games and players:</strong> FPAv2 supplies individual game totals and player scores, including zero and negative results. The weekly expected line uses each opponent offense’s season scoring average, calculated from FPAv2 player results. FPF supplies the season expectations directly. The scatter and dumbbells compare FPF season totals; the scatter’s rank view retains FPF’s supplied ranks.</p>
+      <p>Venue describes the defense: a player’s <code>vs TB</code> puts TB away; <code>@ NYG</code> puts NYG at home. Home/away actual views use FPAv2. Season-total expected comparisons are unavailable in these scopes because FPF has no venue splits; the weekly expected line still uses each displayed opponent’s season average. Player search and hiding scores below one point affect the player list only.</p>
       <p id="sourceNotes"></p>
     </div></details>
     <footer class="pageFooter"><span>DYNASTY HUB <span>/</span> MATCHUPS</span><span id="footerCoverage">2026 · PPR scoring</span></footer>
