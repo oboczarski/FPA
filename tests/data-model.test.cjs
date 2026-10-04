@@ -53,6 +53,13 @@ test("negative scores reduce totals and survive the hide-zero player filter", ()
   assert.equal(Data.summarize(model).byTeam.get("TB").metrics.RB.avg, 2);
   assert.deepEqual(Data.selectResults(model, { hideZero: true }).map(row => row.pts), [-2, 4]);
 });
+test("minimum-score filtering retains 1 point and excludes lesser scores without changing totals", () => {
+  const model = fixture(["1,Negative,RB,-2.00,vs TB", "1,Zero,RB,0.00,vs TB", "1,Half,RB,0.50,vs TB", "1,Under,RB,0.99,vs TB", "1,Boundary,RB,1.00,vs TB", "1,Over,RB,1.01,vs TB"]);
+  const before = Data.summarize(model).byTeam.get("TB").metrics.RB;
+  assert.deepEqual(Data.selectResults(model, { hideZero: true, minPoints: 1 }).map(row => row.pts), [1, 1.01]);
+  assert.equal(Data.selectResults(model).length, 6);
+  assert.deepEqual(Data.summarize(model).byTeam.get("TB").metrics.RB, before);
+});
 test("a supplied all-zero game is a real zero and still counts in the denominator", () => {
   const model = fixture(["1,Runner,RB,20,vs TB", "2,Runner,RB,0,vs TB"]);
   const stat = Data.summarize(model).byTeam.get("TB").metrics.RB;

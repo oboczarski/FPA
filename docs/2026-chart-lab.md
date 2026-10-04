@@ -1,63 +1,89 @@
-# 2026 matchup chart designs
+# 2026 matchup chart layout and styling
 
-The four amCharts views sit below the original dashboard. The original controls, weekly chart, players, expected-versus-actual scatter, opponent table, heatmap, and scoring model remain in place. Chart headers now include position bars; the scatter is taller and Players faced hides zero scores by default. New presentation is scoped to `.chartLab`. All views consume the existing analysis and share defense, position, and defense-venue selection.
+The page has one desktop grid with these direct children in reading order:
 
-## Positional scoring bars
+| Row | Left | Right |
+| --- | --- | --- |
+| 1 | Defense summary, weekly scoring, Players faced | Original expected-versus-actual scatter and offenses faced |
+| 2 | Positional stacked scoring bars | Matchup heatmap |
+| 3 | Actual-versus-expected dumbbells | Polar matchup scatter |
 
-The sunburst has been replaced with horizontal stacked bars for all 32 defenses. In ALL mode, four segments show each defense's original QB/RB/WR/TE FPA per game. Their sum reconciles to ALL FPA/game for the supplied all/home/away scopes; ALL is never added as a fifth segment. Choosing one position isolates its scoring across every team. Teams are ordered by the displayed FPA/game, from highest to lowest, with alphabetical ties. The zero baseline and outward-rounded bounds support direct length comparisons.
+At 1100px and below the panels stack in that order. The user's overall 640px chart-body heights for stacked bars and dumbbells are retained, including the headings and legends moved out of the canvas. Their minimum canvas widths remain 630px. The polar chart body keeps its 700px desktop / 850px narrow-screen height and its 600px minimum canvas width. Canvas regions fill the remaining space within these bodies, avoiding extra panel height from the HTML headings. These remain editable in chart-lab.css. The bullet-ranking panel, renderer, readout, and unused suppression calculations have been removed.
 
-Position colors come from the amCharts palette and use gradients within each segment. The selected defense has brighter segments and a light border. The bar-end label is the exact displayed FPA/game rounded to two decimals; tooltips show the position, scoring, original rank, expected average, and games. Selecting a segment updates the dashboard defense and position. Zero values remain zero, with no invented minimum bar length; the end label and selected-team readout retain them. The 860px canvas gives every team a separate row, with a 580px minimum width and horizontal scrolling on small screens.
+## CSS text styling
 
-## Actual-versus-expected dumbbells
+Headings, subheadings, legends, the focus button, footnotes, and selected-team readouts are real HTML. Style them directly with .labTitle, .labSubtitle, .labCaption, .labLegend, .labFocusButton, .labFootnote, and .labReadout. The heading and caption inset is --lab-heading-inset: 32px, reduced to 20px on mobile. Their alignment no longer depends on canvas coordinates.
 
-The parallel-coordinate chart has been replaced with a horizontal dumbbell comparison. Each of the 32 rows pairs the actual FPA total and the expected total for the selected position over exactly the same games, using the same values as the original points-mode scatter. A hollow light ring marks expected scoring; a smaller filled dot marks actual scoring. Equal values remain concentric, with the expected ring visible around the actual dot. Zero expectations remain valid values; incomplete expectations remain unavailable.
+amCharts draws its remaining text on canvas. The chart reads the following CSS properties and applies them through amCharts label settings. Set them on .chartLab for all charts or on #labBreakdownPanel, #labDumbbellPanel, or #labPolarPanel for one chart. Use px for sizes, supported font-weight strings/numbers, and hex or RGB colors.
 
-The connector's geometry runs from the smaller value to the larger value. Its gradient always brightens toward the actual endpoint: blue on the left for below expectation, rose on the right for above expectation, using the native amCharts palette. Endpoints are separate series tied explicitly to actualTotal and expectedTotal, so changing direction cannot swap their meanings. The right-hand label is actual minus expected, in points. Rows are sorted by this difference from most below to most above expectation, with alphabetical ties. Axis bounds include both endpoint values and round outward to multiples of 10. Tooltips/readouts include both totals, the difference, and the game count. Selecting a connector, endpoint, or label selects that defense. The canvas is 860px tall with a 600px minimum width.
+| Text | CSS properties |
+| --- | --- |
+| All canvas text | --am-font-family |
+| Numeric axes | --am-axis-font-size, --am-axis-color, --am-axis-font-weight |
+| Team axes | --am-team-font-size, --am-team-color, --am-team-font-weight |
+| Scoring and Δ labels | --am-label-font-size, --am-label-color, --am-label-font-weight |
+| Selected text | --am-selected-text-color, --am-selected-font-weight |
+| Tooltips | --am-tooltip-font-size, --am-tooltip-color, --am-tooltip-font-weight, --am-tooltip-background, --am-tooltip-border, --am-tooltip-line-height |
+| Polar center | --am-center-font-size, --am-center-team-font-size, --am-center-detail-font-size, --am-center-color, --am-center-font-weight |
 
-## Position controls and page defaults
+Example:
 
-All seven charts have accessible QB/RB/WR/TE/ALL bars at the top right of their headers. They use the existing shared selection handler and synchronized aria-pressed states, including the original toolbar and expanded-player controls. The heatmap keeps all five position columns while highlighting and sorting by the selected position. New headers wrap at narrow widths; canvases retain their minimum readable widths inside their existing horizontal scroll containers. The two-column desktop chart section becomes one column below 1100px.
-
-The original expected-versus-actual scatter is twice its previous height: 452px above the mobile breakpoint and 440px at 620px and below. Independent points-axis bounds and the existing ranks mode remain intact. Hide zeros starts checked in both Players faced views; it affects only visible player records, never scoring totals or chart values.
-
-## Opponent-adjusted bullet ranking
-
-All 32 complete comparisons are ordered from greatest scoring suppression to least. Each row is a bullet graph: the colored horizontal bar is actual FPA/game; the pale track and white threshold are the expected scoring of the opposing offenses. A dashed vertical guide marks the weighted league offense baseline. The right-hand badges show suppression and offense strength. Actual and expected values, game count, and adjusted rank appear in the tooltip and selected-team readout.
-
+```css
+#labDumbbellPanel {
+  --am-label-font-size: 11px;
+  --am-label-color: #e3edff;
+  --am-team-font-weight: 600;
+}
+#labPolarPanel .labTitle { font-size: 21px; }
+.chartLab { --lab-heading-inset: 36px; }
 ```
-expected total = sum(each opposing offense's supplied TSUMS positional average once per game)
-league baseline = sum(TSUMS position average × offense games) / sum(offense games)
-suppression (%) = 100 × (1 − actual total / expected total)
-opponent strength (%) = 100 × (expected FPA/game / league baseline − 1)
-```
 
-Rank 1 is the smallest actual-to-expected ratio, with competition ties (1, 1, 3). A defense allowing 10 against a 30-point baseline ranks tougher than one allowing 5 against a 5-point baseline. Stronger opponent scoring produces a longer expectation track and a positive offense-strength badge. Expectations remain position- and venue-specific. ALL uses supplied ALLx directly. Missing or nonpositive baselines remain unavailable. The FPA axis fits the actual and expected values outward to multiples of 10 and includes zero.
+The page detects inline style/class changes on chart panels, page-level class changes, stylesheet-element changes, and responsive font changes on resize. CSS file edits take effect on reload. After editing a stylesheet rule in DevTools without changing an element attribute, call window.FPAChartLab.refreshStyles() to re-read computed properties. A chart is recreated only when its canvas text settings change; its defense, position, venue, and focus state are retained. DOM text responds to CSS directly.
 
-Only the supplied FPAv2 and TSUMS data are used. These are opponent-adjusted comparisons from the three-week sample; TSUMS averages include games against the selected defense. The chart's methodology disclosure makes this limitation explicit.
+## Always-ALL positional stacks
 
-## Aligned polar matchup scatter
+All 32 defenses have one horizontal bar. Four segments preserve their QB/RB/WR/TE FPA per game and reconcile to ALL for every supplied venue scope. ALL is never added as a fifth segment. The view always shows all four positions, regardless of the dashboard position, and has no position filter. It still follows defense venue, highlights the selected defense, and allows a segment to select its team and position in the rest of the dashboard.
 
-The chart keeps the user-adjusted two-column desktop layout, 700px canvas height, and 600px minimum width. At 1100px and below the panels stack and its canvas is 850px tall. A 98% radar radius uses the available chart area. Smaller markers use 5.2px circles and 8px logos; selection increases these to 6.5px and 9px. Each marker logo identifies the opposing offense (the source entry's offense), while its category, spoke, score, tooltip defense, and click selection still identify the defense that allowed those points. Original scatter fills, positional selection colors, and defense-rank ring colors are retained. Week rings are solid, dashed, and dotted.
+Teams sort by ALL FPA/game from highest to lowest, with alphabetical ties. End labels show ALL scoring to two decimals. Tooltips preserve each position's exact average, original rank, opponent expectation, and game count. Zero values keep their real zero length. No source or scoring aggregate changes.
 
-Category labels, grid spokes, ticks, and every game bullet all use category location **0.5**. Each defense's three games therefore lie on exactly its label's spoke, at the angle `-90 + (team index + 0.5) × 360 / 32`. Week has no effect on angle. Radius is the game's actual positional FPA, including zero and negative values, with no score jitter. Bounds fit the data outward to multiples of 10 and include zero.
+## Dumbbells
 
-All-games mode contains 96 distinct team-week observations for each selected position. Home/away filtering retains all 32 spokes and includes the 48 matching game observations. Each tooltip identifies the defense, opposing offense, week, actual score, and expected baseline, then lists every recorded game on that spoke. Equal scores occupy the same location truthfully and remain identified in the tooltip/readout. The selected defense has a highlighted spoke and center label.
+Each team pairs actual FPA total with expected FPA total over the same selected position/game/venue scope, exactly matching the original scatter values. The hollow ring is expected; the filled dot is actual. Teams sort by actual FPA from highest to lowest, with alphabetical ties.
+
+Both endpoints have a scoring label: the lower value's label sits to its left, the higher value's label to its right. Equal values remain concentric, with expected labeled left and actual right. Axis bounds include both endpoint values, round outward to tens, and include extra plot gutters for these labels. The Δ column shows actual minus expected; its exact values remain in the tooltip and selected-team readout too.
+
+Four distinct native-palette gradients encode direction and magnitude:
+
+- Below expected, less than 25%: cyan/blue.
+- Below expected, at least 25%: blue/violet.
+- Above expected, less than 25%: magenta/rose.
+- Above expected, at least 25%: rose/orange.
+
+Each treatment has three gradient stops and brightens toward actual scoring. Magnitude is abs(actual − expected) / abs(expected). A nonzero result against zero expectation uses the stronger treatment. Zero/equal endpoints stay valid; missing expectations remain unavailable. Endpoint series are explicitly bound to actualTotal and expectedTotal, so their meanings never swap with direction.
+
+## Polar matchup scatter
+
+All 32 defense labels, grid spokes, ticks, and per-game bullets use category location 0.5. Every defense's games lie at exactly its label's angle, with radius representing actual positional FPA. The opponent logo identifies the offense that scored the points; the category, tooltip defense, and click selection identify the defense that allowed them. No angle or scoring jitter is introduced.
+
+Markers are slightly larger: normal circle radius 6.4px with 10px opponent logos; selection uses radius 7.6px and 11px logos. Solid/dashed/dotted rings distinguish weeks. The radar radius remains 98%. All-games mode includes 96 dots per position; venue filtering preserves 32 spokes and includes the 48 matching dots. Equal scores share their true location and remain identifiable in tooltips/readouts. The HTML focus button dims the other teams.
+
+## Original chart sizes and player filtering
+
+The weekly chart is 196px tall, up from 156px. The original scatter is reduced from 452/440px to 330px desktop / 320px mobile; independent data-driven axis bounds and points/ranks modes remain intact.
+
+Hide <1 point starts checked in both Players faced views. It excludes zero, fractional, and negative scores below one PPR point, retaining exactly 1.00 and above. Unchecking restores the full recorded player list. Filtering uses integer cents and never changes actual FPA, expected FPA, ranks, or game counts.
 
 ## Implementation and verification
 
-Charts initialize near the viewport and keep their roots through selection changes. Roots dispose on page exit and rebuild after back-forward-cache restoration. Panel errors are isolated from the original dashboard. Tooltips and chart titles are rendered through amCharts APIs. Animated and Dark themes are applied, reduced-motion interpolation is disabled, and library attribution remains intact. No exporting, upload, download, or week-range control is introduced.
+Only the supplied FPAv2 and TSUMS data are used. Expectations add each opposing offense's supplied positional average once per observed game. The bundled amCharts 5.20.8 core, XY, radar, Animated, and Dark libraries retain their original license, attribution, and SHA-256 provenance. Charts initialize near the viewport, dispose on page exit, and rebuild after back-forward-cache restoration. No upload, export, or week-range controls are introduced.
 
-The locally bundled, unchanged amCharts 5.20.8 core, XY, radar, Animated, and Dark files have SHA-256 provenance and the original license in `DH-FPA/vendor/amcharts5/`. The page no longer loads hierarchy.js because neither replacement uses it; its vendored file remains intact.
-
-Ten focused model tests passed, covering all 160 original team-position values, positional bar sums, exact dumbbell totals across five positions and three venues, zero/equal/missing expectations, 96 game dots per position with exact opponent logos and spoke alignment, venue filtering, supplied baselines, opponent-adjusted ordering, competition ties, and unavailable expectations. JavaScript syntax and source preservation are checked separately. Browser interaction and visual checks remain user-owned; no preview was opened.
+Seven focused chart-model tests and one focused player-filter test passed. They cover source preservation, all team/position values, invariant ALL stacks, exact actual/expected totals across all positions and venues, four gradient classifications, descending actual-FPA ordering, endpoint sides including ties, zero/missing expectations, opponent logos, and spoke alignment. Browser and visual checks remain user-owned; no preview was opened.
 
 Primary implementation references:
 
-- [Supplied amCharts skill](../.agents/skills/amcharts5-skill-main/amcharts5-skill/SKILL.md), particularly XY and radar references
-- [Official stacked bar demo and source](https://www.amcharts.com/demos/stacked-bar-chart/)
-- [Official horizontal dumbbell demo and source](https://www.amcharts.com/demos/dumbbell-plot/)
-- [Column series](https://www.amcharts.com/docs/v5/charts/xy-chart/series/column-series/)
-- [Official bullet chart demo and source](https://www.amcharts.com/demos/bullet-chart/)
-- [Line series](https://www.amcharts.com/docs/v5/charts/xy-chart/series/line-series/)
+- [Supplied amCharts skill](../.agents/skills/amcharts5-skill-main/amcharts5-skill/SKILL.md)
+- [Official stacked bar demo](https://www.amcharts.com/demos/stacked-bar-chart/)
+- [Official dumbbell demo](https://www.amcharts.com/demos/dumbbell-plot/)
+- [Gradients](https://www.amcharts.com/docs/v5/concepts/colors-gradients-and-patterns/gradients/)
+- [Text styling](https://www.amcharts.com/docs/v5/concepts/formatters/text-styling/)
 - [Radar axes](https://www.amcharts.com/docs/v5/charts/radar-chart/radar-axes/)
-- Pinned library definitions for category-coordinate placement, default colors, and bullet factories

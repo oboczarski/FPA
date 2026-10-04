@@ -261,12 +261,12 @@
     return { rows, byTeam, league, pools, games: scopedGames, scope };
   }
 
-  function selectResults(model, { team = null, pos = null, from = 1, to = Infinity, venue = "all", query = "", hideZero = false } = {}) {
+  function selectResults(model, { team = null, pos = null, from = 1, to = Infinity, venue = "all", query = "", hideZero = false, minPoints = null } = {}) {
     const search = String(query).trim().toLowerCase();
     return model.results.filter(row =>
       (!team || row.def === team) && (!pos || pos === "ALL" || row.pos === pos) &&
       row.week >= from && row.week <= to && (venue === "all" || row.defenseVenue === venue) &&
-      (!hideZero || row.cents !== 0) &&
+      (!hideZero || row.cents !== 0) && (!Number.isFinite(minPoints) || row.cents >= Math.round(minPoints * 100)) &&
       (!search || [row.player, row.playerTeam, TEAM_NAMES[row.playerTeam], row.vs].filter(Boolean).some(value => value.toLowerCase().includes(search)))
     );
   }

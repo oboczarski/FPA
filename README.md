@@ -6,13 +6,16 @@ The static app lives in `DH-FPA/index.html`. It uses the supplied **FPAv2.csv** 
 
 - Compact DataHub-style background, gradient accents, glass panels, and Game Logs-style tables.
 - Shared defense, QB/RB/WR/TE/ALL, and defense-venue selection. The original AFC/NFC division picker with team logos is restored in the main controls and expanded player view; venue menus use the same treatment.
-- Actual and expected scoring summary, weekly positional totals, and the selected matchup's player records immediately below the chart.
-- Search, zero-score visibility (Hide zeros starts checked), sorting, and an expanded player table. Negative scores remain included. Player-list controls do not change scoring aggregates.
-- Expected-versus-actual scatter with points and ranks modes, at twice its previous height (452px desktop / 440px mobile). Selecting a defense logo updates the matchup; logos also support Enter/Space.
+- Actual and expected scoring summary, a 196px weekly chart, and the selected matchup's player records immediately below it.
+- Search, sorting, and an expanded player table. Hide <1 point starts checked in both player views and hides all scores below one PPR point, including zero and negative scores; unchecking shows them again. Player-list controls never change scoring aggregates, which retain every valid score.
+- Expected-versus-actual scatter with points and ranks modes, at 330px desktop / 320px mobile. Selecting a defense logo updates the matchup; logos also support Enter/Space.
 - Opponent offense table with the supplied TSUMS scoring average/rank, actual points against the selected defense, and the difference.
 - Sortable, selectable league heatmap of FPA/game and defense ranks.
-- Four amCharts views: 32 stacked positional scoring bars, actual-versus-expected dumbbells for every defense, an opponent-adjusted bullet ranking, and a polar scatter whose game markers show opposing offense logos. ALL stacks QB/RB/WR/TE in the scoring bars; an individual position isolates that position. Dumbbells use the same totals as the original scatter, with gradients that brighten toward actual scoring.
-- Every chart has a top-right QB/RB/WR/TE/ALL bar. These controls share the existing dashboard position selection and stay synchronized. The heatmap keeps all five columns and highlights/sorts the selected position. The additional views keep the two-column desktop layout and stack into one column below 1100px.
+- Three amCharts views: stacked positional scoring bars that always show QB/RB/WR/TE together, actual-versus-expected dumbbells sorted by actual FPA from highest to lowest, and a polar scatter whose markers show opposing offense logos. The former bullet ranking and its calculation/rendering code are removed.
+- Dumbbells have two gradients for below expectation and two for above, with the stronger treatment at differences of at least 25%. Exact actual and expected values are labeled outside the endpoint pair; equal values keep the expected label on the left and actual on the right. The separate Δ column remains.
+- Position bars remain on the weekly chart, original scatter, heatmap, dumbbells, and polar scatter. The stacked bars always show ALL and have no position filter. Selection still synchronizes across the other controls.
+- One desktop grid provides three aligned rows: defense / original scatter; stacked bars / heatmap; dumbbells / polar scatter. At 1100px and below it stacks in that reading order.
+- amCharts headings, subheadings, legends, and focus controls are HTML with normal CSS styling. Canvas axis/value/tooltip/center text uses the documented --am-* properties in chart-lab.css. Chart headings have a 32px left inset (20px mobile).
 
 There are no upload/download/export controls, saved uploaded datasets, week-range controls, recent-form comparisons, or trend panels. The app always starts from the bundled source pair. Matchup selections are reflected in the URL.
 
@@ -59,6 +62,6 @@ python3 tests/reconcile_source.py
 
 The targeted calculation suite covers source controls, opponent/venue interpretation, missing values, zeros/negatives, expected-game counting, supplied ALLx handling, complete rank cohorts, ties, source differences, and snapshot identity. Independent Python CSV/Decimal/Fraction reconciliation checks 2,880 defense-position cases across 18 scopes. Source control totals in the tests should be updated deliberately when the supplied period changes.
 
-The ten chart-model checks cover all 160 team-position values, stacked positional averages without double-counting ALL, exact dumbbell totals across all positions and venues, zero/equal/missing expectations, 96 unique game dots per position with opponent logos aligned to 32 defense spokes, venue filtering, supplied offense baselines, opponent-adjusted ordering, ties, and missing-baseline handling. Libraries are bundled locally at amCharts 5.20.8; their original license and built-in attribution are retained.
+The seven active chart-model checks cover all 160 team-position values, always-ALL positional stacks without double-counting, exact dumbbell totals across all positions and venues, sorting, four gradient classifications, endpoint-label sides, zero/equal/missing expectations, 96 unique game dots per position with opponent logos aligned to 32 defense spokes, and venue filtering. A focused player-filter check verifies the one-point boundary and unchanged scoring totals. Libraries are bundled locally at amCharts 5.20.8; their original license and built-in attribution are retained.
 
 Browser and visual checks are user-owned. No preview is opened as part of delivery. The new chart designs, formulas, and library sources are documented in `docs/2026-chart-lab.md`. Earlier implementation notes are in `docs/2026-refinement.md`; `docs/2026-rebuild.md` records the superseded first rebuild.

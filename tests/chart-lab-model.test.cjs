@@ -48,8 +48,8 @@ test("stacked bars preserve every positional average and sum ALL exactly in each
       assert.equal(view.breakdown.length, 32);
       for (const row of view.breakdown) {
         const source = scoped.byTeam.get(row.team).metrics;
-        assert.equal(row.pos, pos); assert.equal(row.avg, source[pos].actual.avg);
-        assert.equal(row.rank, source[pos].actual.rank);
+        assert.equal(row.pos, "ALL"); assert.equal(row.avg, source.ALL.actual.avg);
+        assert.equal(row.rank, source.ALL.actual.rank);
         for (const p of Lab.POSITIONS) assert.equal(row[p], source[p].actual.avg);
         near(["QB", "RB", "WR", "TE"].reduce((sum, p) => sum + row[p], 0), row.ALL);
       }
@@ -84,19 +84,6 @@ test("venue filters keep the team sectors but only include games at the selected
     assert.ok(view.polar.every(row => row.venue === venue));
   }
 });
-test("suppression and schedule strength use the supplied per-position baselines, including ALLx", () => {
-  for (const pos of Lab.POSITIONS) {
-    const view = Lab.build(analysis, offenses, pos);
-    const weighted = offenses.rows.reduce((sum, row) => sum + row.games * row.metrics[pos].avg, 0) /
-      offenses.rows.reduce((sum, row) => sum + row.games, 0);
-    near(view.baseline, weighted);
-    for (const row of view.pressure) {
-      const c = analysis.byTeam.get(row.team).metrics[pos];
-      near(row.suppression, -c.deltaPct); near(row.strength, (c.expectedAvg / weighted - 1) * 100);
-      assert.equal(row.actualAvg, c.actual.avg); assert.equal(row.expectedAvg, c.expectedAvg);
-    }
-  }
-});
 function fixture(entries) {
   const rows = entries.map(([team, actualAvg, expectedAvg]) => ({ team, metrics: Object.fromEntries(Lab.POSITIONS.map(pos => [pos, {
     actual: { avg: actualAvg, total: actualAvg * 3, rank: 1, pool: entries.length, games: 3 },
@@ -104,32 +91,8 @@ function fixture(entries) {
   }])) }));
   return { rows, byTeam: new Map(rows.map(row => [row.team, row])) };
 }
-const baselineFixture = { rows: [
-  { games: 3, metrics: Object.fromEntries(Lab.POSITIONS.map(pos => [pos, { avg: 5 }])) },
-  { games: 3, metrics: Object.fromEntries(Lab.POSITIONS.map(pos => [pos, { avg: 30 }])) },
-] };
-test("holding a strong offense below baseline outranks merely allowing fewer points against a weak offense", () => {
-  const view = Lab.build(fixture([["BAL", 5, 5], ["PHI", 10, 30]]), baselineFixture, "QB");
-  const weak = view.pressure.find(row => row.team === "BAL"), strong = view.pressure.find(row => row.team === "PHI");
-  assert.equal(weak.suppression, 0); near(strong.suppression, 200 / 3);
-  assert.equal(strong.adjustedRank, 1); assert.equal(weak.adjustedRank, 2);
-  assert.ok(strong.strength > 0 && weak.strength < 0);
-});
-test("suppression ranks use competition ties and unavailable baselines never become zero", () => {
-  const view = Lab.build(fixture([["BAL", 10, 20], ["PHI", 15, 30], ["KC", 20, 20], ["NE", 0, null], ["BUF", 0, 0]]), baselineFixture, "RB");
-  assert.deepEqual(view.pressure.map(row => [row.team, row.adjustedRank]), [["BAL", 1], ["PHI", 1], ["KC", 3]]);
-  const tied = view.cells.filter(row => row.pos === "RB");
-  assert.ok(tied.every(row => row.rank === 1));
-});
-test("league baselines weight averages by games and ignore missing averages", () => {
-  const baseline = Lab.leagueBaseline({ rows: [
-    { games: 1, metrics: { TE: { avg: 10 } } }, { games: 3, metrics: { TE: { avg: 20 } } },
-    { games: 3, metrics: { TE: { avg: null } } }, { games: 0, metrics: { TE: { avg: 999 } } },
-  ] }, "TE");
-  assert.equal(baseline, 17.5);
-});
 test("dumbbells retain zero expectations and equal endpoints but omit missing baselines", () => {
-  const view = Lab.build(fixture([["BAL", 10, 20], ["PHI", 20, 10], ["KC", 20, 20], ["NE", 0, null], ["BUF", 0, 0]]), baselineFixture, "RB");
+  const view = Lab.build(fixture([["BAL", 10, 20], ["PHI", 20, 10], ["KC", 20, 20], ["NE", 0, null], ["BUF", 0, 0]]), offenses, "RB");
   assert.equal(view.dumbbell.length, 4);
   assert.equal(view.dumbbell.some(row => row.team === "NE"), false);
   const below = view.dumbbell.find(row => row.team === "BAL"), above = view.dumbbell.find(row => row.team === "PHI");
@@ -140,4 +103,20 @@ test("dumbbells retain zero expectations and equal endpoints but omit missing ba
     assert.equal(row.actualTotal, row.expectedTotal);
     assert.equal(row.lowTotal, row.highTotal); assert.equal(row.deltaTotal, 0);
   }
+});
+test("dumbbells sort by actual FPA and choose four gradients with labels on the correct sides", () => {
+  const view = Lab.build(fixture([["BAL", 18, 20], ["PHI", 10, 20], ["KC", 22, 20], ["BUF", 30, 20], ["NE", 20, 20]]), offenses, "QB");
+  assert.deepEqual(view.dumbbell.map(row => row.team), ["BUF", "KC", "NE", "BAL", "PHI"]);
+  const byTeam = new Map(view.dumbbell.map(row => [row.team, row]));
+  assert.equal(byTeam.get("BAL").gradientKey, "belowSoft");
+  assert.equal(byTeam.get("PHI").gradientKey, "belowStrong");
+  assert.equal(byTeam.get("KC").gradientKey, "aboveSoft");
+  assert.equal(byTeam.get("BUF").gradientKey, "aboveStrong");
+  assert.equal(byTeam.get("NE").gradientKey, "belowSoft");
+  for (const row of view.dumbbell) {
+    const left = row.expectedOnLeft ? row.expectedTotal : row.actualTotal;
+    const right = row.expectedOnLeft ? row.actualTotal : row.expectedTotal;
+    assert.ok(left <= right);
+  }
+  assert.equal(byTeam.get("NE").expectedOnLeft, true);
 });
