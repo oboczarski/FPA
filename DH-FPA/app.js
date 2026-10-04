@@ -190,7 +190,7 @@
     return { low, high, ticks, step };
   }
   const tick = (value, bounds) => fmt(value, bounds.step ? Math.max(0, -Math.floor(Math.log10(bounds.step))) : 0);
-  const frame = (id, W, H, title, content) => `<svg viewBox="0 0 ${W} ${H}" role="group" aria-labelledby="${id}-title"><title id="${id}-title">${esc(title)}</title>${content}</svg>`;
+  const frame = (W, H, label, content) => `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(label)}">${content}</svg>`;
 
   // Each opponent's positional scoring average supplies its weekly expected line.
   function renderWeekly() {
@@ -202,7 +202,7 @@
     const bounds = scale(entries.flatMap(entry => [entry.actual, entry.expected]));
     const y = value => bottom - (value - bounds.low) / (bounds.high - bounds.low) * (bottom - top);
     const slot = (right - left) / entries.length, x = index => left + slot * (index + .5), barWidth = Math.min(49, slot * .4);
-    let content = `<defs><linearGradient id="weekly-bar" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${COLORS[state.pos]}" stop-opacity=".83"/><stop offset="1" stop-color="${COLORS[state.pos]}" stop-opacity=".24"/></linearGradient></defs>`;
+    let content = `<defs><linearGradient id="weekly-bar" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${COLORS[state.pos]}" stop-opacity=".83"/><stop offset="1" stop-color="${COLORS[state.pos]}" stop-opacity=".24"/></linearGradient><linearGradient id="weekly-expected-line" gradientUnits="userSpaceOnUse" x1="${left}" y1="0" x2="${right}" y2="0"><stop stop-color="#8af7ff" stop-opacity=".71"/><stop offset="1" stop-color="#e3b3ff" stop-opacity=".66"/></linearGradient></defs>`;
     content += bounds.ticks.map(n => `<line class="${n === 0 ? "zeroLine" : "gridLine"}" x1="${left}" x2="${right}" y1="${y(n)}" y2="${y(n)}"/><text x="${left - 6}" y="${y(n) + 3}" text-anchor="end">${tick(n, bounds)}</text>`).join("");
     let segment = [];
     const finish = () => {
@@ -219,10 +219,12 @@
         const labelY = entry.actual >= 0 ? y(entry.actual) - 7 : Math.min(bottom - 6, y(entry.actual) + 13);
         content += `<g class="chartPoint" role="img" tabindex="0" data-tooltip="${key}" aria-label="Week ${entry.week}: ${fmt(entry.actual)} actual, ${fmt(entry.expected, 1)} expected ${state.pos} points"><rect x="${x(i) - barWidth / 2}" y="${Math.min(y(0), y(entry.actual))}" width="${barWidth}" height="${Math.max(2, Math.abs(y(entry.actual) - y(0)))}" rx="4" fill="url(#weekly-bar)"/><text class="chartValue" x="${x(i)}" y="${labelY}" text-anchor="middle">${fmt(entry.actual, 1)}</text></g>`;
       }
-      if (entry.expected !== null) content += `<circle class="chartPoint" cx="${x(i)}" cy="${y(entry.expected)}" r="3" fill="#aabaff" tabindex="0" role="img" data-tooltip="${key}" aria-label="${entry.offense || "Opponent"} expected Week ${entry.week} ${state.pos}: ${fmt(entry.expected, 1)} points"/>`;
+      const delta = entry.actual !== null && entry.expected !== null ? entry.actual - entry.expected : 0;
+      const expectedFill = delta > 1e-9 ? "#8af7ffb5" : delta < -1e-9 ? "#e3b3ffa8" : "#aabaff";
+      if (entry.expected !== null) content += `<circle class="chartPoint" cx="${x(i)}" cy="${y(entry.expected)}" r="3" style="fill:${expectedFill}" tabindex="0" role="img" data-tooltip="${key}" aria-label="${entry.offense || "Opponent"} expected Week ${entry.week} ${state.pos}: ${fmt(entry.expected, 1)} points"/>`;
       if (entries.length <= 10 || i % 2 === 0) content += `<text x="${x(i)}" y="${bottom + 14}" text-anchor="middle">W${entry.week}</text>`;
     });
-    $("weeklyChart").innerHTML = frame("weekly", W, H, `${state.team} ${state.pos}: actual weekly totals versus opposing offense averages`, content);
+    $("weeklyChart").innerHTML = frame(W, H, `${state.team} ${state.pos}: actual weekly totals versus opposing offense averages`, content);
   }
 
   // Both axes use totals, not individual-player scores or a recent window.
@@ -259,9 +261,9 @@
     points.sort((a, b) => Number(a.team === state.team) - Number(b.team === state.team)).forEach(point => {
       const c = point.c, selected = point.team === state.team, key = `scatter:${point.team}`;
       tooltips.set(key, `<strong>${esc(Data.TEAM_NAMES[point.team])} · ${state.pos}</strong><br>Expected: ${fmt(c.expectedTotal, 1)} PPR points<br>Actual: ${fmt(c.actual.total)} PPR points<br><span class="${direction(c.delta)}">${signed(c.delta, 2)} points versus expected</span><br><span class="tooltipMuted">${c.games} games${ranked ? ` · Expected rank ${c.expectedRank}, actual rank ${c.actualRank}` : ""}</span>`);
-      content += `<g class="chartPoint" role="button" tabindex="0" aria-pressed="${selected}" data-chart-team="${point.team}" data-tooltip="${key}" aria-label="Explore ${point.team}: expected ${fmt(point.x, ranked ? 0 : 1)}, actual ${fmt(point.y, ranked ? 0 : 2)} ${ranked ? "rank" : "total points"}"><circle cx="${x(point.x)}" cy="${y(point.y)}" r="${selected ? 12 : 10}" fill="#10182b" stroke="${selected ? COLORS[state.pos] : heatColor(c.actual)}" stroke-width="${selected ? 2 : .9}"/><image href="assets/NFL-Tags_webp/${point.team.toLowerCase()}.webp" x="${x(point.x) - 8}" y="${y(point.y) - 8}" width="16" height="16"/><title>${point.team}: ${fmt(point.x)} expected, ${fmt(point.y)} actual</title></g>`;
+      content += `<g class="chartPoint" role="button" tabindex="0" aria-pressed="${selected}" data-chart-team="${point.team}" data-tooltip="${key}" aria-label="Explore ${point.team}: expected ${fmt(point.x, ranked ? 0 : 1)}, actual ${fmt(point.y, ranked ? 0 : 2)} ${ranked ? "rank" : "total points"}"><circle cx="${x(point.x)}" cy="${y(point.y)}" r="${selected ? 12 : 10}" fill="#10182b" stroke="${selected ? COLORS[state.pos] : heatColor(c.actual)}" stroke-width="${selected ? 2 : .9}"/><image href="assets/NFL-Tags_webp/${point.team.toLowerCase()}.webp" x="${x(point.x) - 8}" y="${y(point.y) - 8}" width="16" height="16"/></g>`;
     });
-    $("comparisonChart").innerHTML = frame("expected-actual", W, H, `${state.pos} expected versus actual FPA ${ranked ? "total ranks" : "totals"}, ${venueLabel()}`, content);
+    $("comparisonChart").innerHTML = frame(W, H, `${state.pos} expected versus actual FPA ${ranked ? "total ranks" : "totals"}, ${venueLabel()}`, content);
   }
   function renderScatterDetail(team) {
     const c = comparison(team), ranked = state.mode === "rank";

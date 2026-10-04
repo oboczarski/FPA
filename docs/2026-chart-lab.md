@@ -82,6 +82,8 @@ Markers are slightly larger: normal circle radius 7.3px with 11.5px opponent log
 
 The weekly chart is 196px tall, up from 156px. Its actual bars retain the expected-points line and markers, using each opponent offense’s season scoring average reconstructed from FPAv2 at the selected position. Venue filters select the games while keeping each opponent’s full-season baseline. The original scatter is reduced from 452/440px to 330px desktop / 320px mobile; independent data-driven axis bounds and points/ranks modes remain intact.
 
+The weekly expected markers use `#8af7ffb5` when actual FPA is above expected and `#e3b3ffa8` when it is below; equal or unavailable actual scoring retains the neutral marker color. The connecting line and legend use a cyan-to-lavender gradient. Its SVG gradient uses chart coordinates so it also renders when all expected values are equal. Native SVG titles are replaced by accessible labels on the weekly chart, original scatter, and scatter points; their custom tooltips remain without a second browser tooltip.
+
 Offenses faced appends a W4 layout placeholder with a neutral logo outline and a dash for actual scoring. It uses the existing row sizing and is omitted if the selected scope has a real Week 4 entry. This row exists only in the table's HTML: no fabricated game, offense, or score enters the source, aggregates, charts, ranks, or week controls.
 
 Hide <1 point starts checked in both Players faced views. It excludes zero, fractional, and negative scores below one PPR point, retaining exactly 1.00 and above. Unchecking restores the full recorded player list. Filtering uses integer cents and never changes actual FPA, expected FPA, ranks, or game counts.
