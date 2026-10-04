@@ -4,8 +4,8 @@
   const $ = id => document.getElementById(id), Model = window.FPAChartLabData;
   const scenes = new Map(), observed = new Set();
   const definitions = [
-    { id: "labBreakdown", title: "Scoring allowed, position by position", kind: "all", create: scoringBreakdown },
-    { id: "labDumbbell", title: "Actual vs. expected, team by team", kind: "position", create: actualExpectedDumbbells },
+    { id: "labBreakdown", title: "Scoring allowed, position by position", kind: "all", nativeResolution: true, create: scoringBreakdown },
+    { id: "labDumbbell", title: "Actual vs. expected, team by team", kind: "position", nativeResolution: true, create: actualExpectedDumbbells },
     { id: "labPolar", title: "Every game, on its defense’s spoke", kind: "position", create: polarScatter },
   ];
   let current = null, snapshot = null, observer = null, styleObserver = null, styleTimer = null;
@@ -19,7 +19,7 @@
     const css = getComputedStyle(host);
     const value = (name, fallback) => css.getPropertyValue(`--am-${name}`).trim() || fallback;
     const size = (name, fallback) => { const n = parseFloat(value(name, "")); return n > 0 ? n : fallback; };
-    return { fontFamily: css.fontFamily,
+    return { fontFamily: css.fontFamily, chartPaddingRight: size("chart-padding-right", 20),
       axisSize: size("axis-font-size", 10), axisColor: value("axis-color", "#97afd1"), axisWeight: value("axis-font-weight", "400"),
       teamSize: size("team-font-size", 11), teamColor: value("team-color", "#b6c9e9"), teamWeight: value("team-font-weight", "500"),
       labelSize: size("label-font-size", 10), labelColor: value("label-color", "#bacdeb"), labelWeight: value("label-font-weight", "400"),
@@ -32,7 +32,10 @@
   function makeScene(definition) {
     const host = $(definition.id); host.replaceChildren();
     const text = textStyle(host);
-    const root = am5.Root.new(host, { fontFamily: text.fontFamily, fontSize: text.labelSize, ariaLabel: definition.title });
+    // The library's safe resolution forces 1x canvases on iOS. These compact XY
+    // charts can render at device pixel density without stretching a 1x bitmap.
+    const root = am5.Root.new(host, { fontFamily: text.fontFamily, fontSize: text.labelSize, ariaLabel: definition.title,
+      ...(definition.nativeResolution ? { useSafeResolution: false } : {}) });
     root.fps = 30;
     const theme = am5.Theme.new(root);
     theme.rule("Label").setAll({ fill: color(text.labelColor), fontSize: text.labelSize, fontFamily: text.fontFamily, fontWeight: text.labelWeight });
@@ -100,7 +103,7 @@
     const scene = makeScene(definition), root = scene.root, palette = am5.ColorSet.new(root, {});
     const positions = Model.POSITIONS.slice(0, 4);
     legend(scene, positions.map((pos, index) => ({ text: pos, fill: palette.getIndex(index) })));
-    const chart = xy(scene, { paddingLeft: 9, paddingRight: 57, paddingTop: 4 });
+    const chart = xy(scene, { paddingLeft: 9, paddingRight: scene.text.chartPaddingRight, paddingTop: 4 });
     const xr = am5xy.AxisRendererX.new(root, { minGridDistance: 65 }), yr = am5xy.AxisRendererY.new(root, { minGridDistance: 1, inversed: true });
     axisStyle(scene, xr); axisStyle(scene, yr, true); yr.labels.template.setAll({ paddingTop: 0, paddingBottom: 0, paddingRight: 12 });
     yr.grid.template.set("forceHidden", true);
@@ -167,7 +170,7 @@
     legend(scene, [{ text: "EXPECTED", symbol: "○", fill: color(0xd4e4ff) }, { text: "ACTUAL", symbol: "●", fill: color(0xd4e4ff) },
       { text: "HIGHEST FPA", gradient: treatments.highest.css }, { text: "UPPER FPA", gradient: treatments.upper.css },
       { text: "LOWER FPA", gradient: treatments.lower.css }, { text: "LOWEST FPA", gradient: treatments.lowest.css }]);
-    const chart = xy(scene, { paddingLeft: 9, paddingRight: 90, paddingTop: 4 });
+    const chart = xy(scene, { paddingLeft: 9, paddingRight: scene.text.chartPaddingRight, paddingTop: 4 });
     const xr = am5xy.AxisRendererX.new(root, { minGridDistance: 65 }), yr = am5xy.AxisRendererY.new(root, { minGridDistance: 1, inversed: true });
     axisStyle(scene, xr); axisStyle(scene, yr, true); yr.labels.template.setAll({ paddingTop: 0, paddingBottom: 0, paddingRight: 28 });
     yr.grid.template.setAll({ strokeOpacity: .04, location: .5 });

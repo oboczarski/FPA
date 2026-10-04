@@ -8,7 +8,14 @@ The page has one desktop grid with these direct children in reading order:
 | 2 | Positional stacked scoring bars | Matchup heatmap |
 | 3 | Actual-versus-expected dumbbells | Polar matchup scatter |
 
-At 1100px and below the panels stack in that order. The user's overall 640px chart-body heights for stacked bars and dumbbells are retained, including the headings and legends moved out of the canvas. Their minimum canvas widths remain 630px. The polar chart body keeps its 700px desktop / 850px narrow-screen height and its 600px minimum canvas width. Canvas regions fill the remaining space within these bodies, avoiding extra panel height from the HTML headings. These remain editable in chart-lab.css. The bullet-ranking panel, renderer, readout, and unused suppression calculations have been removed.
+At 1100px and below the panels stack in that order. The current chart-body heights are 610px for stacked bars and dumbbells, including their HTML headings and legends. The polar chart body is 628px desktop / 480px at 1100px and below. All three canvas hosts use the available panel width without a fixed minimum width. Canvas regions fill the remaining space within these bodies, avoiding extra panel height from the HTML headings. These remain editable in chart-lab.css. The bullet-ranking panel, renderer, readout, and unused suppression calculations have been removed.
+
+The two XY charts use useSafeResolution: false so iOS does not reduce their canvas rendering to 1x; native device pixel density keeps the chart text and bars sharp. Polar rendering retains its existing resolution policy. At 620px and below, and on touch layouts up to 1100px (including phone landscape), their --am-chart-padding-right is reduced from 57px to 36px for stacked bars and from 90px to 54px for dumbbells. This expands the plot while reserving room for total labels and the delta column. The existing CSS-settings refresh reapplies padding when crossing these breakpoints without changing the data, selection, or axis bounds.
+
+The footers use the requested copy exactly:
+
+- Stacked bars: "Each stack totals fantasy points against, per game. Select a segment to breakdown by position."
+- Dumbbells: "Hollow Ring → Expected FPA  |  Filled Dot → Actual FPA  |  Δ →  (actual - expected)."
 
 ## CSS text styling
 
@@ -88,5 +95,6 @@ Primary implementation references:
 - [Official dumbbell demo](https://www.amcharts.com/demos/dumbbell-plot/)
 - [Gradients](https://www.amcharts.com/docs/v5/concepts/colors-gradients-and-patterns/gradients/)
 - [Color brightening](https://www.amcharts.com/docs/v5/reference/color/)
+- [Root safe resolution](https://www.amcharts.com/docs/v5/getting-started/root-element/#Safe_resolution)
 - [Text styling](https://www.amcharts.com/docs/v5/concepts/formatters/text-styling/)
 - [Radar axes](https://www.amcharts.com/docs/v5/charts/radar-chart/radar-axes/)

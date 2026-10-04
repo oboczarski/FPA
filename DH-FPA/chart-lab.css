@@ -12,7 +12,8 @@
   --am-center-font-size:13px; --am-center-team-font-size:27px; --am-center-detail-font-size:10px;
   --am-center-color:#c7daf9; --am-center-font-weight:500;
 }
-#labDumbbellPanel { --am-label-font-size:8px; }
+#labBreakdownPanel { --am-chart-padding-right:57px; }
+#labDumbbellPanel { --am-label-font-size:8px; --am-chart-padding-right:90px; }
 .chartLab .labCard { overflow:hidden; border-radius:18px; border-color:#b1c5ff29; background:radial-gradient(750px 400px at 0% 0%,#569fff0c,transparent 75%),radial-gradient(650px 400px at 100% 100%,#a266f50b,transparent 75%),linear-gradient(160deg,#122139ed,#081222f2 65%,#0e132af0); box-shadow:0 16px 42px #02051344,inset 0 1px 0 #d3e5ff0d; }
 .chartLab .labCard::before { background:linear-gradient(125deg,#dcf3ff07,transparent 45%); }
 .chartLab .labCard::after { content:""; position:absolute; top:0; left:22px; right:22px; height:1px; pointer-events:none; background:linear-gradient(90deg,transparent,#74dfff70,#b59bff60,transparent); }
@@ -67,5 +68,10 @@
   .chartLab .labSubtitle { font-size:8px; }
   .chartLab .labLegend { gap:5px 11px; font-size:9px; }
   .chartLab .labReadout { gap:6px 12px; font-size:10px; }
+}
+@media (max-width:620px), (max-width:1100px) and (pointer:coarse) {
+  /* Keep space for totals and the delta column without the desktop gutter. */
+  #labBreakdownPanel { --am-chart-padding-right:36px; }
+  #labDumbbellPanel { --am-chart-padding-right:54px; }
 }
 @media print { .chartLab .labScroll { overflow:visible; } }
