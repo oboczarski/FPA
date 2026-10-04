@@ -22,7 +22,7 @@
 .chartLab .labCard--polar { background:radial-gradient(circle at 50% 46%,#4573d90d,transparent 55%),linear-gradient(160deg,#101f34ef,#081223f5 65%,#171429ee); }
 .chartLab .labCaption { display:flex; flex-wrap:wrap; align-items:center; gap:9px; padding:14px var(--lab-heading-inset) 0; color:#9dafcd; font-size:9px; font-weight:500; letter-spacing:1.2px; }
 .chartLab .labNumber { display:inline-flex; align-items:center; justify-content:center; width:24px; height:22px; border:1px solid #c1d8ff25; border-radius:7px; background:linear-gradient(145deg,#a9d7ff12,#9388ff0a); color:#c1d4f9; font-size:10px; letter-spacing:0; font-variant-numeric:tabular-nums; }
-.chartLab .labHeading { padding:12px var(--lab-heading-inset) 5px; }
+.chartLab .labHeading {padding: 2px var(--lab-heading-inset) 5px;}
 .chartLab .labTitle { margin:0 0 7px; color:#e2ebff; font:500 19px/1.35 "MuseoModerno",var(--font); letter-spacing:-.35px; }
 .chartLab .labTitleRow { display:flex; flex-wrap:nowrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:7px; }
 .chartLab .labTitleRow .labTitle { min-width:0; margin:0; white-space:nowrap; }
@@ -71,8 +71,8 @@
   .chartLab .labCaption { padding-top:11px; gap:6px; font-size:7px; letter-spacing:.6px; }
   .chartLab .labTitle { font-size:17px; }
   .chartLab .labTitleRow { gap:6px; }
-  .chartLab .labTitleRow .chartPositionToggle { gap:1px; }
-  .chartLab .labTitleRow .chartPositionToggle button { min-width:22px; padding:2px; font-size:9px; }
+  .chartLab .labTitleRow .chartPositionToggle {gap:1px;margin-right: -9px;}
+  .chartLab .labTitleRow .chartPositionToggle button {min-width: 30px;padding: 3px;font-size:9px;}
   .chartLab .labSubtitle { font-size:8px; }
   .chartLab .labLegend { gap:5px 11px; font-size:9px; }
   .chartLab .labLegendSortRow { height:28.5px; gap:6px; }
