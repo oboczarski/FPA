@@ -1,6 +1,6 @@
 # 2026 Matchups
 
-The static app lives in `DH-FPA/index.html`. It uses the supplied **FPF.csv** for season actual/expected totals, averages, and ranks, and **FPAv2.csv** for player scores and individual games. The updated `2026-Wkly - FPA (2).csv` replaces FPAv2.csv under the existing filename, byte for byte. Both files currently cover three games per team in Weeks 1–3. Historical CSVs remain inactive.
+The static app lives in `DH-FPA/index.html`. It uses the supplied **FPF.csv** for season actual/expected totals, averages, and ranks, and **FPAv2.csv** for player scores and individual games. The updated `2026-Wkly - FPA (2).csv` replaces FPAv2.csv under the existing filename, byte for byte. Both files currently cover three games per team in Weeks 1–3. Superseded CSVs have been removed; only the two active source CSVs and their generated bundle remain.
 
 ## Current app
 
@@ -53,6 +53,10 @@ The replacement FPAv2 contains 1,255 rows: 1,233 assigned results and 22 with no
 FPF has 32 unique teams, 30 numeric metric columns, and three opponent columns. Every opponent link agrees with the updated weekly source, and all 160 actual totals agree within one-decimal rounding. The corrected `2026-Wkly - FPF.csv` replaces FPF.csv byte for byte and updates WRvs, WRvX, and WRvRK for all 32 teams. All other supplied fields are unchanged.
 
 See [the migration receipt](docs/2026-fpf-migration.md) for source ownership and reproducible checks.
+
+## Connecting to the main app
+
+Copy the complete `DH-FPA/` directory as the self-contained page, preserving its relative file paths. `index.html` loads its own styles, scripts, bundled data, team logos, and local chart libraries; no build step is required. Keep the amCharts license and provenance files with the page. Google fonts have system-font fallbacks.
 
 ## Local use and data maintenance
 

@@ -9,4 +9,4 @@ The original LICENSE was copied from the same version's official npm package:
 
 `provenance.json` records each file's source, byte length, and SHA-256 checksum. The application retains the library's built-in branding and original copyright notices. No license key or branding suppression is configured.
 
-Only core, XY, radar, hierarchy, Animated, and Dark bundles are included. No exporting plugin is loaded.
+Only core, XY, radar, Animated, and Dark bundles are included. No exporting plugin is loaded.

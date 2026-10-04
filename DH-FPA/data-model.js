@@ -202,11 +202,6 @@
     };
   }
 
-  function recentSpan(model, length = 2) {
-    const span = Math.max(1, Math.trunc(Number(length) || 2));
-    return { from: Math.max(model.minWeek, model.maxWeek - span + 1), to: model.maxWeek };
-  }
-
   function inScope(game, { from = 1, to = Infinity, venue = "all" } = {}) {
     return game.week >= from && game.week <= to && (venue === "all" || game.venue === venue);
   }
@@ -274,17 +269,6 @@
       (!hideZero || row.cents !== 0) && (!Number.isFinite(minPoints) || row.cents >= Math.round(minPoints * 100)) &&
       (!search || [row.player, row.playerTeam, TEAM_NAMES[row.playerTeam], row.vs].filter(Boolean).some(value => value.toLowerCase().includes(search)))
     );
-  }
-
-  function compare(season, recent, team, pos) {
-    const a = season.byTeam.get(team)?.metrics[pos] ?? emptyMetric();
-    const b = recent.byTeam.get(team)?.metrics[pos] ?? emptyMetric();
-    return {
-      season: a, recent: b,
-      deltaPoints: a.avg !== null && b.avg !== null ? b.avg - a.avg : null,
-      // Ranks from different-sized pools are not directly comparable.
-      deltaRank: a.rank !== null && b.rank !== null && a.pool === b.pool ? b.rank - a.rank : null,
-    };
   }
 
   // FPF publishes season-to-date matchup summaries. Every one of its six
@@ -380,5 +364,5 @@
     }));
   }
 
-  return Object.freeze({ POSITIONS, TEAM_NAMES, TEAMS, REQUIRED_COLUMNS, canonicalTeam, parseOpponent, parseCSV, readSource, recentSpan, summarize, selectResults, compare, inScope, readFPF, matchupAnalysis, summaryDifferences });
+  return Object.freeze({ POSITIONS, TEAM_NAMES, TEAMS, REQUIRED_COLUMNS, canonicalTeam, parseOpponent, parseCSV, readSource, summarize, selectResults, inScope, readFPF, matchupAnalysis, summaryDifferences });
 });

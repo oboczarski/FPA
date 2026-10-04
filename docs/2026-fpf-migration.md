@@ -46,7 +46,7 @@ Seven teams have a 0.1 difference between the sum of rounded position averages a
 
 ## Focused verification
 
-The existing data/chart suites contain 49 checks covering source integrity, all 960 FPF metric values, parser aliases, missing/zero values, rank preservation, source checksums, player filters, stack values, dumbbell sorting/gradients/bounds, and polar opponent logos/spoke alignment. All passed. Independent Python CSV/Decimal/Fraction reconciliation passed for 2,880 weekly defense-position cases across 18 scopes, 960 FPF values, and 96 opponent links. Browser and visual acceptance remain user-owned; no preview was opened.
+The existing data/chart suites contain 47 checks covering source integrity, all 960 FPF metric values, parser aliases, missing/zero values, rank preservation, source checksums, player filters, stack values, dumbbell sorting/gradients/bounds, and polar opponent logos/spoke alignment. All passed. Independent Python CSV/Decimal/Fraction reconciliation passed for 2,880 weekly defense-position cases across 18 scopes, 960 FPF values, and 96 opponent links. Browser and visual acceptance remain user-owned; no preview was opened.
 
 Reproduce with:
 

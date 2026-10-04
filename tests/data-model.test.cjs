@@ -99,7 +99,7 @@ test("ranking retains unrounded averages rather than tying displayed decimals", 
   assert.equal(summary.byTeam.get("TB").metrics.QB.rank, 1);
   assert.equal(summary.byTeam.get("NYG").metrics.QB.rank, 2);
 });
-test("venue filters affect summaries, player results and recent comparisons consistently", () => {
+test("venue filters affect summaries and player results consistently", () => {
   const home = Data.summarize(source, { venue: "home" });
   const away = Data.summarize(source, { venue: "away" });
   assert.equal(home.byTeam.get("BAL").metrics.QB.avg, 22.38);
@@ -109,22 +109,12 @@ test("venue filters affect summaries, player results and recent comparisons cons
   assert.ok(Data.selectResults(source, { team: "BAL", venue: "home" }).every(row => row.vs === "@ BAL"));
   near(home.league.ALL.total + away.league.ALL.total, 7677.18);
 });
-test("recent windows derive from the actual latest week and support a single week", () => {
-  assert.deepEqual(Data.recentSpan(source, 2), { from: 2, to: 3 });
-  assert.deepEqual(Data.recentSpan(source, 1), { from: 3, to: 3 });
-  assert.deepEqual(Data.recentSpan(source, 8), { from: 1, to: 3 });
-  const model = fixture(["1,A,QB,1,vs TB", "4,A,QB,2,vs TB"]);
-  assert.deepEqual(Data.recentSpan(model, 2), { from: 3, to: 4 });
-});
+
 test("no matching game is unavailable rather than zero or a rank", () => {
   const stat = Data.summarize(source, { from: 4, to: 4 }).byTeam.get("TB").metrics.QB;
   assert.deepEqual(stat, { total: null, avg: null, games: 0, rank: null, pool: 0, rankOrder: "ascending" });
 });
-test("rank changes are unavailable when comparison cohorts differ", () => {
-  const model = fixture(["1,A,QB,10,vs TB", "2,A,QB,20,vs TB", "1,B,QB,30,@ NYG"]);
-  const compared = Data.compare(Data.summarize(model), Data.summarize(model, { from: 2, to: 2 }), "TB", "QB");
-  assert.equal(compared.deltaRank, null); assert.equal(compared.deltaPoints, 5);
-});
+
 test("five required columns are sufficient; optional IDs, TM, age and player ranks are not required", () => {
   const model = fixture(["1,Sample,QB,12.34,vs TB"]);
   assert.equal(model.results[0].playerTeam, null); assert.equal(model.audit.matchups, null);
