@@ -275,6 +275,7 @@
     }).join("") : '<tr><td colspan="6">No recorded games in this venue.</td></tr>'}${placeholder}</tbody>`;
   }
   function renderHeatmap() {
+    document.querySelectorAll("[data-heat-order]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.heatOrder === state.heatSort.pos)));
     const sorted = [...analysis.actual.rows].sort((a, b) => {
       const first = a.metrics[state.heatSort.pos].avg, second = b.metrics[state.heatSort.pos].avg;
       if (first === null || second === null) return first === second ? a.team.localeCompare(b.team) : first === null ? 1 : -1;
@@ -320,7 +321,6 @@
   function choose(team, pos = state.pos) {
     if (!model.defenses.includes(team) || !POSITIONS.includes(pos)) return;
     if (state.team !== team || state.pos !== pos) state.query = "";
-    if (state.pos !== pos) state.heatSort.pos = pos;
     state.team = team; state.pos = pos; render();
   }
   function hideTooltip() { $("chartTooltip").hidden = true; }
@@ -363,6 +363,9 @@
       } else if (target.dataset.position) choose(state.team, target.dataset.position);
       else if (target.dataset.team || target.dataset.chartTeam) choose(target.dataset.team || target.dataset.chartTeam, target.dataset.cellPosition || state.pos);
       else if (target.dataset.scatterMode) { state.mode = target.dataset.scatterMode; hideTooltip(); renderScatter(); }
+      else if (target.dataset.heatOrder && POSITIONS.includes(target.dataset.heatOrder)) {
+        state.heatSort = { pos: target.dataset.heatOrder, direction: "desc" }; renderHeatmap();
+      }
       else if (target.dataset.heatSort) {
         state.heatSort.direction = state.heatSort.pos === target.dataset.heatSort && state.heatSort.direction === "desc" ? "asc" : "desc";
         state.heatSort.pos = target.dataset.heatSort; renderHeatmap();

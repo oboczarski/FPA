@@ -143,6 +143,8 @@ svg { display:block; }
 .chartHeaderControls { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:7px; margin-left:auto; }
 .positionToggle.chartPositionToggle { flex-shrink:0; gap:2px; padding:2px; border-radius:9px; }
 .positionToggle.chartPositionToggle button {min-width:28px;padding:4px 6px;font-size:9px;border-radius:6px;}
+.chartSortControls { display:flex; align-items:center; flex:none; gap:6px; margin-left:auto; white-space:nowrap; }
+.chartSortLabel { font-size:8px; color:var(--dim); letter-spacing:.3px; }
 .chartHeaderControls .chartLegend { margin-left:0; white-space:nowrap; }
 .legendActual { width:7px; height:7px; border-radius:2px; background:var(--position); box-shadow:0 0 6px color-mix(in srgb,var(--position) 25%,transparent); }
 .legendExpected { width:14px; border-top:2px dashed #aabaff; }
@@ -196,6 +198,9 @@ th button { color:inherit; font:inherit; border:0; padding:1px 0; width:100%; te
 .playerFooter span:last-child { color:#bbc0d8; }
 .panelHeader {display:flex;justify-content:space-between;align-items:center;gap:10px;padding: 14px 12px 7px;}
 .comparisonPanel .panelHeader,.rankingsPanel .panelHeader { flex-wrap:wrap; }
+.rankingsPanel .heatmapHeader { flex-wrap:nowrap; gap:8px; }
+.heatmapHeading { min-width:0; }
+.heatmapHeading .heatLegend { line-height:1; }
 .comparisonChart { padding:0 12px; }
 .comparisonDetail { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:6px 12px; border-top:1px solid #aabbff14; color:var(--dim); font-size:10px; }
 .comparisonDetail strong { color:#d3daf5; font-weight:550; margin-left:3px; }
@@ -335,6 +340,9 @@ dialog::backdrop { background:rgba(0,0,0,.58); backdrop-filter:blur(5px); }
   .opponentsTable th,.opponentsTable td { font-size:9px; padding:4px 5px; }
   .opponentsTable th { font-size:8px; }
   .heatLegend { font-size:8px; }
+  .chartSortControls { gap:4px; }
+  .chartSortLabel { font-size:7px; }
+  .chartSortControls .chartPositionToggle button { min-width:22px; padding:2px 3px; font-size:8px; }
   .heatTableScroll {margin-inline:10px;max-height: 700px;}
   .heatCell { font-size:10px; }
   .heatTable th:first-child { width:65px; }

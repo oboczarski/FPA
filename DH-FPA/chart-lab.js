@@ -9,6 +9,7 @@
     { id: "labPolar", title: "Every game, on its defense’s spoke", kind: "position", create: polarScatter },
   ];
   let current = null, snapshot = null, observer = null, styleObserver = null, styleTimer = null;
+  let stackSort = "ALL";
   const fmt = (n, digits = 1) => Number.isFinite(n) ? n.toFixed(digits) : "—";
   const signedPoints = n => Number.isFinite(n) ? `${n > 0 ? "+" : ""}${fmt(Math.abs(n) < 1e-9 ? 0 : n, 1)}` : "—";
   const color = value => am5.color(value);
@@ -145,8 +146,12 @@
     });
     scene.setData = view => {
       scene.markers.clear();
-      scene.subtitle.textContent = `ALL POSITIONS · FPA PER GAME · 32 DEFENSES · HIGHEST SCORING FIRST · ${venueText().toUpperCase()}`;
-      const rows = [...view.breakdown].sort((a, b) => b.avg - a.avg || a.team.localeCompare(b.team));
+      scene.subtitle.textContent = `ALL POSITIONS · FPA PER GAME · 32 DEFENSES · SORT: ${stackSort} ↓ · ${venueText().toUpperCase()}`;
+      const rows = [...view.breakdown].sort((a, b) => {
+        const first = a[stackSort], second = b[stackSort];
+        if (!Number.isFinite(first) || !Number.isFinite(second)) return Number.isFinite(first) ? -1 : Number.isFinite(second) ? 1 : a.team.localeCompare(b.team);
+        return second - first || a.team.localeCompare(b.team);
+      });
       const bounds = Model.extent(rows.map(row => row.avg), 10, true);
       xAxis.setAll({ min: bounds.min, max: Math.max(10, bounds.max) }); yAxis.data.setAll(rows);
       seriesByPos.forEach(series => series.data.setAll(rows));
@@ -343,7 +348,7 @@
         scene.root.dispose(); scenes.delete(definition.id); scene = null;
       }
       scene ||= definition.create(definition);
-      const signature = `${current.venue}:${definition.kind === "position" ? current.pos : "all"}`;
+      const signature = `${current.venue}:${definition.kind === "position" ? current.pos : stackSort}`;
       if (scene.signature !== signature) { scene.setData(snapshot); scene.signature = signature; }
       scene.select();
     } catch (error) {
@@ -377,6 +382,13 @@
     } else definitions.forEach(definition => observed.add(definition.id));
   }
   document.addEventListener("click", event => {
+    const sortButton = event.target.closest("[data-stack-sort]");
+    if (sortButton && Model.POSITIONS.includes(sortButton.dataset.stackSort)) {
+      stackSort = sortButton.dataset.stackSort;
+      document.querySelectorAll("[data-stack-sort]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.stackSort === stackSort)));
+      refresh(definitions.find(definition => definition.id === "labBreakdown"));
+      return;
+    }
     const button = event.target.closest("[data-lab-focus]");
     const scene = button && scenes.get(button.dataset.labFocus);
     if (scene) { scene.spotlight = !scene.spotlight; scene.select(); }

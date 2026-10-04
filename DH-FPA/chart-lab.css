@@ -32,6 +32,9 @@
 .chartLab .labLegend i.labLegendSymbol { width:14px; height:auto; background:none; color:var(--legend-color); font-style:normal; font-size:14px; line-height:1; text-align:center; }
 .chartLab .labLegendRow { display:flex; align-items:center; justify-content:space-between; gap:9px; padding-right:var(--lab-heading-inset); }
 .chartLab .labLegendRow .labLegend { flex:1; }
+.chartLab .labLegendSortRow { flex:none; height:30px; gap:10px; padding:0 var(--lab-heading-inset); overflow-x:auto; scrollbar-width:none; }
+.chartLab .labLegendSortRow::-webkit-scrollbar { display:none; }
+.chartLab .labLegendSortRow .labLegend { min-width:max-content; padding:0; flex-wrap:nowrap; gap:10px; white-space:nowrap; }
 .chartLab .labFocusButton { flex:none; padding:5px 8px; margin-bottom:7px; border:1px solid #adcfff38; border-radius:6px; background:#8eb8f512; color:#bad3f5; font:500 10px var(--font); }
 .chartLab .labFocusButton[aria-pressed="true"] { background:#8eb8f533; border-color:#adcfff88; }
 .chartLab .labBody { display:flex; flex-direction:column; }
@@ -67,6 +70,10 @@
   .chartLab .labTitle { font-size:17px; }
   .chartLab .labSubtitle { font-size:8px; }
   .chartLab .labLegend { gap:5px 11px; font-size:9px; }
+  .chartLab .labLegendSortRow { height:28.5px; gap:6px; }
+  .chartLab .labLegendSortRow .labLegend { gap:6px; font-size:8px; }
+  .chartLab .labLegendSortRow .labLegend span { gap:3px; }
+  .chartLab .labLegendSortRow .labLegend i { width:7px; height:5px; }
   .chartLab .labReadout { gap:6px 12px; font-size:10px; }
 }
 @media (max-width:620px), (max-width:1100px) and (pointer:coarse) {

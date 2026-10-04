@@ -49,9 +49,11 @@ The page detects inline style/class changes on chart panels, page-level class ch
 
 ## Always-ALL positional stacks
 
-All 32 defenses have one horizontal bar. Four segments preserve their QB/RB/WR/TE FPA per game and reconcile to ALL for every supplied venue scope. ALL is never added as a fifth segment. The view always shows all four positions, regardless of the dashboard position, and has no position filter. It still follows defense venue, highlights the selected defense, and allows a segment to select its team and position in the rest of the dashboard.
+All 32 defenses have one horizontal bar. Four segments preserve their QB/RB/WR/TE FPA per game and reconcile to ALL for every supplied venue scope. ALL is never added as a fifth segment. The view always shows all four positions, regardless of the dashboard position. A QB/RB/WR/TE/ALL sort-by bar sits to the right of the legend in its existing 30px row (28.5px on mobile). It only reorders the bars by the chosen position's FPA/game, highest first, without hiding segments or changing the dashboard selection. This sort choice persists through defense, venue, position, and CSS changes. It still follows defense venue, highlights the selected defense, and allows a segment to select its team and position in the rest of the dashboard.
 
-Teams sort by ALL FPA/game from highest to lowest, with alphabetical ties. End labels show ALL scoring to two decimals. Tooltips preserve each position's exact average, original rank, opponent expectation, and game count. Zero values keep their real zero length. No source or scoring aggregate changes.
+Teams default to sorting by ALL FPA/game from highest to lowest, with alphabetical ties and unavailable values last. End labels continue to show ALL scoring to two decimals for every sort choice. Tooltips preserve each position's exact average, original rank, opponent expectation, and game count. Zero values keep their real zero length. No source or scoring aggregate changes.
+
+The heatmap's Tougher/Easier scale is aligned with the title on the left; its labeled sort-by bar remains on the right. Those controls use the heatmap's own sort state, synchronize with the existing sortable column headers, and do not change the dashboard position. The position bar selects highest-first order; column headers still allow toggling direction. All five columns remain visible. No additional stacked-chart height is introduced.
 
 ## Dumbbells
 
