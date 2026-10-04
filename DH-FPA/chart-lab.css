@@ -34,13 +34,13 @@
 .chartLab .labFocusButton { flex:none; padding:5px 8px; margin-bottom:7px; border:1px solid #adcfff38; border-radius:6px; background:#8eb8f512; color:#bad3f5; font:500 10px var(--font); }
 .chartLab .labFocusButton[aria-pressed="true"] { background:#8eb8f533; border-color:#adcfff88; }
 .chartLab .labBody { display:flex; flex-direction:column; }
-.chartLab .labBody--breakdown,.chartLab .labBody--dumbbell { height:640px; }
-.chartLab .labBody--polar { height:700px; }
+.chartLab .labBody--breakdown,.chartLab .labBody--dumbbell {height: 610px;}
+.chartLab .labBody--polar {height: 628px;}
 .chartLab .labBody > .labScroll { flex:1; min-height:0; }
-.chartLab .labCanvas { position:relative; width:100%; height:100%; font-family:var(--am-font-family); }
-.chartLab .labCanvas--breakdown { min-width:630px; }
-.chartLab .labCanvas--dumbbell { min-width:630px; }
-.chartLab .labCanvas--polar { min-width:600px; }
+.chartLab .labCanvas {position:relative;width: 100%;height:100%;font-family:var(--am-font-family);}
+.chartLab .labCanvas--breakdown {min-width: AUTO;}
+.chartLab .labCanvas--dumbbell {min-width: auto;}
+.chartLab .labCanvas--polar {min-width: auto;}
 .chartLab .labScroll { overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; scrollbar-color:#4e5d8080 transparent; }
 .chartLab .labScroll::-webkit-scrollbar { height:6px; }
 .chartLab .labScroll::-webkit-scrollbar-thumb { background:#4e5d8080; border-radius:9px; }
@@ -57,7 +57,7 @@
 @media (max-width:1100px) {
   .matchupLayout.chartLab { grid-template-columns:minmax(0,1fr); }
   .chartLab .labScrollHint { display:inline; }
-  .chartLab .labBody--polar { height:850px; }
+  .chartLab .labBody--polar {height: 480px;}
 }
 @media (max-width:620px) {
   .chartLab { --lab-heading-inset:20px; --am-team-font-size:10px; }
